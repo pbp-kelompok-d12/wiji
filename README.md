@@ -25,11 +25,11 @@ Menerima jadwal, memperbarui status pemeriksaan, memasukkan hasil pemeriksaan, d
 
 ## Anggota Kelompok
 
-1. [Nama] — [NPM]
-2. [Nama] — [NPM]
-3. [Nama] — [NPM]
-4. [Nama] — [NPM]
-5. [Nama] — [NPM]
+1. Rania Fauziah Nur Wahyudi — 2506595070
+2. Muhammad Osman Fardin — 2506541723
+3. Nadya Sekar Kayrana — 2506607133
+4. Yosua Peitho Purba — 2506657402
+5. Piedra Ridwan Azra Pulungan — 2506623055
 
 ## Daftar Modul dan Pembagian
 
@@ -55,7 +55,7 @@ CRUD hasil pemeriksaan yang mencakup pH, kelembapan, tekstur, unsur hara, kontam
 
 **Penanggung jawab:** Yosua Peitho Purba
 
-CRUD informasi tanaman yang mencakup fungsi, kondisi tumbuh, kontaminan yang dapat ditangani, dan ketersediaan di Indonesia. Katalog akan menyediakan minimal 50 initial data.
+CRUD informasi tanaman yang mencakup fungsi, kondisi tumbuh, kontaminan yang dapat ditangani, dan ketersediaannya.
 
 ### Modul E — Rekomendasi dan Rencana Pengelolaan
 
