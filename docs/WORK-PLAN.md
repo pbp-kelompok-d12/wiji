@@ -99,7 +99,9 @@ Menyiapkan proyek Django yang bisa dijalankan seluruh anggota, autentikasi dasar
 - [ ] Role pemilik dan petugas tersedia; admin menggunakan akun staf.
 - [ ] Akun petugas hanya dapat dibuat atau ditentukan oleh admin.
 - [ ] Base template, navbar, pesan, dan struktur CSS bersama tersedia.
+- [ ] Nama app Django disepakati, misalnya `lands`, `inspections`, `soil_results`, `plants`, dan `recommendations`, dengan template di `<app>/templates/<app>/`.
 - [ ] Konfigurasi sensitif tidak ditulis langsung dalam repository.
+- [ ] `TIME_ZONE = "Asia/Jakarta"` dan `USE_TZ = True` sehingga aturan tanggal memakai waktu lokal.
 - [ ] Pemeriksaan Django dan test fondasi lulus.
 - [ ] Semua anggota berhasil menjalankan proyek di perangkat masing-masing.
 
@@ -121,6 +123,7 @@ Pemilik dapat membuat, melihat, mengubah, dan mengarsipkan lahannya. Pencarian a
 - [ ] Pencarian alamat menggunakan Nominatim.
 - [ ] Lahan dapat disimpan sebagai draf jika koordinat belum tersedia.
 - [ ] Lahan tanpa riwayat dapat dihapus; lahan dengan riwayat hanya dapat diarsipkan.
+- [ ] Lahan yang masih punya pesanan aktif tidak dapat diarsipkan.
 - [ ] Tersedia daftar, detail, form tambah, form ubah, dan konfirmasi arsip atau hapus.
 - [ ] Tersedia endpoint JSON dengan pemeriksaan kepemilikan.
 - [ ] Ada filter atau interaksi AJAX/HTMX yang relevan.
@@ -164,17 +167,24 @@ Pemilik dapat membuat pesanan untuk lahannya, melihat perkembangan pesanan, memb
 
 ### Syarat Selesai
 
-- [ ] Form pesanan memuat lahan, jenis pemeriksaan, jadwal yang diajukan, dan catatan.
-- [ ] Pemilik hanya dapat memilih lahan miliknya.
+- [ ] Form pesanan memuat lahan, jenis pemeriksaan, tanggal dan sesi yang diajukan, serta catatan.
+- [ ] Pemilik hanya dapat memilih lahan miliknya yang sudah berkoordinat dan tidak diarsipkan.
+- [ ] Hanya jenis pemeriksaan aktif yang dapat dipilih; tiga jenis awal tersedia lewat seed.
+- [ ] Tanggal usulan paling cepat besok dan paling lambat 30 hari ke depan.
 - [ ] Pesanan baru mempunyai status `Diajukan`.
-- [ ] Satu lahan hanya dapat mempunyai satu pesanan aktif.
+- [ ] Satu lahan hanya dapat mempunyai satu pesanan aktif (status selain `Selesai` dan `Dibatalkan`).
 - [ ] Pemilik dapat melihat daftar dan detail pesanannya.
-- [ ] Pemilik dapat membatalkan sebelum sampel diambil.
-- [ ] Pemilik dapat meminta penjadwalan ulang sebelum sampel diambil.
-- [ ] Pesanan yang sudah diajukan tidak dihapus permanen.
-- [ ] Tersedia endpoint JSON yang hanya menampilkan pesanan yang boleh diakses pengguna.
-- [ ] Ada filter status atau interaksi AJAX/HTMX yang relevan.
-- [ ] Test CRUD, kepemilikan, pembatalan, dan pemesanan aktif ganda lulus.
+- [ ] Pemilik dapat mengubah tanggal usulan dan catatan selama status masih `Diajukan`.
+- [ ] Pemilik dapat membatalkan dengan alasan selama status `Diajukan`, `Dikonfirmasi`, atau `Dijadwalkan`.
+- [ ] Pemilik dapat meminta penjadwalan ulang dengan alasan selama status `Dikonfirmasi` atau `Dijadwalkan`; jadwal usulan diganti dan jadwal final dikosongkan.
+- [ ] Pesanan tidak dihapus permanen; pembatalan menjadi *soft delete*.
+- [ ] Detail pesanan menampilkan linimasa riwayat status.
+- [ ] Tersedia endpoint JSON `GET/POST /inspections/api/orders/`, `GET .../<id>/`, serta aksi `.../<id>/cancel/` dan `.../<id>/reschedule/` yang hanya menampilkan pesanan yang boleh diakses pengguna.
+- [ ] Filter status pada daftar pesanan memakai HTMX tanpa memuat ulang halaman.
+- [ ] Batal dan jadwal ulang memakai form modal HTMX yang memperbarui kartu pesanan.
+- [ ] Dashboard pemilik menampilkan pesanan aktif per lahan dan tombol pesan untuk lahan yang belum punya pesanan.
+- [ ] Tersedia perintah seed untuk tiga jenis pemeriksaan, petugas sintetis, dan sekitar delapan pesanan demo yang mencakup ketujuh status beserta riwayatnya.
+- [ ] Test CRUD, kepemilikan, pembatalan, penjadwalan ulang, pemesanan aktif ganda, dan kebocoran data di endpoint JSON lulus.
 
 ## 06 — Hasil Pemeriksaan Mandiri
 
@@ -213,15 +223,24 @@ Admin dapat menugaskan petugas dan menetapkan jadwal. Petugas dapat memproses pe
 
 ### Syarat Selesai
 
-- [ ] Admin dapat menugaskan satu petugas ke pesanan.
+- [ ] Admin dapat menugaskan satu petugas ke pesanan; penugasan mengubah status menjadi `Dikonfirmasi`.
+- [ ] Admin menetapkan tanggal final; status berubah menjadi `Dijadwalkan`.
 - [ ] Petugas hanya dapat melihat pesanan yang ditugaskan kepadanya.
-- [ ] Status mengikuti urutan `Diajukan → Dikonfirmasi → Dijadwalkan → Sampel Diambil → Diproses → Selesai`.
+- [ ] Petugas dapat mengubah status `Dijadwalkan → Sampel Diambil → Diproses`.
+- [ ] Status mengikuti urutan `Diajukan → Dikonfirmasi → Dijadwalkan → Sampel Diambil → Diproses → Selesai`, dengan `Dibatalkan` sebagai status akhir lain.
 - [ ] Status tidak dapat dilompati atau dikembalikan sembarangan.
-- [ ] Penjadwalan ulang mengembalikan status ke `Dikonfirmasi`.
-- [ ] Waktu kejadian penting disimpan.
-- [ ] Logika transisi dipusatkan dan dipakai oleh halaman HTML serta endpoint JSON.
-- [ ] Perubahan status menggunakan AJAX/HTMX bila sesuai.
-- [ ] Test role, penugasan, transisi valid, dan transisi tidak valid lulus.
+- [ ] Penjadwalan ulang mengembalikan status ke `Dikonfirmasi` tanpa mengganti petugas.
+- [ ] Admin dapat membatalkan pesanan; siapa, kapan, dan alasan pembatalan disimpan.
+- [ ] Admin dapat mengganti petugas sebelum `Sampel Diambil` tanpa mengubah status; pergantiannya tercatat di riwayat.
+- [ ] Setiap perubahan status tercatat di `InspectionOrderEvent` beserta pelaku, alasan, dan waktunya.
+- [ ] Logika transisi dipusatkan dan dipakai oleh halaman HTML, endpoint JSON, dan Modul C.
+- [ ] Admin mengelola pesanan lewat halaman staf Wiji; status di Django Admin hanya dapat dibaca.
+- [ ] Petugas tidak melihat email atau kontak pemilik.
+- [ ] Tersedia endpoint JSON `.../<id>/transition/` untuk petugas dan admin.
+- [ ] Tombol status berikutnya milik petugas memperbarui badge memakai HTMX.
+- [ ] Dashboard petugas menampilkan tugas mendatang; dashboard admin menampilkan jumlah pesanan `Diajukan` yang belum ditugaskan.
+- [ ] Test role, penugasan, pergantian petugas, transisi valid dan tidak valid per role, pencatatan riwayat, akses halaman staf, penyembunyian kontak pemilik, dan pemanggilan dari Modul C lulus.
+- [ ] Coverage app `inspections` minimal 80%.
 
 ## 08 — Hasil Pemeriksaan dari Petugas
 
@@ -238,10 +257,11 @@ Petugas dapat membuat hasil draf untuk pesanan yang ditugaskan, melengkapinya, l
 
 - [ ] Satu pesanan menghasilkan maksimal satu hasil final.
 - [ ] Petugas hanya dapat mengisi hasil untuk tugasnya sendiri.
+- [ ] Draf hasil hanya dapat dibuat ketika pesanan berstatus `Diproses`.
 - [ ] Hasil draf dapat diubah petugas.
-- [ ] Finalisasi ditolak jika data wajib belum lengkap.
+- [ ] Finalisasi ditolak jika data wajib sesuai jenis pemeriksaan belum lengkap.
 - [ ] Hasil final tidak dapat diubah melalui alur biasa.
-- [ ] Pesanan menjadi `Selesai` setelah hasil difinalkan.
+- [ ] Pesanan menjadi `Selesai` setelah hasil difinalkan, lewat fungsi transisi Modul B dalam transaksi yang sama.
 - [ ] Pemilik dapat membaca hasil final untuk lahannya.
 - [ ] Koreksi hasil final hanya dapat dilakukan admin dan alasannya dicatat.
 - [ ] Tersedia endpoint JSON yang mengikuti aturan akses yang sama.
