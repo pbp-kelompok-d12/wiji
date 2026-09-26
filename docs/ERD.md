@@ -15,6 +15,8 @@ erDiagram
 
     INSPECTION_TYPE ||--o{ INSPECTION_ORDER : dipilih_untuk
     INSPECTION_ORDER o|--o| SOIL_RESULT : menghasilkan
+    INSPECTION_ORDER ||--o{ INSPECTION_ORDER_EVENT : mencatat
+    USER ||--o{ INSPECTION_ORDER_EVENT : melakukan
 
     SOIL_RESULT ||--o{ NUTRIENT_MEASUREMENT : memuat
     SOIL_RESULT ||--o{ CONTAMINANT_FINDING : memuat
@@ -39,7 +41,7 @@ erDiagram
 |---|---|
 | Akun dan fitur bersama | `User` dan role pengguna |
 | Modul A — Manajemen Lahan | `Land`, `ManagementGoal` |
-| Modul B — Pemesanan Pemeriksaan | `InspectionType`, `InspectionOrder` |
+| Modul B — Pemesanan Pemeriksaan | `InspectionType`, `InspectionOrder`, `InspectionOrderEvent` |
 | Modul C — Hasil Pemeriksaan | `SoilResult`, `NutrientMeasurement`, `ContaminantFinding` |
 | Modul D — Katalog Tanaman | `Plant`, `PlantReference`, `ContaminantType`, `PlantContaminantCapability` |
 | Modul E — Rekomendasi dan Rencana | `RecommendationSnapshot`, `ManagementPlan` |
@@ -56,4 +58,9 @@ erDiagram
 - Satu snapshot rekomendasi memakai satu lahan, hasil pemeriksaan, tujuan utama, dan tanaman.
 - Satu snapshot dapat disimpan menjadi maksimal satu rencana pengelolaan.
 - `ContaminantType` dimiliki Modul D dan digunakan Modul C sebagai data referensi.
+- `InspectionOrder` tidak menyimpan pemilik secara langsung. Pemilik pesanan dibaca dari `Land.owner`, sedangkan relasi ke `User` di pesanan adalah petugas yang ditugaskan.
+- `InspectionOrder` menyimpan jadwal usulan (tanggal dan sesi dari pemilik) dan jadwal final (dari admin, kosong sampai `Dijadwalkan`).
+- Setiap perubahan penting pada pesanan dicatat sebagai satu `InspectionOrderEvent`: perubahan status, penjadwalan ulang, dan pergantian petugas. Event menyimpan status sebelum dan sesudah, pelaku, catatan atau alasan, serta waktunya. Untuk penjadwalan ulang, event juga menyimpan tanggal lama dan baru.
+- `InspectionType` dikelola admin dan diisi awal dengan tiga jenis bertingkat: Dasar, Unsur Hara, dan Kontaminan. Jenis ini menentukan data wajib saat Modul C memfinalkan hasil.
+- Modul C tidak mengubah status pesanan secara langsung. Saat hasil difinalkan, Modul C memanggil fungsi transisi Modul B untuk mengubah pesanan dari `Diproses` ke `Selesai`.
 - Data yang sudah mempunyai riwayat atau relasi penting diarsipkan dan tidak dihapus permanen.
