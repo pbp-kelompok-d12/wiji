@@ -57,8 +57,8 @@ jobs:
           current_branch=$(git branch --show-current)
           echo "Current branch: $current_branch"
 
-          # Push branch saat ini ke branch main di PWS
-          if ! push_output=$(git push "$PWS_URL" "$current_branch:main" 2>&1); then
+          # Push branch saat ini ke branch master di PWS (PWS ngebuild dari master, bukan main)
+          if ! push_output=$(git push "$PWS_URL" "$current_branch:master" 2>&1); then
             echo "Push failed with output: $push_output"
             echo "Error: Unable to push changes. Please check the error message above and resolve any conflicts manually."
             exit 1
