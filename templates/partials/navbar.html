@@ -1,6 +1,7 @@
 {% load static %}
 {# Link menu nunjuk ke bagian-bagian di landing page #}
-<header class="mx-auto flex h-[84px] w-full max-w-[1440px] items-center gap-6 px-5 md:px-10 xl:px-28">
+<div class="site-header" id="site-header">
+<header class="mx-auto flex h-[72px] w-full max-w-[1440px] items-center gap-6 px-5 md:px-10 xl:px-28">
   <a href="{% url 'core:landing' %}" class="logo-placeholder" aria-label="Wiji, ke beranda">LOGO</a>
 
   <nav class="hidden flex-1 items-center justify-center gap-8 lg:flex" aria-label="Navigasi publik">
@@ -23,3 +24,4 @@
     {% endif %}
   </div>
 </header>
+</div>

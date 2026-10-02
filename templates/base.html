@@ -38,6 +38,8 @@
     };
   </script>
   <link rel="stylesheet" href="{% static 'css/wiji.css' %}">
+  {# Kasih tahu CSS kalau JS aktif, biar animasi .reveal nggak nyembunyiin konten tanpa JS #}
+  <script>document.documentElement.classList.add('js')</script>
 
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
   {% block extra_head %}{% endblock %}
@@ -53,6 +55,7 @@
   </main>
 
   {% block footer %}{% include 'partials/footer.html' %}{% endblock %}
+  <script src="{% static 'js/site.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
