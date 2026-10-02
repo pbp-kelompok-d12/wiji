@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kenali tanahmu, tanam yang tepat{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-[1440px] px-5 md:px-10 xl:px-28">
+
+  {# Hero #}
+  <section class="hero panel panel-dark relative mt-1 flex items-center justify-center">
+    <img src="{% static 'img/hero-tanah.jpg' %}" alt="" class="absolute inset-0 h-full w-full object-cover">
+    <div class="absolute inset-0 bg-gradient-to-b from-forest/70 via-forest/60 to-forest/80"></div>
+
+    <div class="relative flex max-w-[860px] flex-col items-center px-6 py-8 text-center">
+      <p class="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-mint">Pemeliharaan dan pemulihan tanah</p>
+      <h1 class="heading text-balance text-[38px] leading-[1.05] text-white sm:text-5xl lg:text-[60px] lg:leading-[64px]">
+        Kenali tanahmu. <span class="heading-accent text-mint">Tanam yang tepat.</span>
+      </h1>
+      <p class="mt-4 max-w-[540px] text-base leading-[26px] text-on-dark-soft">
+        Catat lahan, periksa tanah, lalu dapatkan rekomendasi tanaman lengkap dengan alasan di balik setiap pilihan.
+      </p>
+      <a href="{% url 'accounts:register' %}" class="btn btn-leaf btn-lead btn-lead--white mt-7 !min-h-14 !text-base">
+        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
+        Daftarkan lahan
+      </a>
+    </div>
+
+    <p class="absolute bottom-3 right-5 text-[11px] text-white/75">Foto: USDA, domain publik</p>
+  </section>
+
+  {# Sumber data #}
+  <section class="flex flex-col gap-3 py-6 md:flex-row md:items-center md:gap-14" aria-label="Sumber data">
+    <p class="w-[130px] shrink-0 text-sm font-bold leading-5">Didukung data terbuka</p>
+    <ul class="heading flex flex-1 flex-wrap items-center justify-between gap-x-8 gap-y-3 text-lg text-ink-soft md:text-[22px]">
+      <li>OpenStreetMap</li>
+      <li>Nominatim</li>
+      <li>Open-Meteo</li>
+      <li class="tracking-[0.04em]">NASA POWER</li>
+    </ul>
+  </section>
+
+  {# Cara kerja #}
+  <section id="cara-kerja" class="scroll-mt-24 py-12 md:py-14">
+    <div class="reveal grid items-end gap-6 md:grid-cols-2 md:gap-16">
+      <h2 class="heading text-3xl md:text-[38px] md:leading-[44px]">
+        Satu tempat untuk mengenal dan <span class="heading-accent">merawat lahanmu</span>
+      </h2>
+      <p class="text-base leading-[26px] text-ink-soft">
+        Wiji menyatukan pencatatan lahan, pemeriksaan tanah, data cuaca dan iklim, katalog tanaman, dan rencana tanam.
+        Kamu tidak hanya menerima daftar tanaman, tetapi juga alasan kenapa tanaman itu cocok.
+      </p>
+    </div>
+
+    <div class="mt-8 grid gap-4 md:grid-cols-12">
+      <article style="--i:0" class="reveal panel panel-dark flex min-h-[224px] flex-col justify-between gap-8 p-6 md:col-span-5">
+        <div class="flex gap-3">
+          <span class="grid size-12 place-items-center rounded-full bg-forest-soft"><img src="{% static 'icons/feature-1.svg' %}" alt="" class="size-6"></span>
+          <span class="grid size-12 place-items-center rounded-full bg-leaf"><img src="{% static 'icons/feature-2.svg' %}" alt="" class="size-6"></span>
+          <span class="grid size-12 place-items-center rounded-full bg-forest-soft"><img src="{% static 'icons/feature-3.svg' %}" alt="" class="size-6"></span>
+        </div>
+        <div>
+          <h3 class="heading text-2xl leading-[30px]">Pemeriksaan tanah tanpa ribet</h3>
+          <p class="mt-2 text-sm leading-[22px] text-on-dark">
+            Masukkan hasil yang sudah kamu punya, atau pesan pemeriksaan. Status pesanan terlihat jelas dari diajukan sampai selesai.
+          </p>
+        </div>
+      </article>
+
+      <article style="--i:1" id="dua-jalur" class="reveal panel panel-leaf relative min-h-[224px] scroll-mt-24 md:col-span-7">
+        <img src="{% static 'img/tunas-muda.jpg' %}" alt="" class="absolute inset-y-0 right-0 h-full w-2/3 object-cover opacity-60">
+        <div class="absolute inset-0 bg-gradient-to-r from-leaf from-35% via-leaf/75 to-leaf/15"></div>
+        <div class="relative flex h-full max-w-[380px] flex-col justify-end gap-2 p-6 pt-24">
+          <p class="eyebrow !text-moss-deep">Fokus utama</p>
+          <h3 class="heading text-2xl leading-[30px]">Jalur Pemeliharaan</h3>
+          <p class="text-sm leading-[22px] text-[color:var(--color-ink-on-leaf)]">
+            Menahan erosi, menjaga kelembapan, menambah bahan organik, dan memperbaiki unsur hara.
+          </p>
+        </div>
+        <p class="absolute bottom-3 right-5 text-[10px] text-[color:var(--color-ink-on-leaf)]/80">Foto: Ksheera Piraati, CC BY 4.0</p>
+      </article>
+
+      <article style="--i:2" class="reveal panel panel-dark flex min-h-[224px] flex-col justify-between gap-6 p-6 md:col-span-6 md:flex-row">
+        <div class="flex flex-col justify-between gap-8 md:max-w-[300px]">
+          <p class="eyebrow !text-mint">Rekomendasi transparan</p>
+          <div>
+            <h3 class="heading text-2xl leading-[30px]">Skor yang bisa dijelaskan</h3>
+            <p class="mt-2 text-sm leading-[22px] text-on-dark">
+              Skor 0–100 dari pH, tekstur, iklim, dan tujuanmu, lengkap dengan alasan dan catatan risiko.
+            </p>
+          </div>
+        </div>
+        {# Contoh skor, cuma ilustrasi #}
+        <div class="flex size-[120px] shrink-0 flex-col items-center justify-center self-center rounded-full border-[3.9px] border-moss md:self-start" aria-hidden="true">
+          <span class="heading text-[36px] leading-none">86</span>
+          <span class="mt-1 text-xs text-on-dark">skor kecocokan</span>
+        </div>
+      </article>
+
+      <article style="--i:3" class="reveal panel panel-sand flex min-h-[224px] flex-col justify-between gap-6 p-6 md:col-span-6">
+        <ul class="flex flex-wrap gap-2.5">
+          <li class="badge badge-chip">Kontaminan terbatas</li>
+          <li class="badge badge-chip">Bersumber jelas</li>
+          <li class="badge badge-chip">Risiko tinggi ke ahli</li>
+        </ul>
+        <div>
+          <p class="eyebrow !text-clay-deep">Dengan hati-hati</p>
+          <h3 class="heading mt-2.5 text-2xl leading-[30px]">Jalur Pemulihan</h3>
+          <p class="mt-2 text-sm leading-[22px] text-clay-ink">
+            Beberapa pasangan tanaman dan kontaminan yang punya sumber. Kasus berisiko tinggi tidak diberi rekomendasi otomatis.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  {# Alur #}
+  <section id="alur" class="scroll-mt-24 py-12 md:py-16">
+    <div class="reveal mx-auto flex max-w-[640px] flex-col items-center gap-4 text-center">
+      <p class="eyebrow">Dari tanah sampai tanaman</p>
+      <h2 class="heading text-4xl md:text-[60px] md:leading-[64px]">
+        Satu alur.<br><span class="heading-accent">Setiap langkah terlihat.</span>
+      </h2>
+      <p class="text-[17px] leading-[27px] text-ink-soft">
+        Pemilik lahan, admin, dan petugas bekerja di alur yang sama. Setiap perubahan status tercatat di riwayat pesanan.
+      </p>
+    </div>
+
+    <div class="reveal panel panel-dark mt-10 grid overflow-hidden lg:grid-cols-[540px_1fr] lg:gap-12">
+      <div class="flex flex-col justify-center gap-[18px] p-8 md:p-12 lg:py-12 lg:pl-14 lg:pr-0">
+        <h3 class="heading text-[32px] md:text-[40px] md:leading-[46px]">Untuk pemilik lahan</h3>
+        <p class="text-base leading-[25px] text-on-dark">
+          Dari mendaftarkan lahan sampai menyimpan rencana tanam, semua ada di satu dashboard.
+        </p>
+        <ul class="flex flex-col gap-3">
+          {% for item in owner_steps %}
+          <li class="flex items-center gap-3">
+            <img src="{% static 'icons/check.svg' %}" alt="" class="size-[22px]">
+            <span>{{ item }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {# Dashboard belum ada, jadi tombol ini diarahin ke daftar #}
+        <a href="{% url 'accounts:register' %}" class="btn btn-white mt-1.5 self-start !min-h-[52px]">
+          Lihat dashboard
+          <img src="{% static 'icons/arrow-chevron.svg' %}" alt="" class="size-4">
+        </a>
+      </div>
+
+      {# Contoh tampilan dashboard, cuma ilustrasi #}
+      <div class="px-4 pb-0 pt-8 md:px-8 lg:pr-0 lg:pt-14" aria-hidden="true">
+        <div class="flex h-full flex-col gap-3.5 rounded-tl-2xl border-l-[5.5px] border-t-[5.5px] border-forest-soft bg-white p-6 text-ink">
+          <p class="text-[15px] font-bold">Lahan dan pesanan</p>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="rounded-[14px] bg-leaf p-3"><p class="text-xs text-moss-deep">Lahan</p><p class="heading text-[26px] leading-[32px]">4</p></div>
+            <div class="rounded-[14px] bg-sand p-3"><p class="text-xs text-clay-deep">Pesanan aktif</p><p class="heading text-[26px] leading-[32px]">1</p></div>
+            <div class="rounded-[14px] bg-paper p-3"><p class="text-xs text-ink-soft">Rencana</p><p class="heading text-[26px] leading-[32px]">1</p></div>
+          </div>
+          {% for row in sample_orders %}
+          <div class="flex items-center justify-between gap-3 border-t border-line py-3">
+            <div>
+              <p class="text-sm font-bold">{{ row.land }}</p>
+              <p class="text-xs text-ink-soft">{{ row.note }}</p>
+            </div>
+            <span class="badge {{ row.badge }}">{{ row.status }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# Katalog #}
+  <section id="katalog" class="scroll-mt-24 py-12 md:py-16">
+    <div class="reveal flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <h2 class="heading text-4xl md:text-[44px] md:leading-[50px]">Dari katalog <span class="heading-accent">tanaman</span></h2>
+      {# Halaman katalog belum ada (Modul D) #}
+      <a href="#katalog" class="btn btn-outline self-start sm:self-auto">Lihat semua tanaman</a>
+    </div>
+
+    <ul class="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {% for plant in featured_plants %}
+      <li class="reveal plant-card" style="--i:{{ forloop.counter0 }}">
+        <div class="plant-card__photo">[Foto tanaman]</div>
+        <div class="flex flex-col gap-1 px-[22px] pb-5 pt-4">
+          <h3 class="heading text-xl leading-normal">{{ plant.name }}</h3>
+          <p class="text-sm italic text-ink-soft">{{ plant.latin }}</p>
+          <p class="pt-2.5"><span class="badge badge-leaf font-semibold">{{ plant.role }}</span></p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="reveal panel panel-leaf mt-10 flex flex-col items-start justify-between gap-6 px-8 py-10 md:min-h-[180px] md:flex-row md:items-center md:px-12">
+      <h2 class="heading text-3xl md:text-4xl md:leading-[42px]">Siap merawat <span class="heading-accent">lahanmu?</span></h2>
+      <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lead !min-h-[60px] !text-[17px]" style="--r:24px">
+        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
+        Daftar gratis
+      </a>
+    </div>
+  </section>
+</div>
+{% endblock %}

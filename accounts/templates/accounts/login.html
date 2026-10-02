@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Masuk{% endblock %}
+
+{# Halaman login sama daftar nggak pakai navbar dan footer #}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="grid min-h-screen gap-6 p-4 sm:p-6 lg:grid-cols-2">
+  <aside class="panel panel-dark relative hidden lg:block">
+    <img src="{% static 'img/auth-waves.svg' %}" alt="" class="absolute inset-0 h-full w-full object-cover object-top">
+    <a href="{% url 'core:landing' %}" class="logo-placeholder logo-placeholder--dark absolute left-12 top-12" aria-label="Wiji, ke beranda">LOGO</a>
+    <div class="absolute inset-x-12 bottom-12 flex max-w-[588px] flex-col gap-[18px]">
+      <p class="eyebrow !text-mint">Selamat datang kembali</p>
+      <h1 class="heading text-6xl leading-[64px] text-white">
+        Lanjutkan merawat <span class="heading-accent text-mint">lahanmu.</span>
+      </h1>
+      <p class="max-w-[460px] text-[17px] leading-[27px] text-on-dark">
+        Pantau pesanan pemeriksaan, baca hasil tanah, dan lanjutkan rencana tanam yang sudah kamu simpan.
+      </p>
+    </div>
+  </aside>
+
+  <section class="flex flex-col items-center justify-center py-8">
+    <a href="{% url 'core:landing' %}" class="logo-placeholder mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda">LOGO</a>
+
+    <form method="post" class="flex w-full max-w-[440px] flex-col gap-[22px]" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div class="flex flex-col gap-2">
+        <h2 class="heading text-[40px] leading-[44px]">Masuk</h2>
+        <p class="text-ink-soft">Belum punya akun? <a href="{% url 'accounts:register' %}" class="link">Daftar sebagai pemilik lahan</a></p>
+      </div>
+
+      {% include 'accounts/partials/field.html' with field=form.username %}
+      {% include 'accounts/partials/field.html' with field=form.password %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error" role="alert">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-lead btn-block !min-h-14 !text-base">
+        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
+        Masuk
+      </button>
+
+      <p class="text-center text-[13px] leading-5 text-ink-soft">
+        Akun petugas dibuat oleh admin. Hubungi admin kalau kamu petugas dan belum punya akun.
+      </p>
+    </form>
+  </section>
+</div>
+{% endblock %}

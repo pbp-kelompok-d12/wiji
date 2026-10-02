@@ -1,0 +1,368 @@
+/*
+ * Pake tailwind
+ */
+
+:root {
+  /* Warna */
+  --color-forest: #142019;     /* Hutan malam: panel gelap, aksi utama */
+  --color-forest-soft: #2a3a2f; /* Panel gelap kedua, lingkaran ikon */
+  --color-moss: #2f6b3f;       /* Aksen dan tautan */
+  --color-moss-deep: #24552f;  /* Teks di atas panel lembut */
+  --color-leaf: #e4eee2;       /* Daun muda: panel lembut */
+  --color-mint: #cfe2cb;       /* Teks aksen di panel gelap */
+  --color-clay: #8b5a3c;       /* Tanah liat: aksen kedua */
+  --color-clay-deep: #6e4228;
+  --color-clay-ink: #4a3324;
+  --color-sand: #f3e8dd;       /* Liat muda: panel hangat */
+  --color-paper: #f6f4ee;      /* Kertas: panel netral dan isian */
+  --color-parchment: #e9e1cf;  /* Latar placeholder foto */
+  --color-line: #e2dccd;       /* Garis pemisah */
+
+  /* Teks */
+  --color-ink: #1c2620;        /* Arang daun: teks utama */
+  --color-ink-soft: #4f5a52;   /* Lumut abu: teks kedua */
+  --color-ink-on-leaf: #2e3a31;
+  --color-on-dark: #c3ccc1;    /* Teks biasa di panel gelap */
+  --color-on-dark-soft: #d5ddd3;
+
+  /* Status */
+  --color-sky: #2e5e86;
+  --color-sky-bg: #cfdfec;
+  --color-sky-ink: #1f4a6e;
+  --color-turmeric: #8a5a0b;
+  --color-brick: #a33a2c;
+  --color-brick-bg: #f7e1dc;
+  --color-brick-ink: #7e2a1f;
+
+  /* Sudut */
+  --radius-field: 16px;
+  --radius-row: 20px;
+  --radius-panel: 28px;
+  --radius-pill: 999px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--color-ink);
+  background: #fff;
+}
+
+/* Outline pas fokus pakai keyboard */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--color-moss);
+  outline-offset: 3px;
+}
+
+/* ---------- Tipografi ---------- */
+
+/* Judul pakai Bricolage Grotesque, satu frasa miringnya pakai Fraunces */
+.heading {
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  font-variation-settings: 'opsz' 14, 'wdth' 100;
+}
+
+.heading-accent {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+}
+
+/* Label kecil di atas judul */
+.eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-moss);
+}
+
+/* ---------- Panel ---------- */
+
+.panel {
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+.panel-dark { background: var(--color-forest); color: #fff; }
+.panel-leaf { background: var(--color-leaf); color: var(--color-ink); }
+.panel-sand { background: var(--color-sand); color: var(--color-ink); }
+.panel-paper { background: var(--color-paper); color: var(--color-ink); }
+
+/* ---------- Tombol ---------- */
+
+/* Semua tombol bentuknya pil, yang aksi utama warnanya gelap */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0 1.375rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary { background: var(--color-forest); color: #fff; }
+.btn-primary:hover { background: #22362a; }
+.btn-leaf { background: var(--color-leaf); color: var(--color-forest); }
+.btn-leaf:hover { background: #d6e6d3; }
+.btn-white { background: #fff; color: var(--color-forest); }
+.btn-outline { border-color: var(--color-forest); color: var(--color-forest); background: transparent; }
+.btn-outline:hover { background: var(--color-forest); color: #fff; }
+.btn-ghost { background: transparent; color: var(--color-ink); }
+.btn-ghost:hover { background: var(--color-paper); }
+
+/*
+ * Tombol yang ada lingkaran ikon di kirinya.
+ * Lingkarannya digambar pakai ::before (clip-path), pas di-hover membesar
+ * sampai nutupin seluruh tombol. --r = jari-jari lingkaran (setengah tinggi tombol - 6px).
+ */
+.btn-lead {
+  --r: 22px;
+  --fill: var(--color-leaf);
+  --text-hover: var(--color-forest);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  gap: 0.75rem;
+  padding: 0.375rem 1.5rem 0.375rem 0.375rem;
+  transition: color 0.35s ease, background-color 0.15s ease;
+}
+.btn-lead--white { --fill: #fff; }
+.btn-lead::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--fill);
+  clip-path: circle(var(--r) at calc(var(--r) + 6px) 50%);
+  transition: clip-path 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.btn-lead:hover::before,
+.btn-lead:focus-visible::before {
+  clip-path: circle(150% at calc(var(--r) + 6px) 50%);
+}
+.btn-lead:hover,
+.btn-lead:focus-visible { color: var(--text-hover); }
+
+.btn-lead__icon {
+  display: grid;
+  place-items: center;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  flex-shrink: 0;
+}
+.btn-lead__icon img {
+  width: 1.125rem;
+  height: 1.125rem;
+  transition: transform 0.35s ease;
+}
+.btn-lead:hover .btn-lead__icon img,
+.btn-lead:focus-visible .btn-lead__icon img { transform: translateX(4px); }
+.btn-block { width: 100%; justify-content: flex-start; }
+
+/* ---------- Formulir ---------- */
+
+.field { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.field-label {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+}
+
+.field-input {
+  width: 100%;
+  height: 3.5rem;
+  padding: 0 1.125rem;
+  border: 1.667px solid transparent;
+  border-radius: var(--radius-field);
+  background: var(--color-paper);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--color-ink);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.field-input::placeholder { color: #8a948b; }
+.field-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--color-forest);
+}
+.field-input.is-invalid {
+  background: #fff;
+  border-color: var(--color-brick);
+}
+
+.field-hint { font-size: 0.8125rem; color: var(--color-ink-soft); }
+.field-error { font-size: 0.8125rem; font-weight: 600; color: var(--color-brick); }
+.field-ok { font-size: 0.8125rem; font-weight: 600; color: var(--color-moss); }
+
+/* Kotak pesan buat form */
+.alert {
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-field);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.alert-error { background: var(--color-brick-bg); color: var(--color-brick-ink); }
+.alert-success { background: var(--color-leaf); color: var(--color-moss-deep); }
+.alert-info { background: var(--color-sky-bg); color: var(--color-sky-ink); }
+
+/* Meter kekuatan password, diisi sama password-strength.js */
+.strength { display: flex; gap: 4px; }
+.strength__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-line);
+  transition: background-color 0.2s ease;
+}
+.strength[data-level='1'] .strength__bar:nth-child(-n + 1),
+.strength[data-level='2'] .strength__bar:nth-child(-n + 2),
+.strength[data-level='3'] .strength__bar:nth-child(-n + 3),
+.strength[data-level='4'] .strength__bar:nth-child(-n + 4) {
+  background: var(--color-moss);
+}
+.strength[data-level='1'] .strength__bar:nth-child(-n + 1) { background: var(--color-brick); }
+.strength[data-level='2'] .strength__bar:nth-child(-n + 2) { background: var(--color-turmeric); }
+
+/* ---------- Badge dan link ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-leaf { background: var(--color-leaf); color: var(--color-moss-deep); }
+.badge-paper { background: var(--color-paper); color: var(--color-ink-soft); }
+.badge-sky { background: var(--color-sky-bg); color: var(--color-sky-ink); }
+.badge-chip { background: #fff; color: var(--color-ink); font-weight: 600; font-size: 0.875rem; padding: 0.5rem 0.875rem; }
+
+.link {
+  color: var(--color-moss);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link:hover { color: var(--color-moss-deep); }
+
+/* Link di navbar */
+.nav-link {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  padding: 0.625rem 0.25rem;
+  text-decoration: none;
+}
+.nav-link:hover { color: var(--color-moss); }
+
+/* ---------- Logo sementara ---------- */
+
+/* Placeholder logo sampai logo aslinya ada */
+.logo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7.5rem;
+  height: 2.5rem;
+  border: 1.111px dashed #b9af98;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #6b7268;
+  text-decoration: none;
+}
+.logo-placeholder--dark { border-color: #52615a; color: var(--color-on-dark); }
+.logo-placeholder--leaf { border-color: #9dbb96; color: var(--color-moss-deep); background: rgba(255, 255, 255, 0.7); }
+
+/* ---------- Kartu ---------- */
+
+.plant-card {
+  background: var(--color-paper);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.plant-card__photo {
+  display: grid;
+  place-items: center;
+  height: 10rem;
+  margin: 0.75rem 0.75rem 0;
+  border-radius: 16px;
+  background: var(--color-parchment);
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+}
+
+/* ---------- Navbar nempel di atas ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+/* Kelas ini ditambah site.js setelah halaman di-scroll */
+.site-header.is-scrolled {
+  border-bottom-color: var(--color-line);
+  box-shadow: 0 8px 24px -18px rgba(20, 32, 25, 0.35);
+}
+
+/* ---------- Hero ---------- */
+
+/* Tingginya ngikut layar supaya baris di bawahnya tetap kelihatan di layar pertama */
+.hero { height: clamp(400px, calc(100svh - 200px), 580px); }
+
+/* ---------- Muncul pelan pas di-scroll ---------- */
+
+/* Cuma aktif kalau JS jalan (kelas .js dipasang di <head>), jadi tanpa JS konten tetap tampil */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 90ms); /* --i dipasang di template buat urutan kartu */
+}
+.js .reveal.is-visible { opacity: 1; transform: none; }
+
+/* ---------- Pesan Django ---------- */
+
+.toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+}
+
+/* Matiin animasi kalau user minta begitu */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+  .js .reveal { opacity: 1; transform: none; }
+}

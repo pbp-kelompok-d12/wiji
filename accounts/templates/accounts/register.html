@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daftar{% endblock %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="grid min-h-screen gap-6 p-4 sm:p-6 lg:grid-cols-2">
+  <section class="flex flex-col items-center justify-center py-8">
+    <a href="{% url 'core:landing' %}" class="logo-placeholder mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda">LOGO</a>
+
+    <form method="post" class="flex w-full max-w-[480px] flex-col gap-[18px]" novalidate>
+      {% csrf_token %}
+
+      <div class="flex flex-col gap-2">
+        <h1 class="heading text-4xl leading-[44px] md:text-[40px]">Buat akun <span class="heading-accent">pemilik lahan</span></h1>
+        <p class="text-ink-soft">Sudah punya akun? <a href="{% url 'accounts:login' %}" class="link">Masuk</a></p>
+      </div>
+
+      {% include 'accounts/partials/field.html' with field=form.first_name %}
+
+      <div class="grid gap-[18px] sm:grid-cols-2 sm:gap-3">
+        {# Username dicek ke server pakai HTMX pas user berhenti ngetik #}
+        <div class="field">
+          <label for="{{ form.username.id_for_label }}" class="field-label">{{ form.username.label }}</label>
+          <input type="text" name="username" id="{{ form.username.id_for_label }}"
+                 class="field-input{% if form.username.errors %} is-invalid{% endif %}"
+                 value="{{ form.username.value|default:'' }}" maxlength="150" autocomplete="username"
+                 hx-get="{% url 'accounts:check_username' %}" hx-trigger="input changed delay:400ms"
+                 hx-target="#username-status" hx-swap="innerHTML">
+          <div id="username-status" aria-live="polite">
+            {% for error in form.username.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+        {% include 'accounts/partials/field.html' with field=form.email %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.password1.id_for_label }}" class="field-label">{{ form.password1.label }}</label>
+        {{ form.password1 }}
+        <div class="strength" id="password-strength" data-level="0" aria-hidden="true">
+          <span class="strength__bar"></span><span class="strength__bar"></span>
+          <span class="strength__bar"></span><span class="strength__bar"></span>
+        </div>
+        <p class="field-hint">{{ form.password1.help_text }}</p>
+        {% for error in form.password1.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.password2.id_for_label }}" class="field-label">{{ form.password2.label }}</label>
+        {{ form.password2 }}
+        <p class="field-error" id="password-mismatch" hidden>Kata sandi tidak sama.</p>
+        {% for error in form.password2.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lead btn-block mt-1 !min-h-14 !text-base">
+        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
+        Buat akun
+      </button>
+    </form>
+  </section>
+
+  <aside class="panel panel-leaf relative hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
+    <img src="{% static 'img/sawah-terasering.jpg' %}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-55">
+    <div class="absolute inset-0" style="background-image: linear-gradient(0deg, #e4eee2 0%, rgba(228,238,226,0.92) 38%, rgba(228,238,226,0.35) 70%, rgba(228,238,226,0.1) 100%)"></div>
+
+    <div class="relative flex justify-end">
+      <span class="logo-placeholder logo-placeholder--leaf">LOGO</span>
+    </div>
+
+    <div class="relative flex max-w-[360px] flex-col gap-4">
+      <p class="eyebrow !text-moss-deep">Setelah mendaftar</p>
+      <ol class="flex flex-col gap-4">
+        <li class="flex gap-3.5"><span class="heading text-base leading-6 text-moss">01</span>Daftarkan lahan dan cari lokasinya di peta.</li>
+        <li class="flex gap-3.5"><span class="heading text-base leading-6 text-moss">02</span>Masukkan hasil tanah atau pesan pemeriksaan.</li>
+        <li class="flex gap-3.5"><span class="heading text-base leading-6 text-moss">03</span>Dapatkan rekomendasi dan simpan rencana tanam.</li>
+      </ol>
+    </div>
+    <p class="absolute bottom-3 right-5 text-[10px] text-[color:var(--color-ink-on-leaf)]/80">Foto: Vyacheslav Argenberg, CC BY 4.0</p>
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/password-strength.js' %}"></script>
+{% endblock %}

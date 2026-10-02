@@ -1,0 +1,10 @@
+{# Pesan yang muncul sekali aja, misalnya habis login atau logout #}
+{% if messages %}
+  <div class="toast-stack" role="status" aria-live="polite">
+    {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} shadow-lg">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

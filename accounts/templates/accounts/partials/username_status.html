@@ -1,0 +1,6 @@
+{# Balasan HTMX buat cek username #}
+{% if available is True %}
+  <p class="field-ok">Nama pengguna tersedia.</p>
+{% elif available is False %}
+  <p class="field-error">Nama pengguna ini sudah dipakai.</p>
+{% endif %}

@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Wiji{% endblock %} · Wiji</title>
+  <meta name="description" content="{% block description %}Wiji membantu pemilik lahan mengenali kondisi tanah dan mendapatkan rekomendasi tanaman beserta alasannya.{% endblock %}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Fraunces:ital,opsz,wght,SOFT,WONK@1,9..144,400,0,1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  {# Tailwind pakai CDN biar nggak perlu build. Warnanya ngambil dari wiji.css #}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: { DEFAULT: 'var(--color-forest)', soft: 'var(--color-forest-soft)' },
+            moss: { DEFAULT: 'var(--color-moss)', deep: 'var(--color-moss-deep)' },
+            leaf: 'var(--color-leaf)',
+            mint: 'var(--color-mint)',
+            clay: { DEFAULT: 'var(--color-clay)', deep: 'var(--color-clay-deep)', ink: 'var(--color-clay-ink)' },
+            sand: 'var(--color-sand)',
+            paper: 'var(--color-paper)',
+            line: 'var(--color-line)',
+            ink: { DEFAULT: 'var(--color-ink)', soft: 'var(--color-ink-soft)' },
+            'on-dark': { DEFAULT: 'var(--color-on-dark)', soft: 'var(--color-on-dark-soft)' },
+            sky: 'var(--color-sky)',
+            turmeric: 'var(--color-turmeric)',
+            brick: 'var(--color-brick)',
+          },
+          borderRadius: { panel: 'var(--radius-panel)', field: 'var(--radius-field)' },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{% static 'css/wiji.css' %}">
+  {# Kasih tahu CSS kalau JS aktif, biar animasi .reveal nggak nyembunyiin konten tanpa JS #}
+  <script>document.documentElement.classList.add('js')</script>
+
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn btn-primary">Lewati ke konten</a>
+
+  {% block navbar %}{% include 'partials/navbar.html' %}{% endblock %}
+  {% include 'partials/messages.html' %}
+
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}{% include 'partials/footer.html' %}{% endblock %}
+  <script src="{% static 'js/site.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
