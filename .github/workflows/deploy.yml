@@ -1,0 +1,66 @@
+name: Test and push to PWS
+
+on:
+  push:
+    branches: [ main ]
+  # Test juga jalan di tiap PR ke main, biar PR yang test-nya gagal ketahuan sebelum di-merge
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Django system check
+        run: python manage.py check
+
+      - name: Run tests
+        run: python manage.py test
+
+  # Deploy cuma jalan kalau ada push ke main (misalnya setelah PR di-merge) dan test lulus
+  deploy:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Push to PWS
+        env:
+          # Diisi di GitHub: Settings > Secrets and variables > Actions > PWS_URL
+          PWS_URL: ${{ secrets.PWS_URL }}
+        run: |
+          if [ -z "$PWS_URL" ]; then
+            echo "Secret PWS_URL belum diisi. Tambahkan dulu di Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          current_branch=$(git branch --show-current)
+          echo "Current branch: $current_branch"
+
+          # Push branch saat ini ke branch main di PWS
+          if ! push_output=$(git push "$PWS_URL" "$current_branch:main" 2>&1); then
+            echo "Push failed with output: $push_output"
+            echo "Error: Unable to push changes. Please check the error message above and resolve any conflicts manually."
+            exit 1
+          fi
+          echo "Push successful with output: $push_output"
