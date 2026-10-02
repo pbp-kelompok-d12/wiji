@@ -76,7 +76,27 @@ Menampilkan rekomendasi tanaman berdasarkan kondisi lahan serta CRUD rencana pen
 
 Autentikasi, dashboard, tampilan responsif, filter data, AJAX/HTMX, integrasi API, dan endpoint JSON.
 
+## Teknologi
+
+Django 5.2, SQLite (lokal), Tailwind CSS (CDN), HTMX.
+
+## Menjalankan Secara Lokal
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # lalu isi DJANGO_SECRET_KEY
+python manage.py migrate
+python manage.py createsuperuser   # akun admin (is_staff)
+python manage.py runserver
+```
+
+Buka http://127.0.0.1:8000. Menjalankan test: `python manage.py test`.
+
+Akun petugas tidak bisa mendaftar sendiri. Admin membuatnya lewat `/admin/` dan memilih peran **Petugas Pemeriksa**.
+
 ## Tautan
 
-- Figma: [Belum tersedia]
+- Figma: https://www.figma.com/design/B4eTABpgEN98udSKNps3DU/Wiji
 - Deployment PWS: [Belum tersedia]
