@@ -126,22 +126,53 @@ body {
 .btn-ghost { background: transparent; color: var(--color-ink); }
 .btn-ghost:hover { background: var(--color-paper); }
 
-/* Tombol yang ada lingkaran ikon di kirinya */
+/*
+ * Tombol yang ada lingkaran ikon di kirinya.
+ * Lingkarannya digambar pakai ::before (clip-path), pas di-hover membesar
+ * sampai nutupin seluruh tombol. --r = jari-jari lingkaran (setengah tinggi tombol - 6px).
+ */
 .btn-lead {
+  --r: 22px;
+  --fill: var(--color-leaf);
+  --text-hover: var(--color-forest);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   gap: 0.75rem;
   padding: 0.375rem 1.5rem 0.375rem 0.375rem;
+  transition: color 0.35s ease, background-color 0.15s ease;
 }
+.btn-lead--white { --fill: #fff; }
+.btn-lead::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--fill);
+  clip-path: circle(var(--r) at calc(var(--r) + 6px) 50%);
+  transition: clip-path 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.btn-lead:hover::before,
+.btn-lead:focus-visible::before {
+  clip-path: circle(150% at calc(var(--r) + 6px) 50%);
+}
+.btn-lead:hover,
+.btn-lead:focus-visible { color: var(--text-hover); }
+
 .btn-lead__icon {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-leaf);
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
   flex-shrink: 0;
 }
-.btn-lead__icon img { width: 1.125rem; height: 1.125rem; }
-.btn-lead--white .btn-lead__icon { background: #fff; }
+.btn-lead__icon img {
+  width: 1.125rem;
+  height: 1.125rem;
+  transition: transform 0.35s ease;
+}
+.btn-lead:hover .btn-lead__icon img,
+.btn-lead:focus-visible .btn-lead__icon img { transform: translateX(4px); }
 .btn-block { width: 100%; justify-content: flex-start; }
 
 /* ---------- Formulir ---------- */
@@ -282,6 +313,40 @@ body {
   color: var(--color-ink-soft);
 }
 
+/* ---------- Navbar nempel di atas ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+/* Kelas ini ditambah site.js setelah halaman di-scroll */
+.site-header.is-scrolled {
+  border-bottom-color: var(--color-line);
+  box-shadow: 0 8px 24px -18px rgba(20, 32, 25, 0.35);
+}
+
+/* ---------- Hero ---------- */
+
+/* Tingginya ngikut layar supaya baris di bawahnya tetap kelihatan di layar pertama */
+.hero { height: clamp(400px, calc(100svh - 200px), 580px); }
+
+/* ---------- Muncul pelan pas di-scroll ---------- */
+
+/* Cuma aktif kalau JS jalan (kelas .js dipasang di <head>), jadi tanpa JS konten tetap tampil */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 90ms); /* --i dipasang di template buat urutan kartu */
+}
+.js .reveal.is-visible { opacity: 1; transform: none; }
+
 /* ---------- Pesan Django ---------- */
 
 .toast-stack {
@@ -299,4 +364,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   * { transition: none !important; }
+  .js .reveal { opacity: 1; transform: none; }
 }
