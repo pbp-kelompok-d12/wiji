@@ -19,8 +19,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-only-insecure-key-change-m
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
-CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+# Default-nya sudah termasuk domain PWS biar website langsung bisa dibuka. Bisa ditimpa lewat env var.
+PWS_HOST = 'muhammad-osman-wiji.pws.cs.ui.ac.id'
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', f'localhost,127.0.0.1,{PWS_HOST}')
+# Perlu buat form (login, daftar) lewat HTTPS, kalau nggak kena error CSRF
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', f'https://{PWS_HOST}')
 
 
 INSTALLED_APPS = [
