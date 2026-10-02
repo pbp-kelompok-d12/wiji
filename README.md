@@ -99,4 +99,4 @@ Akun petugas tidak bisa mendaftar sendiri. Admin membuatnya lewat `/admin/` dan 
 ## Tautan
 
 - Figma: https://www.figma.com/design/B4eTABpgEN98udSKNps3DU/Wiji
-- Deployment PWS: [Belum tersedia]
+- Deployment PWS: https://muhammad-osman-wiji.pws.cs.ui.ac.id/
