@@ -1,0 +1,7 @@
+{# Satu isian form: label, input, hint, terus error #}
+<div class="field">
+  <label for="{{ field.id_for_label }}" class="field-label">{{ field.label }}</label>
+  {{ field }}
+  {% if field.help_text %}<p class="field-hint">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</div>
