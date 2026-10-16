@@ -27,3 +27,17 @@ class LandingTests(TestCase):
         response = self.client.get(reverse('core:landing'))
         self.assertContains(response, 'Akar wangi')
         self.assertContains(response, 'Chrysopogon zizanioides')
+
+    def test_steps_slider_has_four_steps_and_arrows(self):
+        response = self.client.get(reverse('core:landing'))
+        self.assertContains(response, 'id="langkah"')
+        self.assertContains(response, 'class="steps__item', count=4)
+        self.assertContains(response, 'data-dir="-1"')
+        self.assertContains(response, 'data-dir="1"')
+        self.assertContains(response, 'js/steps.js')
+
+    def test_navbar_links_to_steps_section(self):
+        response = self.client.get(reverse('core:landing'))
+        self.assertContains(response, '#langkah')
+        self.assertContains(response, 'logo-wordmark.svg')
+
