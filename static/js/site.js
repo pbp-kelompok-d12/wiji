@@ -6,21 +6,37 @@ if (header) {
   window.addEventListener('scroll', onScroll, { passive: true });
 }
 
-// Elemen .reveal muncul sekali pas masuk layar
+// Elemen .reveal muncul sekali pas masuk layar. Selama user belum scroll sama sekali,
+// isi di bawah layar pertama sengaja disembunyiin, baru muncul (dengan animasi) pas mulai scroll
 const revealItems = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {
+  // Kalau halaman dibuka di tengah (misalnya lewat link #katalog), langsung dianggap sudah scroll
+  let started = window.scrollY > 4;
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && started) {
           entry.target.classList.add('is-visible');
           observer.unobserve(entry.target);
         }
       });
     },
-    { threshold: 0.2 }
+    { threshold: 0.15, rootMargin: '0px 0px -6% 0px' }
   );
   revealItems.forEach((el) => observer.observe(el));
+
+  if (!started) {
+    const start = () => {
+      started = true;
+      window.removeEventListener('scroll', start);
+      // Observe ulang supaya yang sudah kelihatan di layar langsung dihitung
+      revealItems.forEach((el) => {
+        observer.unobserve(el);
+        observer.observe(el);
+      });
+    };
+    window.addEventListener('scroll', start, { passive: true });
+  }
 } else {
   revealItems.forEach((el) => el.classList.add('is-visible'));
 }
