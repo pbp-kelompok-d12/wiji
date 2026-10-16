@@ -86,13 +86,14 @@ Django 5.2, SQLite (lokal), Tailwind CSS (CDN), HTMX.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # lalu isi DJANGO_SECRET_KEY
 python manage.py migrate
 python manage.py createsuperuser   # akun admin (is_staff)
 python manage.py runserver
 ```
 
 Buka http://127.0.0.1:8000. Menjalankan test: `python manage.py test`.
+
+Nggak perlu bikin file `.env` buat jalanin di lokal, pengaturan bawaannya sudah cukup. Kalau mau nimpa, bikin file `.env` sendiri (jangan di-commit) dengan isi seperti `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, dan `DJANGO_CSRF_TRUSTED_ORIGINS`.
 
 Akun petugas tidak bisa mendaftar sendiri. Admin membuatnya lewat `/admin/` dan memilih peran **Petugas Pemeriksa**.
 
