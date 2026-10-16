@@ -1,4 +1,4 @@
-"""Pengaturan Django buat Wiji. Yang rahasia dibaca dari .env (lihat .env.example)."""
+"""Pengaturan Django buat Wiji. Yang rahasia dibaca dari environment atau file .env (nggak ikut di-commit)."""
 
 import os
 from pathlib import Path
