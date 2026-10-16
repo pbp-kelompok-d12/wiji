@@ -11,7 +11,7 @@
 <div class="grid min-h-screen gap-6 p-4 sm:p-6 lg:grid-cols-2">
   <aside class="panel panel-dark relative hidden lg:block">
     <img src="{% static 'img/auth-waves.svg' %}" alt="" class="absolute inset-0 h-full w-full object-cover object-top">
-    <a href="{% url 'core:landing' %}" class="logo-placeholder logo-placeholder--dark absolute left-12 top-12" aria-label="Wiji, ke beranda">LOGO</a>
+    <a href="{% url 'core:landing' %}" class="absolute left-12 top-12" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-icon.svg' %}" alt="Wiji" class="h-12 w-auto"></a>
     <div class="absolute inset-x-12 bottom-12 flex max-w-[588px] flex-col gap-[18px]">
       <p class="eyebrow !text-mint">Selamat datang kembali</p>
       <h1 class="heading text-6xl leading-[64px] text-white">
@@ -24,7 +24,7 @@
   </aside>
 
   <section class="flex flex-col items-center justify-center py-8">
-    <a href="{% url 'core:landing' %}" class="logo-placeholder mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda">LOGO</a>
+    <a href="{% url 'core:landing' %}" class="mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="h-8 w-auto"></a>
 
     <form method="post" class="flex w-full max-w-[440px] flex-col gap-[22px]" novalidate>
       {% csrf_token %}

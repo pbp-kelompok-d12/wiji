@@ -9,7 +9,7 @@
 {% block content %}
 <div class="grid min-h-screen gap-6 p-4 sm:p-6 lg:grid-cols-2">
   <section class="flex flex-col items-center justify-center py-8">
-    <a href="{% url 'core:landing' %}" class="logo-placeholder mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda">LOGO</a>
+    <a href="{% url 'core:landing' %}" class="mb-10 self-start lg:hidden" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="h-8 w-auto"></a>
 
     <form method="post" class="flex w-full max-w-[480px] flex-col gap-[18px]" novalidate>
       {% csrf_token %}
@@ -67,7 +67,7 @@
     <div class="absolute inset-0" style="background-image: linear-gradient(0deg, #e4eee2 0%, rgba(228,238,226,0.92) 38%, rgba(228,238,226,0.35) 70%, rgba(228,238,226,0.1) 100%)"></div>
 
     <div class="relative flex justify-end">
-      <span class="logo-placeholder logo-placeholder--leaf">LOGO</span>
+      <a href="{% url 'core:landing' %}" class="rounded-full bg-white/85 px-4 py-2" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="h-6 w-auto"></a>
     </div>
 
     <div class="relative flex max-w-[360px] flex-col gap-4">
