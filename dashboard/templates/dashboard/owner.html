@@ -1,0 +1,122 @@
+{% extends 'app_base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="heading text-[28px] leading-[34px]">Selamat datang, <span class="heading-accent">{{ greeting_name }}!</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Ini kondisi lahan dan pesananmu hari ini.</p>
+  </div>
+  <button type="button" class="btn btn-primary !min-h-10 gap-2"><svg class="ic ic-sm"><use href="#i-cal"/></svg>30 hari terakhir<svg class="ic ic-sm"><use href="#i-down"/></svg></button>
+</div>
+
+{# Kartu angka #}
+<section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan">
+  {% for kpi in kpis %}
+  <article class="d-card p-4">
+    <div class="flex items-center gap-2.5">
+      <span class="kpi-icon"><svg class="ic ic-sm"><use href="#i-{{ kpi.icon }}"/></svg></span>
+      <p class="text-sm font-semibold text-ink-soft">{{ kpi.label }}</p>
+    </div>
+    <div class="mt-3 flex items-end gap-2">
+      <p class="heading text-[34px] leading-none">{{ kpi.value }}</p>
+      <span class="chip chip-{{ kpi.chip.kind }} mb-1">{% if kpi.chip.trend %}<svg class="ic" style="width:.75rem;height:.75rem"><use href="#i-trend"/></svg>{% endif %}{{ kpi.chip.text }}</span>
+    </div>
+    {% if kpi.segments %}
+    <div class="segbar mt-3" aria-hidden="true">{% for on in kpi.segments %}<i{% if on %} class="on"{% endif %}></i>{% endfor %}</div>
+    <p class="mt-2 text-xs text-ink-soft">{{ kpi.caption }}</p>
+    {% else %}
+    <p class="mt-[18px] text-xs leading-[18px] text-ink-soft">{{ kpi.caption }}</p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+
+{# Baris 2: lahan, rekomendasi, pesanan #}
+<section class="mt-4 grid gap-4 lg:grid-cols-[1.35fr_1fr_1fr]">
+  <article class="d-card p-5">
+    <div class="flex items-center justify-between"><h2 class="d-title">Lahan saya</h2><a href="#" class="d-btn-sm">Lihat semua</a></div>
+    <ul class="mt-3">
+      {% for land in lands %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <span class="grid size-11 shrink-0 place-items-center rounded-xl {% if land.warn %}bg-sand text-clay-deep{% else %}bg-leaf text-moss-deep{% endif %}"><svg class="ic"><use href="#i-{{ land.icon }}"/></svg></span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold">{{ land.name }}</p>
+          <p class="truncate text-xs text-ink-soft">{{ land.place }} · {{ land.area }} · {{ land.use }}</p>
+        </div>
+        <div class="hidden text-right sm:block"><p class="text-xs font-bold">{{ land.ph }}</p><p class="text-[11px] text-ink-soft">{{ land.texture }}</p></div>
+        <span class="chip chip-{{ land.kind }} whitespace-nowrap">{{ land.status }}</span>
+        <button type="button" class="text-ink-soft" aria-label="Menu lahan {{ land.name }}"><svg class="ic ic-sm"><use href="#i-dots"/></svg></button>
+      </li>
+      {% endfor %}
+    </ul>
+  </article>
+
+  <article class="d-card flex flex-col p-5">
+    <div class="flex items-center gap-2"><h2 class="d-title">Rekomendasi terbaik</h2><span class="chip chip-paper">Baru</span></div>
+    <div class="mt-4 flex items-center gap-3">
+      {# Lingkaran skor: warna diisi sebesar nilai skor #}
+      <div class="grid size-[68px] shrink-0 place-items-center rounded-full" style="background:conic-gradient(var(--color-moss) {{ recommendation.score }}%, var(--color-line) 0)">
+        <div class="grid size-[56px] place-items-center rounded-full bg-white"><p class="heading text-xl leading-none">{{ recommendation.score }}</p></div>
+      </div>
+      <div>
+        <p class="heading text-lg leading-[22px]">{{ recommendation.plant }}</p>
+        <p class="text-xs italic text-ink-soft">{{ recommendation.latin }}</p>
+        <span class="chip chip-up mt-1.5">{{ recommendation.role }}</span>
+      </div>
+    </div>
+    <p class="mt-4 text-[13px] leading-5 text-ink-soft">{{ recommendation.reason }}</p>
+    <div class="mt-3 flex flex-wrap gap-1.5">{% for tag in recommendation.tags %}<span class="chip chip-paper">{{ tag }}</span>{% endfor %}</div>
+    <a href="#" class="mt-auto flex h-10 items-center justify-between rounded-xl bg-paper px-3 text-[13px] font-bold transition hover:bg-leaf" style="margin-top:1rem">Lihat rekomendasi lengkap <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
+  </article>
+
+  <article class="d-card p-5">
+    <div class="flex items-center justify-between"><h2 class="d-title">Pesanan aktif</h2><a href="#" class="d-btn-sm">Detail</a></div>
+    <div class="mt-3 rounded-xl bg-paper p-3">
+      <p class="text-[11px] font-bold text-ink-soft">{{ order.code }} · {{ order.type }}</p>
+      <p class="mt-0.5 text-sm font-bold">{{ order.land }}</p>
+      <p class="mt-1 flex items-center gap-1.5 text-xs text-ink-soft"><svg class="ic ic-sm"><use href="#i-cal"/></svg>{{ order.schedule }} · Petugas: {{ order.officer }}</p>
+    </div>
+    <ol class="stepper mt-5" aria-label="Status pesanan">
+      {% for step in order.steps %}<li class="{{ step.state }}"><b></b>{{ step.label }}</li>{% endfor %}
+    </ol>
+    <div class="mt-5 flex gap-2"><button type="button" class="d-btn-sm flex-1 justify-center">Jadwal ulang</button><button type="button" class="d-btn-sm flex-1 justify-center text-brick">Batalkan</button></div>
+  </article>
+</section>
+
+{# Baris 3: grafik dan catatan #}
+<section class="mt-4 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+  <article class="d-card p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 class="d-title">{{ chart.title }}</h2><p class="text-xs text-ink-soft">{{ order.land }} · sumber Open-Meteo (contoh)</p></div>
+      <div class="flex gap-1 rounded-full bg-paper p-1" role="tablist"><button type="button" class="tab is-on">Kelembapan</button><button type="button" class="tab">Suhu tanah</button><button type="button" class="tab">Hujan</button></div>
+    </div>
+    <div class="mt-3 flex items-end gap-2"><p class="heading text-[28px] leading-none">{{ chart.current }}</p><span class="chip chip-down mb-0.5">{{ chart.change }}</span></div>
+    <div class="relative mt-2">
+      <svg id="chart" viewBox="0 0 640 220" class="block h-[220px] w-full" role="img" aria-label="{{ chart.title }}"></svg>
+      <div id="tip"></div>
+    </div>
+    {{ chart|json_script:"chart-data" }}
+  </article>
+
+  <article class="d-card p-5">
+    <div class="flex items-center justify-between"><h2 class="d-title">Catatan dari Wiji</h2><a href="#" class="d-btn-sm">Lihat semua</a></div>
+    <ul class="mt-3 space-y-3.5">
+      {% for note in notes %}
+      <li class="flex gap-3"><span class="kpi-icon shrink-0"><svg class="ic ic-sm {{ note.tone }}"><use href="#i-{{ note.icon }}"/></svg></span><p class="text-[13px] leading-5">{{ note.text }}</p></li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+{# Riwayat terakhir #}
+<section class="d-card mt-4 grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-5" aria-label="Riwayat terakhir">
+  {% for item in activity %}
+  <div class="flex items-center gap-3"><span class="kpi-icon"><svg class="ic ic-sm"><use href="#i-{{ item.icon }}"/></svg></span><div><p class="text-[13px] font-bold">{{ item.title }}</p><p class="text-[11px] text-ink-soft">{{ item.when }}</p></div></div>
+  {% endfor %}
+</section>
+
+<p class="mt-6 text-center text-[11px] text-ink-soft">Angka dan nama di halaman ini masih contoh sampai modul lahan, pemeriksaan, dan rekomendasi selesai.</p>
+{% endblock %}

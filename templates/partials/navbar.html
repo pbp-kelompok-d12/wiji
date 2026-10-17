@@ -14,6 +14,7 @@
   <div class="ml-auto flex items-center gap-2 lg:ml-0">
     {% if user.is_authenticated %}
       <span class="hidden px-3 text-sm font-semibold sm:inline">{{ user.display_name }}</span>
+      <a href="{% url 'dashboard:home' %}" class="btn btn-ghost">Dashboard</a>
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-leaf">Keluar</button>
