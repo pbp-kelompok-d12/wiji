@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'core',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
@@ -89,8 +90,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = 'accounts:login'
-# Dashboard belum ada, jadi habis login atau logout baliknya ke landing page.
-LOGIN_REDIRECT_URL = 'core:landing'
+# Habis login masuk ke dashboard, habis logout balik ke landing page.
+LOGIN_REDIRECT_URL = 'dashboard:home'
 LOGOUT_REDIRECT_URL = 'core:landing'
 
 

@@ -1,0 +1,12 @@
+{# Bar atas dashboard: menu (layar kecil), judul halaman, pencarian, tombol tambah lahan, notifikasi #}
+<header class="sticky top-0 z-20 flex h-[68px] items-center gap-3 border-b border-line bg-white/85 px-4 backdrop-blur sm:px-6 xl:px-8">
+  <button type="button" class="grid size-10 place-items-center rounded-xl border border-line lg:hidden" data-side-open aria-label="Buka menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+  <div class="hidden items-center gap-2 text-sm font-semibold text-ink-soft xl:flex"><svg class="ic"><use href="#i-home"/></svg>{% block crumb %}Dashboard{% endblock %}</div>
+  <label class="mx-auto flex h-10 w-full max-w-[460px] items-center gap-2 rounded-xl border border-line bg-white px-3 text-sm text-ink-soft focus-within:border-forest">
+    <svg class="ic"><use href="#i-search"/></svg>
+    <input class="w-full min-w-0 bg-transparent outline-none placeholder:text-ink-soft" placeholder="Cari lahan, tanaman, atau hasil tanah..." aria-label="Cari">
+    <kbd class="hidden whitespace-nowrap rounded-md bg-paper px-1.5 py-0.5 text-[11px] font-bold sm:block">⌘ K</kbd>
+  </label>
+  <a href="#" class="btn btn-outline hidden !min-h-10 gap-2 md:inline-flex"><svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan</a>
+  <button type="button" class="relative grid size-10 shrink-0 place-items-center rounded-xl border border-line" aria-label="Notifikasi"><svg class="ic"><use href="#i-bell"/></svg><i class="absolute right-2.5 top-2.5 size-2 rounded-full bg-brick"></i></button>
+</header>

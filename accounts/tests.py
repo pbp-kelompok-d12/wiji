@@ -19,7 +19,7 @@ class RegisterTests(TestCase):
 
     def test_register_creates_owner_and_logs_in(self):
         response = self.client.post(reverse('accounts:register'), VALID_FORM)
-        self.assertRedirects(response, reverse('core:landing'))
+        self.assertRedirects(response, reverse('dashboard:home'))
         user = User.objects.get(username='sari.rahayu')
         self.assertEqual(user.role, User.Role.OWNER)
         self.assertFalse(user.is_staff)
@@ -62,7 +62,7 @@ class RegisterTests(TestCase):
         user = User.objects.create_user('sari', 'sari@contoh.id', 'tanah12345')
         self.client.force_login(user)
         response = self.client.get(reverse('accounts:register'))
-        self.assertRedirects(response, reverse('core:landing'))
+        self.assertRedirects(response, reverse('dashboard:home'))
 
 
 class UsernameCheckTests(TestCase):
@@ -81,9 +81,9 @@ class LoginLogoutTests(TestCase):
     def test_login_page_loads(self):
         self.assertEqual(self.client.get(reverse('accounts:login')).status_code, 200)
 
-    def test_login_success_goes_to_landing(self):
+    def test_login_success_goes_to_dashboard(self):
         response = self.client.post(reverse('accounts:login'), {'username': 'sari', 'password': 'tanah12345'})
-        self.assertRedirects(response, reverse('core:landing'))
+        self.assertRedirects(response, reverse('dashboard:home'))
 
     def test_login_wrong_password_shows_error(self):
         response = self.client.post(reverse('accounts:login'), {'username': 'sari', 'password': 'salah'})
@@ -106,6 +106,10 @@ class UserModelTests(TestCase):
     def test_display_name_falls_back_to_username(self):
         self.assertEqual(User(username='sari').display_name, 'sari')
         self.assertEqual(User(username='sari', first_name='Sari Rahayu').display_name, 'Sari Rahayu')
+
+    def test_initials(self):
+        self.assertEqual(User(username='sari', first_name='Sari Rahayu').initials, 'SR')
+        self.assertEqual(User(username='sari').initials, 'S')
 
     def test_role_helpers(self):
         self.assertTrue(User(role=User.Role.OWNER).is_owner)

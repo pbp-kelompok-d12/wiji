@@ -24,14 +24,14 @@ class WijiLogoutView(LogoutView):
 
 def register(request):
     if request.user.is_authenticated:
-        return redirect('core:landing')
+        return redirect('dashboard:home')
 
     form = OwnerRegistrationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         login(request, user)
         messages.success(request, f'Selamat datang di Wiji, {user.display_name}!')
-        return redirect('core:landing')
+        return redirect('dashboard:home')
     return render(request, 'accounts/register.html', {'form': form})
 
 
