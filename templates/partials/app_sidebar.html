@@ -1,0 +1,49 @@
+{% load static %}
+{# Sidebar dashboard. Isi menu masih tautan kosong (#) sampai modulnya jadi; active_nav nentuin menu yang menyala #}
+<aside id="side" class="app-side" aria-label="Menu utama">
+  <div class="flex items-center justify-between px-2">
+    <a href="{% url 'core:landing' %}" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="h-8 w-auto"></a>
+    <button type="button" class="text-ink-soft lg:hidden" data-side-close aria-label="Tutup menu"><svg class="ic"><use href="#i-plus" transform="rotate(45 12 12)"/></svg></button>
+  </div>
+
+  <nav class="mt-3 flex-1 overflow-y-auto">
+    <p class="side-label">Utama</p>
+    <a href="{% url 'dashboard:home' %}" class="side-link {% if active_nav == 'dashboard' %}is-active{% endif %}"><svg class="ic"><use href="#i-home"/></svg>Dashboard</a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-pin"/></svg>Lahan <span class="side-count">4</span></a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-flask"/></svg>Pemeriksaan <span class="side-count">1</span></a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-doc"/></svg>Hasil tanah <span class="side-count">3</span></a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-sprout"/></svg>Rekomendasi</a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-cal"/></svg>Rencana tanam <span class="side-count">1</span></a>
+
+    <p class="side-label">Referensi</p>
+    <a href="{% url 'core:landing' %}#katalog" class="side-link"><svg class="ic"><use href="#i-book"/></svg>Katalog tanaman</a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-map"/></svg>Peta dan cuaca</a>
+
+    <p class="side-label">Akun</p>
+    {% if user.is_staff %}<a href="{% url 'admin:index' %}" class="side-link"><svg class="ic"><use href="#i-shield"/></svg>Halaman admin</a>{% endif %}
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-sliders"/></svg>Pengaturan</a>
+    <a href="#" class="side-link"><svg class="ic"><use href="#i-help"/></svg>Bantuan</a>
+  </nav>
+
+  {% if user.is_owner %}
+  <div class="mb-3 rounded-2xl border border-line bg-white p-3">
+    <div class="flex items-center gap-2 text-[13px] font-bold"><svg class="ic ic-sm text-moss"><use href="#i-pin"/></svg>Satu lahan belum lengkap</div>
+    <p class="mt-1 text-xs leading-[18px] text-ink-soft">Tambahkan koordinat supaya lahannya bisa dipesankan pemeriksaan.</p>
+    <a href="#" class="mt-2.5 flex h-9 items-center justify-between rounded-xl bg-paper px-3 text-xs font-bold transition hover:bg-leaf">Lengkapi lahan <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
+  </div>
+  {% endif %}
+
+  <div class="flex items-center gap-3 rounded-2xl p-2">
+    <span class="grid size-10 place-items-center rounded-full bg-leaf text-sm font-bold text-moss-deep">{{ user.initials }}</span>
+    <div class="min-w-0 flex-1 leading-tight">
+      <p class="truncate text-sm font-bold">{{ user.display_name }}</p>
+      <p class="truncate text-xs text-ink-soft">{{ user.get_role_display }}</p>
+    </div>
+    {# Keluar harus lewat POST (aturan Django 5) #}
+    <form method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="grid size-9 place-items-center rounded-xl text-ink-soft transition hover:bg-white hover:text-ink" aria-label="Keluar" title="Keluar"><svg class="ic"><use href="#i-logout"/></svg></button>
+    </form>
+  </div>
+</aside>
+<div id="side-backdrop" class="app-backdrop" data-side-close></div>

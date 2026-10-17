@@ -20,5 +20,10 @@ class User(AbstractUser):
         return self.role == self.Role.OFFICER
 
     @property
+    def initials(self):
+        parts = self.display_name.split()
+        return ''.join(p[0] for p in parts[:2]).upper() or '?'
+
+    @property
     def display_name(self):
         return self.get_full_name() or self.username

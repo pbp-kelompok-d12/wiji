@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Layout dashboard: sidebar di kiri, bar atas, lalu isi halaman. Dipakai semua halaman setelah login #}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+{% include 'partials/icons.html' %}
+<div class="flex min-h-screen">
+  {% include 'partials/app_sidebar.html' %}
+  <div class="min-w-0 flex-1">
+    {% include 'partials/app_topbar.html' %}
+    <div class="mx-auto max-w-[1240px] px-4 py-7 sm:px-6 xl:px-8">
+      {% block app_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% block page_js %}{% endblock %}
+{% endblock %}
