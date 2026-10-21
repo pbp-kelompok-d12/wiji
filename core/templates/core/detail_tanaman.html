@@ -1,0 +1,99 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ tanaman.nama }}{% endblock %}
+{% block crumb %}<a href="{% url 'core:daftar_tanaman' %}" class="hover:text-ink">Katalog Tanaman</a> / {{ tanaman.nama }}{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-4xl rounded-panel border border-line bg-white p-6 shadow-sm sm:p-8">
+  
+  <!-- Header: Label dan Judul -->
+  <div class="mb-8 flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <span class="rounded-md bg-leaf px-2.5 py-1 text-xs font-bold text-moss-deep">{{ tanaman.fungsi }}</span>
+        
+        {% if tanaman.kontaminan_ditangani %}
+          <span class="rounded-md bg-brick/10 px-2.5 py-1 text-xs font-bold text-brick">Fitoremediasi</span>
+        {% endif %}
+        
+        <span class="rounded-md bg-paper px-2.5 py-1 text-xs font-bold {% if tanaman.tersedia_di_indonesia %}text-sky{% else %}text-turmeric{% endif %}">
+          {% if tanaman.tersedia_di_indonesia %}Prioritas Lokal{% else %}Alternatif Asing{% endif %}
+        </span>
+      </div>
+      
+      <h1 class="font-['Bricolage_Grotesque'] text-3xl font-bold text-ink">{{ tanaman.nama }}</h1>
+      {% if tanaman.nama_latin %}
+        <p class="mt-1 text-lg italic text-ink-soft">{{ tanaman.nama_latin }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Grid Konten Utama -->
+  <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+    
+    <!-- Kolom Kiri: Informasi Dasar -->
+    <div class="flex flex-col gap-6">
+      <div>
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+          <svg class="ic ic-sm text-moss"><use href="#i-sprout"/></svg> Deskripsi Umum
+        </h2>
+        <p class="text-sm leading-relaxed text-ink-soft">{{ tanaman.deskripsi }}</p>
+      </div>
+      
+      <div>
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+          <svg class="ic ic-sm text-sky"><use href="#i-drop"/></svg> Kondisi Pertumbuhan
+        </h2>
+        <p class="text-sm leading-relaxed text-ink-soft">{{ tanaman.kondisi_pertumbuhan }}</p>
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Parameter Khusus & Peringatan (Menggunakan box berwarna paper) -->
+    <div class="flex flex-col gap-6 rounded-xl border border-line bg-paper p-5">
+      
+      {% if tanaman.kontaminan_ditangani %}
+      <div>
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+          <svg class="ic ic-sm text-moss-deep"><use href="#i-shield"/></svg> Kontaminan yang Ditangani
+        </h2>
+        <p class="text-sm leading-relaxed text-ink-soft">{{ tanaman.kontaminan_ditangani }}</p>
+      </div>
+      {% endif %}
+      
+      {% if tanaman.risiko_penggunaan %}
+      <div>
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-brick">
+          <svg class="ic ic-sm"><use href="#i-alert"/></svg> Risiko Penggunaan
+        </h2>
+        <p class="text-sm leading-relaxed text-ink-soft">{{ tanaman.risiko_penggunaan }}</p>
+      </div>
+      {% endif %}
+
+      {% if tanaman.sumber_penelitian %}
+      <div class="{% if tanaman.kontaminan_ditangani or tanaman.risiko_penggunaan %}border-t border-line pt-4{% endif %}">
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
+          <svg class="ic ic-sm text-ink-soft"><use href="#i-book"/></svg> Sumber Penelitian
+        </h2>
+        <p class="text-sm leading-relaxed text-ink-soft">{{ tanaman.sumber_penelitian }}</p>
+      </div>
+      {% endif %}
+    </div>
+    
+  </div>
+
+  <!-- Tombol Aksi (Hanya muncul untuk Admin/Staff) -->
+<div class="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-6">
+  
+  {# Sembunyikan tombol Edit dan Hapus dari pengguna biasa #}
+  {% if user.is_staff %}
+    <a href="{% url 'core:ubah_tanaman' tanaman.pk %}" class="btn btn-leaf flex items-center gap-2">
+      <svg class="ic ic-sm"><use href="#i-doc"/></svg> Edit Data
+    </a>
+    <a href="{% url 'core:hapus_tanaman' tanaman.pk %}" class="btn flex items-center gap-2 border border-brick text-brick hover:bg-brick hover:text-white">
+      <svg class="ic ic-sm"><use href="#i-alert"/></svg> Hapus
+    </a>
+  {% endif %}
+  
+  <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost {% if not user.is_staff %}ml-0{% else %}ml-auto{% endif %}">Kembali ke Katalog</a>
+</div>
+{% endblock %}

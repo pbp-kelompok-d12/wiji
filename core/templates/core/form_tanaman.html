@@ -1,0 +1,33 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block crumb %}<a href="{% url 'core:daftar_tanaman' %}" class="hover:text-ink">Katalog Tanaman</a> / {{ title }}{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl rounded-panel border border-line bg-white p-6 shadow-sm">
+  <h1 class="mb-6 text-2xl font-bold text-ink">{{ title }}</h1>
+  
+  <form method="POST" class="flex flex-col gap-4">
+    {% csrf_token %}
+    
+    {# Looping otomatis form Django dengan gaya Tailwind #}
+    {% for field in form %}
+      <div class="flex flex-col gap-1.5">
+        <label for="{{ field.id_for_label }}" class="text-sm font-semibold text-ink">{{ field.label }}</label>
+        {{ field }} 
+        {% if field.help_text %}
+          <span class="text-xs text-ink-soft">{{ field.help_text }}</span>
+        {% endif %}
+        {% for error in field.errors %}
+          <span class="text-xs text-brick">{{ error }}</span>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="mt-6 flex items-center gap-3 border-t border-line pt-4">
+      <button type="submit" class="btn btn-leaf">Simpan Tanaman</button>
+      <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost">Batal</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

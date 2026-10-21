@@ -1,0 +1,52 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Katalog Tanaman{% endblock %}
+{% block crumb %}Katalog Tanaman{% endblock %}
+
+{% block app_content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-ink">Katalog Tanaman</h1>
+    <p class="text-sm text-ink-soft">Daftar tanaman untuk rekomendasi lahan.</p>
+  </div>
+  
+  {# Sembunyikan tombol dari pengguna biasa #}
+  {% if user.is_staff %}
+  <a href="{% url 'core:tambah_tanaman' %}" class="btn btn-leaf flex items-center gap-2">
+    <svg class="ic ic-sm"><use href="#i-plus"/></svg> Tambah Tanaman
+  </a>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for t in tanaman_list %}
+    <!-- Kartu Tanaman Mulai -->
+    <div class="flex flex-col justify-between rounded-panel border border-line bg-white p-5 shadow-sm transition hover:border-forest">
+      <div>
+        <div class="mb-2 flex flex-wrap items-center gap-2">
+          <span class="rounded-md bg-leaf px-2 py-1 text-[11px] font-bold text-moss-deep">{{ t.fungsi }}</span>
+          {% if t.kontaminan_ditangani %}
+            <span class="rounded-md bg-brick/10 px-2 py-1 text-[11px] font-bold text-brick">Fitoremediasi</span>
+          {% endif %}
+        </div>
+        <h2 class="text-lg font-bold font-['Bricolage_Grotesque'] text-ink">{{ t.nama }}</h2>
+        <p class="text-xs italic text-ink-soft mb-2">{{ t.nama_latin }}</p>
+        <p class="mt-1 line-clamp-2 text-sm text-ink-soft">{{ t.deskripsi }}</p>
+      </div>
+      <div class="mt-4 flex items-center justify-between border-t border-line pt-4">
+        <span class="text-xs font-semibold {% if t.tersedia_di_indonesia %}text-sky{% else %}text-turmeric{% endif %}">
+          {% if t.tersedia_di_indonesia %}Prioritas Lokal{% else %}Alternatif Asing{% endif %}
+        </span>
+        <a href="{% url 'core:detail_tanaman' t.pk %}" class="text-sm font-semibold text-forest hover:underline">Lihat Detail &rarr;</a>
+      </div>
+    </div>
+    <!-- Kartu Tanaman Selesai -->
+  {% empty %}
+    <div class="col-span-full rounded-panel border border-line bg-paper p-8 text-center">
+      <svg class="ic mx-auto mb-3 size-8 text-ink-soft"><use href="#i-sprout"/></svg>
+      <p class="font-semibold text-ink">Belum ada tanaman</p>
+      <p class="text-sm text-ink-soft">Silakan tambah tanaman baru ke dalam katalog.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Hapus {{ tanaman.nama }}{% endblock %}
+{% block crumb %}<a href="{% url 'core:daftar_tanaman' %}" class="hover:text-ink">Katalog Tanaman</a> / Hapus{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto mt-10 max-w-lg rounded-panel border border-line bg-white p-8 text-center shadow-sm">
+  <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-brick/10 text-brick">
+    <svg class="ic size-7"><use href="#i-alert"/></svg>
+  </div>
+  
+  <h1 class="mb-2 text-2xl font-bold text-ink">Hapus Tanaman?</h1>
+  
+  <p class="mb-8 text-sm text-ink-soft">
+    Apakah Anda yakin ingin menghapus <strong>{{ tanaman.nama }}</strong> dari katalog? Tindakan ini akan menghapus data secara permanen.
+  </p>
+
+  <form method="POST" class="flex flex-col gap-3 sm:flex-row sm:justify-center">
+    {% csrf_token %}
+    <button type="submit" class="btn bg-brick text-white hover:bg-brick/90">Ya, Hapus Tanaman</button>
+    <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost">Batal</a>
+  </form>
+</div>
+{% endblock %}
