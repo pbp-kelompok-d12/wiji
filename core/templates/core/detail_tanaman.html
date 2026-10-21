@@ -81,15 +81,19 @@
     
   </div>
 
-  <!-- Tombol Aksi (Hanya muncul untuk Admin/Staff nantinya) -->
-  <div class="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-6">
+  <!-- Tombol Aksi (Hanya muncul untuk Admin/Staff) -->
+<div class="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-6">
+  
+  {# Sembunyikan tombol Edit dan Hapus dari pengguna biasa #}
+  {% if user.is_staff %}
     <a href="{% url 'core:ubah_tanaman' tanaman.pk %}" class="btn btn-leaf flex items-center gap-2">
       <svg class="ic ic-sm"><use href="#i-doc"/></svg> Edit Data
     </a>
     <a href="{% url 'core:hapus_tanaman' tanaman.pk %}" class="btn flex items-center gap-2 border border-brick text-brick hover:bg-brick hover:text-white">
       <svg class="ic ic-sm"><use href="#i-alert"/></svg> Hapus
     </a>
-    <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost ml-auto">Kembali ke Katalog</a>
-  </div>
+  {% endif %}
+  
+  <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost {% if not user.is_staff %}ml-0{% else %}ml-auto{% endif %}">Kembali ke Katalog</a>
 </div>
 {% endblock %}

@@ -7,11 +7,15 @@
 <div class="mb-6 flex items-center justify-between">
   <div>
     <h1 class="text-2xl font-bold text-ink">Katalog Tanaman</h1>
-    <p class="text-sm text-ink-soft">Kelola daftar tanaman untuk rekomendasi lahan.</p>
+    <p class="text-sm text-ink-soft">Daftar tanaman untuk rekomendasi lahan.</p>
   </div>
+  
+  {# Sembunyikan tombol dari pengguna biasa #}
+  {% if user.is_staff %}
   <a href="{% url 'core:tambah_tanaman' %}" class="btn btn-leaf flex items-center gap-2">
     <svg class="ic ic-sm"><use href="#i-plus"/></svg> Tambah Tanaman
   </a>
+  {% endif %}
 </div>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
