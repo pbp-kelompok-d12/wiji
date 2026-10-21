@@ -48,7 +48,7 @@ def tambah_tanaman(request):
         form = TanamanForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('daftar_tanaman')
+            return redirect('core:daftar_tanaman')
     else:
         form = TanamanForm()
     return render(request, 'core/form_tanaman.html', {'form': form, 'title': 'Tambah Tanaman'})
@@ -60,7 +60,7 @@ def ubah_tanaman(request, pk):
         form = TanamanForm(request.POST, instance=tanaman)
         if form.is_valid():
             form.save()
-            return redirect('detail_tanaman', pk=tanaman.pk)
+            return redirect('core:detail_tanaman', pk=tanaman.pk)
     else:
         form = TanamanForm(instance=tanaman)
     return render(request, 'core/form_tanaman.html', {'form': form, 'title': 'Ubah Tanaman'})
@@ -70,5 +70,5 @@ def hapus_tanaman(request, pk):
     tanaman = get_object_or_404(Tanaman, pk=pk)
     if request.method == 'POST':
         tanaman.delete()
-        return redirect('daftar_tanaman')
+        return redirect('core:daftar_tanaman')
     return render(request, 'core/konfirmasi_hapus.html', {'tanaman': tanaman})
