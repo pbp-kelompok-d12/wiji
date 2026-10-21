@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Tanaman
 from .forms import TanamanForm
+from django.contrib.admin.views.decorators import staff_member_required
 
 # Data sementara buat preview katalog. Nanti ganti pakai model Plant kalau Modul D udah jadi.
 FEATURED_PLANTS = [
@@ -43,6 +44,7 @@ def detail_tanaman(request, pk):
     return render(request, 'core/detail_tanaman.html', {'tanaman': tanaman})
 
 # CREATE: Menambah tanaman baru
+@staff_member_required
 def tambah_tanaman(request):
     if request.method == 'POST':
         form = TanamanForm(request.POST)
@@ -54,6 +56,7 @@ def tambah_tanaman(request):
     return render(request, 'core/form_tanaman.html', {'form': form, 'title': 'Tambah Tanaman'})
 
 # UPDATE: Mengubah informasi tanaman
+@staff_member_required
 def ubah_tanaman(request, pk):
     tanaman = get_object_or_404(Tanaman, pk=pk)
     if request.method == 'POST':
@@ -66,6 +69,7 @@ def ubah_tanaman(request, pk):
     return render(request, 'core/form_tanaman.html', {'form': form, 'title': 'Ubah Tanaman'})
 
 # DELETE: Menghapus tanaman dari katalog
+@staff_member_required
 def hapus_tanaman(request, pk):
     tanaman = get_object_or_404(Tanaman, pk=pk)
     if request.method == 'POST':
