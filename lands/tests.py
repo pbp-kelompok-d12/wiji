@@ -7,12 +7,12 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from .forms import LandForm, LahanForm
 
-from .forms import LahanForm
-from .models import Lahan, ManagementGoal
+from .models import Land, Lahan, ManagementGoal
 
 
-class LahanModelTests(TestCase):
+class LandModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.owner = User.objects.create_user(
@@ -27,10 +27,10 @@ class LahanModelTests(TestCase):
             'nama': 'Kebun Uji',
             'alamat': 'Dramaga, Bogor',
             'luas_m2': Decimal('120.50'),
-            'penggunaan': Lahan.Penggunaan.KEBUN,
+            'penggunaan': Land.Penggunaan.KEBUN,
         }
         data.update(kwargs)
-        return Lahan(**data)
+        return Land(**data)
 
     def test_lahan_draf_saat_koordinat_kosong(self):
         lahan = self.buat_lahan()
@@ -60,12 +60,12 @@ class LahanModelTests(TestCase):
         self.assertTrue(lahan.dapat_dihapus)
 
 
-class LahanFormTests(TestCase):
+class LandFormTests(TestCase):
     def test_hanya_tujuan_aktif_yang_tampil(self):
         aktif = ManagementGoal.objects.create(nama='Aktif', slug='aktif', aktif=True)
         ManagementGoal.objects.create(nama='Nonaktif', slug='nonaktif', aktif=False)
 
-        form = LahanForm()
+        form = LandForm()
 
         self.assertIn(aktif, form.fields['tujuan'].queryset)
         self.assertNotIn(
@@ -74,7 +74,7 @@ class LahanFormTests(TestCase):
         )
 
 
-class LahanViewTests(TestCase):
+class LandViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.owner = User.objects.create_user(
@@ -96,22 +96,22 @@ class LahanViewTests(TestCase):
             nama='Pemulihan tanah',
             slug='pemulihan-tanah',
         )
-        cls.lahan = Lahan.objects.create(
+        cls.lahan = Land.objects.create(
             owner=cls.owner,
             nama='Kebun Cibodas',
             alamat='Cibodas, Bogor',
             latitude=Decimal('-6.550000'),
             longitude=Decimal('106.750000'),
             luas_m2=Decimal('250.00'),
-            penggunaan=Lahan.Penggunaan.KEBUN,
+            penggunaan=Land.Penggunaan.KEBUN,
         )
         cls.lahan.tujuan.add(cls.goal)
-        cls.lahan_lain = Lahan.objects.create(
+        cls.lahan_lain = Land.objects.create(
             owner=cls.other_owner,
             nama='Sawah Lain',
             alamat='Ciampea, Bogor',
             luas_m2=Decimal('800.00'),
-            penggunaan=Lahan.Penggunaan.SAWAH,
+            penggunaan=Land.Penggunaan.SAWAH,
         )
 
     def test_halaman_lahan_wajib_login(self):
@@ -185,12 +185,12 @@ class LahanViewTests(TestCase):
             'latitude': '',
             'longitude': '',
             'luas_m2': '500.00',
-            'penggunaan': Lahan.Penggunaan.SAWAH,
+            'penggunaan': Land.Penggunaan.SAWAH,
             'kondisi': 'Tanah masih gembur.',
             'tujuan': [self.goal.pk],
         })
 
-        lahan = Lahan.objects.get(nama='Sawah Baru')
+        lahan = Land.objects.get(nama='Sawah Baru')
         self.assertRedirects(
             response,
             reverse('lands:detail_lahan', args=[lahan.pk]),
@@ -202,16 +202,16 @@ class LahanViewTests(TestCase):
     def test_tambah_lahan_tidak_valid_tetap_di_form(self):
         self.client.force_login(self.owner)
         response = self.client.post(reverse('lands:tambah_lahan'), {
-            'nama': 'Lahan Rusak',
+            'nama': 'Land Rusak',
             'alamat': '',
             'latitude': '-6.55',
             'longitude': '',
             'luas_m2': '-1',
-            'penggunaan': Lahan.Penggunaan.KEBUN,
+            'penggunaan': Land.Penggunaan.KEBUN,
         })
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(Lahan.objects.filter(nama='Lahan Rusak').exists())
+        self.assertFalse(Land.objects.filter(nama='Land Rusak').exists())
         self.assertTrue(response.context['form'].errors)
 
     def test_ubah_lahan(self):
@@ -224,7 +224,7 @@ class LahanViewTests(TestCase):
                 'latitude': '-6.550000',
                 'longitude': '106.750000',
                 'luas_m2': '300.00',
-                'penggunaan': Lahan.Penggunaan.KEBUN,
+                'penggunaan': Land.Penggunaan.KEBUN,
                 'kondisi': 'Subur.',
                 'tujuan': [self.goal.pk],
             },
@@ -263,7 +263,7 @@ class LahanViewTests(TestCase):
 
     def test_arsip_ditolak_saat_ada_pesanan_aktif(self):
         self.client.force_login(self.owner)
-        with patch.object(Lahan, 'punya_pesanan_aktif', return_value=True):
+        with patch.object(Land, 'punya_pesanan_aktif', return_value=True):
             response = self.client.post(
                 reverse('lands:arsip_lahan', args=[self.lahan.pk])
             )
@@ -276,12 +276,12 @@ class LahanViewTests(TestCase):
         self.assertFalse(self.lahan.diarsipkan)
 
     def test_hapus_lahan(self):
-        lahan = Lahan.objects.create(
+        lahan = Land.objects.create(
             owner=self.owner,
-            nama='Lahan Sementara',
+            nama='Land Sementara',
             alamat='Bogor',
             luas_m2=Decimal('10.00'),
-            penggunaan=Lahan.Penggunaan.LAINNYA,
+            penggunaan=Land.Penggunaan.LAINNYA,
         )
         self.client.force_login(self.owner)
 
@@ -294,7 +294,7 @@ class LahanViewTests(TestCase):
             reverse('lands:hapus_lahan', args=[lahan.pk])
         )
         self.assertRedirects(response, reverse('lands:daftar_lahan'))
-        self.assertFalse(Lahan.objects.filter(pk=lahan.pk).exists())
+        self.assertFalse(Land.objects.filter(pk=lahan.pk).exists())
 
     def test_api_lahan_hanya_milik_sendiri(self):
         self.client.force_login(self.owner)

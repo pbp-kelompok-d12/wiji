@@ -9,9 +9,12 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
-from .forms import LahanForm
-from .models import Lahan
+from . import forms
+from . import models
 from .services import nominatim
+
+LahanForm = forms.LahanForm
+LandForm = getattr(forms, 'LandForm', forms.LahanForm)
 
 
 def owner_required(view_func):
@@ -26,7 +29,8 @@ def owner_required(view_func):
 
 
 def _lahan_owner(request):
-    return Lahan.objects.filter(owner=request.user)
+    Land = getattr(models, 'Land', None) or getattr(models, 'Lahan')
+    return Land.objects.filter(owner=request.user)
 
 
 @owner_required

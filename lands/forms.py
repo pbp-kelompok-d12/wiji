@@ -1,14 +1,15 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Lahan, ManagementGoal
+from . import models
+from .models import ManagementGoal
 
 INPUT_CLASS = 'field-input'
 
 
 class LahanForm(forms.ModelForm):
     class Meta:
-        model = Lahan
+        model = models.Lahan
         fields = (
             'nama',
             'alamat',
@@ -84,3 +85,11 @@ class LahanForm(forms.ModelForm):
         if content_type and not content_type.startswith('image/'):
             raise ValidationError('File harus berupa gambar.')
         return foto
+
+
+LandForm = LahanForm
+try:
+    from .models import Land
+    LandForm = LahanForm
+except Exception:
+    pass

@@ -142,3 +142,6 @@ class Lahan(models.Model):
         self.diarsipkan = False
         self.diarsipkan_pada = None
         self.save(update_fields=['diarsipkan', 'diarsipkan_pada', 'diperbarui_pada'])
+
+
+Land = Lahan

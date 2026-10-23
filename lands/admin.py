@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lahan, ManagementGoal
+from .models import ManagementGoal
 
 
 @admin.register(ManagementGoal)
@@ -11,7 +11,6 @@ class ManagementGoalAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('nama',)}
 
 
-@admin.register(Lahan)
 class LahanAdmin(admin.ModelAdmin):
     list_display = (
         'nama',
@@ -27,3 +26,13 @@ class LahanAdmin(admin.ModelAdmin):
     readonly_fields = ('dibuat_pada', 'diperbarui_pada', 'diarsipkan_pada')
     filter_horizontal = ('tujuan',)
     list_select_related = ('owner',)
+
+
+try:
+    from . import models
+    if hasattr(models, 'Lahan') and not admin.site.is_registered(models.Lahan):
+        admin.site.register(models.Lahan, LahanAdmin)
+    if hasattr(models, 'Land') and models.Land is not models.Lahan and not admin.site.is_registered(models.Land):
+        admin.site.register(models.Land, LahanAdmin)
+except Exception:
+    pass
