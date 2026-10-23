@@ -6,4 +6,5 @@ urlpatterns = [
     path('akun/', include('accounts.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('', include('core.urls')),
+    path('lahan/', include('lands.urls')),
 ]
