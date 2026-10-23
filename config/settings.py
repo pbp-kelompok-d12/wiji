@@ -110,4 +110,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Biar WhiteNoise bisa nyajiin file dari folder static/ langsung, jadi nggak wajib jalanin collectstatic dulu
 WHITENOISE_USE_FINDERS = True
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

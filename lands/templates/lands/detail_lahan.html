@@ -1,0 +1,171 @@
+{% extends 'app_base.html' %}
+{% load static l10n %}
+
+{% block title %}{{ lahan.nama }}{% endblock %}
+{% block crumb %}<a href="{% url 'lands:daftar_lahan' %}" class="hover:text-ink">Lahan Saya</a> / {{ lahan.nama }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <p class="eyebrow">Detail lahan</p>
+    <h1 class="heading mt-1 text-[30px] leading-[36px]">{{ lahan.nama }}</h1>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <span class="chip {% if lahan.diarsipkan %}chip-paper{% elif lahan.adalah_draf %}chip-sand{% else %}chip-up{% endif %}">
+        {% if lahan.diarsipkan %}Diarsipkan{% elif lahan.adalah_draf %}Draf{% else %}Lengkap{% endif %}
+      </span>
+      <span class="chip chip-paper">{{ lahan.get_penggunaan_display }}</span>
+      <span class="text-xs text-ink-soft">Ditambahkan {{ lahan.dibuat_pada|date:"j M Y" }}</span>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="btn btn-primary !min-h-10 gap-2">
+      <svg class="ic ic-sm"><use href="#i-doc"/></svg>Ubah
+    </a>
+    {% if lahan.diarsipkan %}
+    <form method="post" action="{% url 'lands:pulihkan_lahan' lahan.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-leaf !min-h-10 gap-2">
+        <svg class="ic ic-sm"><use href="#i-check"/></svg>Pulihkan
+      </button>
+    </form>
+    {% elif lahan.dapat_diarsipkan %}
+    <a href="{% url 'lands:arsip_lahan' lahan.pk %}" class="btn btn-ghost !min-h-10 gap-2 border border-line">
+      <svg class="ic ic-sm"><use href="#i-doc"/></svg>Arsipkan
+    </a>
+    {% else %}
+    <span class="chip chip-sand">Punya pesanan aktif</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if lahan.diarsipkan %}
+<div class="alert alert-info mt-5">
+  Lahan ini diarsipkan{% if lahan.diarsipkan_pada %} pada {{ lahan.diarsipkan_pada|date:"j M Y, H:i" }}{% endif %}. Pulihkan untuk memakainya lagi.
+</div>
+{% elif lahan.adalah_draf %}
+<div class="alert alert-info mt-5">
+  Lahan ini belum punya koordinat. Lengkapi lokasinya supaya bisa dipesan untuk pemeriksaan.
+  <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="link">Lengkapi sekarang</a>.
+</div>
+{% endif %}
+
+<div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+  <div class="space-y-5">
+    <section class="d-card overflow-hidden">
+      {% if lahan.foto %}
+      <img src="{{ lahan.foto.url }}" alt="Foto {{ lahan.nama }}" class="h-64 w-full object-cover sm:h-80">
+      {% else %}
+      <div class="grid h-56 place-items-center bg-[var(--color-parchment)] text-ink-soft">
+        <div class="text-center">
+          <svg class="ic mx-auto size-9"><use href="#i-pin"/></svg>
+          <p class="mt-2 text-sm font-semibold">Belum ada foto lahan</p>
+          <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="link mt-1 inline-block text-xs">Tambahkan foto</a>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="d-card p-5 sm:p-6">
+      <h2 class="d-title">Informasi lahan</h2>
+      <dl class="mt-4 divide-y divide-line text-sm">
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Alamat</dt>
+          <dd class="leading-6">{{ lahan.alamat }}</dd>
+        </div>
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Luas</dt>
+          <dd class="font-semibold">{{ lahan.luas_m2|floatformat:"2" }} m²</dd>
+        </div>
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Penggunaan</dt>
+          <dd class="font-semibold">{{ lahan.get_penggunaan_display }}</dd>
+        </div>
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Kondisi</dt>
+          <dd class="leading-6">{{ lahan.kondisi|default:"Belum diisi"|linebreaksbr }}</dd>
+        </div>
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Tujuan</dt>
+          <dd>
+            {% if lahan.tujuan.all %}
+            <div class="flex flex-wrap gap-1.5">
+              {% for tujuan in lahan.tujuan.all %}<span class="chip chip-paper">{{ tujuan.nama }}</span>{% endfor %}
+            </div>
+            {% else %}
+            <span class="text-ink-soft">Belum dipilih</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div class="grid gap-1 py-3 sm:grid-cols-[140px_1fr]">
+          <dt class="font-semibold text-ink-soft">Terakhir diubah</dt>
+          <dd>{{ lahan.diperbarui_pada|date:"j M Y, H:i" }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <div class="space-y-5">
+    <section class="d-card overflow-hidden">
+      <div class="flex items-center justify-between border-b border-line p-4">
+        <h2 class="d-title flex items-center gap-2"><svg class="ic ic-sm text-moss"><use href="#i-pin"/></svg>Lokasi lahan</h2>
+        {% if lahan.punya_koordinat %}
+        <span class="chip chip-up">Sudah ditandai</span>
+        {% else %}
+        <span class="chip chip-sand">Belum ditandai</span>
+        {% endif %}
+      </div>
+
+      {% if lahan.punya_koordinat %}
+      <div id="peta-detail" class="h-[320px] w-full" data-lat="{{ lahan.latitude|unlocalize }}" data-lng="{{ lahan.longitude|unlocalize }}"></div>
+      <div class="grid grid-cols-2 gap-2 border-t border-line p-4 text-xs">
+        <div class="rounded-xl bg-paper px-3 py-2">
+          <p class="text-ink-soft">Latitude</p>
+          <p class="font-bold">{{ lahan.latitude|unlocalize }}</p>
+        </div>
+        <div class="rounded-xl bg-paper px-3 py-2">
+          <p class="text-ink-soft">Longitude</p>
+          <p class="font-bold">{{ lahan.longitude|unlocalize }}</p>
+        </div>
+      </div>
+      {% else %}
+      <div class="grid h-64 place-items-center p-6 text-center">
+        <div>
+          <span class="mx-auto grid size-12 place-items-center rounded-full bg-sand text-clay-deep"><svg class="ic"><use href="#i-map"/></svg></span>
+          <p class="mt-3 text-sm font-bold">Koordinat belum diisi</p>
+          <p class="mt-1 text-xs leading-5 text-ink-soft">Tandai titik lahan di peta supaya alamat dan lokasinya akurat.</p>
+          <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="btn btn-leaf mt-4 !min-h-9">Tandai lokasi</a>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="d-card p-5">
+      <h2 class="d-title">Tindakan</h2>
+      <div class="mt-3 space-y-2">
+        <a href="{% url 'lands:daftar_lahan' %}" class="flex h-10 items-center justify-between rounded-xl bg-paper px-3 text-[13px] font-bold transition hover:bg-leaf">
+          Kembali ke daftar lahan <svg class="ic ic-sm"><use href="#i-arrow"/></svg>
+        </a>
+        {% if lahan.dapat_dihapus %}
+        <a href="{% url 'lands:hapus_lahan' lahan.pk %}" class="flex h-10 items-center justify-between rounded-xl px-3 text-[13px] font-bold text-brick transition hover:bg-brick/5">
+          Hapus lahan <svg class="ic ic-sm"><use href="#i-alert"/></svg>
+        </a>
+        {% else %}
+        <p class="rounded-xl bg-paper px-3 py-2.5 text-xs leading-5 text-ink-soft">Lahan ini punya riwayat pemeriksaan, jadi hanya bisa diarsipkan, bukan dihapus.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+{% if lahan.punya_koordinat %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/peta_detail.js' %}"></script>
+{% endif %}
+{% endblock %}

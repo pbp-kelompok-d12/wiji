@@ -1,0 +1,43 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Lahan Saya{% endblock %}
+{% block crumb %}Lahan Saya{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow">Manajemen lahan</p>
+    <h1 class="heading mt-1 text-[28px] leading-[34px]">Lahan <span class="heading-accent">saya</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Kelola data lahan dan lengkapi lokasinya di peta.</p>
+  </div>
+  <a href="{% url 'lands:tambah_lahan' %}" class="btn btn-primary !min-h-10 gap-2">
+    <svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan
+  </a>
+</div>
+
+<div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex w-fit gap-1 rounded-full bg-paper p-1" aria-label="Filter status lahan">
+    <a href="{% url 'lands:daftar_lahan' %}{% if q %}?q={{ q|urlencode }}{% endif %}" class="tab {% if not tampilkan_arsip %}is-on{% endif %}">
+      Aktif <span class="ml-1 opacity-70">{{ jumlah_lahan }}</span>
+    </a>
+    <a href="{% url 'lands:daftar_lahan' %}?arsip=1{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if tampilkan_arsip %}is-on{% endif %}">
+      Arsip <span class="ml-1 opacity-70">{{ jumlah_arsip }}</span>
+    </a>
+  </div>
+
+  <form method="get" action="{% url 'lands:daftar_lahan' %}" class="relative w-full sm:max-w-xs"
+        hx-get="{% url 'lands:daftar_lahan' %}"
+        hx-target="#daftar-lahan"
+        hx-trigger="input changed delay:400ms, submit"
+        hx-push-url="true">
+    {% if tampilkan_arsip %}<input type="hidden" name="arsip" value="1">{% endif %}
+    <svg class="ic ic-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"><use href="#i-search"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Cari nama atau alamat..."
+           class="field-input !h-11 !pl-9" aria-label="Cari lahan">
+  </form>
+</div>
+
+<div id="daftar-lahan" class="mt-5">
+  {% include 'lands/partials/_daftar_lahan.html' %}
+</div>
+{% endblock %}

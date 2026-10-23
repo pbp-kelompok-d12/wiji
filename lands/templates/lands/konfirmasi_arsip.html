@@ -1,0 +1,21 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Arsipkan {{ lahan.nama }}{% endblock %}
+{% block crumb %}<a href="{% url 'lands:daftar_lahan' %}" class="hover:text-ink">Lahan Saya</a> / <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="hover:text-ink">{{ lahan.nama }}</a> / Arsipkan{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto mt-8 max-w-lg rounded-panel border border-line bg-white p-7 text-center shadow-sm sm:p-8">
+  <div class="mx-auto grid size-14 place-items-center rounded-full bg-sand text-clay-deep">
+    <svg class="ic size-7"><use href="#i-doc"/></svg>
+  </div>
+  <h1 class="mt-4 text-2xl font-bold text-ink">Arsipkan lahan?</h1>
+  <p class="mt-2 text-sm leading-6 text-ink-soft">
+    <strong>{{ lahan.nama }}</strong> akan disembunyikan dari daftar aktif. Data, foto, dan riwayatnya tetap tersimpan dan bisa dipulihkan kapan saja.
+  </p>
+  <form method="post" class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Ya, Arsipkan</button>
+    <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="btn btn-ghost">Batal</a>
+  </form>
+</div>
+{% endblock %}
