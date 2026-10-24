@@ -1,0 +1,128 @@
+{% extends 'app_base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block crumb %}
+<a href="{% url 'lands:daftar_lahan' %}" class="hover:text-ink">Lahan</a>
+{% if lahan %} / <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="hover:text-ink">{{ lahan.nama }}</a>{% endif %}
+ / {{ title }}
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="eyebrow">Lahan</p>
+    {% if lahan %}
+    <h1 class="heading mt-1 text-[28px] leading-[34px]">Lengkapi <span class="heading-accent">lahanmu</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Perbarui data lahan dan tandai titik lokasinya di peta.</p>
+    {% else %}
+    <h1 class="heading mt-1 text-[28px] leading-[34px]">Daftarkan <span class="heading-accent">lahan</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Isi data dasar, lalu tandai titik lokasinya di peta.</p>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.9fr)]">
+  {% csrf_token %}
+
+  <section class="d-card p-5 sm:p-6">
+    {% if form.non_field_errors %}
+    <div class="alert alert-error mb-4">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="space-y-4">
+      {% include 'lands/partials/_field.html' with field=form.nama %}
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% include 'lands/partials/_field.html' with field=form.luas_m2 %}
+        {% include 'lands/partials/_field.html' with field=form.penggunaan %}
+      </div>
+
+      {% include 'lands/partials/_field.html' with field=form.kondisi %}
+
+      <div class="field">
+        <span class="field-label">{{ form.tujuan.label }} <span class="font-normal text-ink-soft">· boleh lebih dari satu</span></span>
+        <div class="flex flex-wrap gap-2">
+          {% for checkbox in form.tujuan %}
+          <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line px-3 py-2 text-xs font-semibold transition hover:border-moss has-[:checked]:border-moss has-[:checked]:bg-leaf">
+            {{ checkbox.tag }}
+            <span>{{ checkbox.choice_label }}</span>
+          </label>
+          {% empty %}
+          <p class="text-sm text-ink-soft">Belum ada tujuan aktif. Hubungi admin untuk menambahkannya.</p>
+          {% endfor %}
+        </div>
+        {% for error in form.tujuan.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      {% include 'lands/partials/_field.html' with field=form.alamat %}
+
+      <p class="text-xs leading-5 text-ink-soft">Alamat ikut terisi saat kamu memilih hasil pencarian atau menaruh titik di peta. Kamu tetap bisa mengubahnya.</p>
+
+      {% if not form.instance.punya_koordinat %}
+      <p class="flex gap-2 rounded-xl bg-paper px-3 py-2.5 text-xs leading-5 text-ink-soft">
+        <svg class="ic ic-sm mt-0.5 shrink-0"><use href="#i-alert"/></svg>
+        Koordinat belum ditandai. Tambahkan titik agar lokasi lahan dapat ditampilkan pada peta.
+      </p>
+      {% endif %}
+
+      <div class="sr-only">
+        {{ form.latitude.as_hidden }}
+        {{ form.longitude.as_hidden }}
+      </div>
+      {% for error in form.latitude.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      {% for error in form.longitude.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+
+      <details class="rounded-xl border border-line px-3 py-2.5">
+        <summary class="cursor-pointer text-sm font-semibold">Foto lahan (opsional)</summary>
+        <div class="mt-3 field">
+          {% if form.instance.foto %}
+          <img src="{{ form.instance.foto.url }}" alt="Foto {{ form.instance.nama }}" class="mb-3 h-32 w-full rounded-xl object-cover">
+          {% endif %}
+          {{ form.foto }}
+          <p class="field-hint">JPG, PNG, atau WEBP. Maksimal 5 MB.</p>
+          {% for error in form.foto.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+      </details>
+    </div>
+
+    <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+      <p class="max-w-xs text-xs leading-5 text-ink-soft">Lahan tanpa data wajib atau titik koordinat akan tersimpan sebagai draft dan belum bisa dipesan.</p>
+      <div class="flex flex-wrap justify-end gap-2">
+        <a href="{% if lahan %}{% url 'lands:detail_lahan' lahan.pk %}{% else %}{% url 'lands:daftar_lahan' %}{% endif %}" class="btn btn-ghost">Batal</a>
+        {% if lahan and lahan.adalah_draf %}
+        <button type="submit" class="btn btn-ghost border border-line">
+          Simpan sebagai draft
+        </button>
+        {% endif %}
+        <button type="submit" class="btn btn-primary gap-2">
+          <svg class="ic ic-sm"><use href="#i-check"/></svg>{% if lahan %}Simpan perubahan{% else %}{{ tombol }}{% endif %}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="space-y-4 lg:sticky lg:top-24">
+    {% include 'lands/partials/peta_lokasi.html' %}
+
+    <section class="d-card p-5">
+      <p class="eyebrow">Setelah mendaftar</p>
+      <ol class="mt-2 space-y-2 text-[13px] leading-5">
+        <li class="flex gap-2"><span class="font-bold text-moss">01</span><span>Lengkapi data dan simpan lahanmu.</span></li>
+        <li class="flex gap-2"><span class="font-bold text-moss">02</span><span>Tandai titik koordinat agar lahan aktif dan bisa dipesan untuk pemeriksaan.</span></li>
+      </ol>
+    </section>
+  </aside>
+</form>
+{% endblock %}
+
+{% block page_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/peta_lahan.js' %}"></script>
+{% endblock %}

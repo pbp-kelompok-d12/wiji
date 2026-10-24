@@ -1,0 +1,59 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Arsipkan {{ lahan.nama }}{% endblock %}
+{% block crumb %}<a href="{% url 'lands:daftar_lahan' %}" class="hover:text-ink">Lahan</a> / <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="hover:text-ink">{{ lahan.nama }}</a> / Arsipkan{% endblock %}
+
+{% block app_content %}
+<div class="fixed inset-0 z-[100] grid place-items-center bg-[#102017]/95 p-4"
+     role="presentation">
+  <section class="w-full max-w-[410px] rounded-[18px] bg-white p-5 shadow-2xl sm:p-6"
+           role="alertdialog"
+           aria-modal="true"
+           aria-labelledby="{% if blocked %}arsip-blocked-title{% else %}arsip-title{% endif %}"
+           aria-describedby="{% if blocked %}arsip-blocked-description{% else %}arsip-description{% endif %}">
+    {% if blocked %}
+    <span class="grid size-10 place-items-center rounded-xl bg-brick/10 text-brick">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 8v4m0 4h.01"/>
+      </svg>
+    </span>
+    <p class="eyebrow mt-2">Diblokir</p>
+    <h1 id="arsip-blocked-title" class="mt-1 text-lg font-bold leading-6 text-ink">
+      Belum bisa mengarsipkan
+    </h1>
+    <p id="arsip-blocked-description" class="mt-1.5 text-[13px] leading-5 text-ink-soft">
+      Lahan ini masih memiliki pesanan aktif. Selesaikan atau batalkan pesanan terlebih dahulu, lalu coba arsipkan kembali.
+    </p>
+    <div class="mt-4 flex justify-end">
+      <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="btn btn-primary !min-h-9 !px-4 text-xs">
+        Mengerti
+      </a>
+    </div>
+    {% else %}
+    <span class="grid size-10 place-items-center rounded-xl bg-sand text-clay-deep">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7h16M5 7l1 14h12l1-14M9 7V4h6v3M9 11v6m6-6v6"/>
+      </svg>
+    </span>
+    <p class="eyebrow mt-2">Arsip</p>
+    <h1 id="arsip-title" class="mt-1 text-lg font-bold leading-6 text-ink">
+      Arsipkan {{ lahan.nama }}?
+    </h1>
+    <p id="arsip-description" class="mt-1.5 text-[13px] leading-5 text-ink-soft">
+      Lahan punya riwayat yang tetap tersimpan. Lahan akan disembunyikan dari daftar aktif dan tidak bisa dipesan, tetapi dapat dipulihkan kapan saja.
+    </p>
+
+    <form method="post" class="mt-4 flex flex-wrap justify-end gap-2">
+      {% csrf_token %}
+      <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="btn btn-ghost !min-h-9 border border-line !px-4 text-xs">
+        Kembali
+      </a>
+      <button type="submit" class="btn btn-primary !min-h-9 !px-4 text-xs">
+        Ya, arsipkan
+      </button>
+    </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% load static l10n %}
+<div class="d-card overflow-hidden"
+     data-peta-lokasi
+     data-cari-url="{% url 'lands:cari_lokasi' %}"
+     data-reverse-url="{% url 'lands:reverse_lokasi' %}"
+     data-lat="{{ form.latitude.value|default_if_none:''|unlocalize }}"
+     data-lng="{{ form.longitude.value|default_if_none:''|unlocalize }}">
+  <div class="p-3">
+    <label for="lokasi-search" class="sr-only">Cari alamat atau nama tempat</label>
+    <div class="flex gap-2">
+      <div class="relative min-w-0 flex-1">
+        <svg class="ic ic-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"><use href="#i-search"/></svg>
+        <input id="lokasi-search" type="search" autocomplete="off"
+               class="field-input !h-10 !pl-9"
+               placeholder="Cari alamat atau nama tempat"
+               aria-describedby="lokasi-status">
+      </div>
+      <button type="button" id="lokasi-search-btn" class="btn btn-ghost !min-h-10 border border-line !px-3" aria-label="Cari alamat">
+        <svg class="ic ic-sm"><use href="#i-search"/></svg>
+      </button>
+    </div>
+    <div id="lokasi-results" class="mt-2 hidden overflow-hidden rounded-xl border border-line"></div>
+    <p id="lokasi-status" class="sr-only" aria-live="polite">Ketik minimal tiga karakter untuk mencari lokasi.</p>
+  </div>
+
+  <div class="relative px-3">
+    <div id="peta-lahan" class="h-[250px] w-full rounded-xl bg-paper" role="application" aria-label="Peta pemilihan lokasi lahan"></div>
+    <span class="pointer-events-none absolute left-6 top-3 z-[400] rounded-full bg-ink px-3 py-1 text-[10px] font-semibold text-white">Klik peta untuk menaruh titik lahan</span>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-between gap-3 px-3 pb-3 pt-2">
+    <button type="button" id="pakai-lokasi" class="btn btn-ghost !min-h-9 gap-2 border border-line !px-3 text-xs">
+      <svg class="ic ic-sm"><use href="#i-pin"/></svg>Gunakan lokasi saya
+    </button>
+    <p class="text-[10px] text-ink-soft">Peta © OpenStreetMap</p>
+  </div>
+</div>
