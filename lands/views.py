@@ -164,6 +164,12 @@ def arsip_lahan(request, pk):
         return redirect('lands:ubah_lahan', pk=lahan.pk)
 
     if lahan.punya_pesanan_aktif():
+        if request.method != 'POST':
+            return render(request, 'lands/konfirmasi_arsip.html', {
+                'active_nav': 'lahan',
+                'lahan': lahan,
+                'blocked': True,
+            })
         messages.error(
             request,
             'Lahan ini masih punya pesanan aktif. Batalkan pesanannya dulu.',

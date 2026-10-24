@@ -34,7 +34,10 @@ class LahanForm(forms.ModelForm):
         }
         widgets = {
             'nama': forms.TextInput(attrs={'class': INPUT_CLASS}),
-            'alamat': forms.Textarea(attrs={'class': f'{INPUT_CLASS} !h-auto !py-3', 'rows': 3}),
+            'alamat': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'Terisi dari peta, bisa diubah',
+            }),
             'latitude': forms.NumberInput(attrs={
                 'class': INPUT_CLASS,
                 'step': '0.000001',
@@ -51,7 +54,10 @@ class LahanForm(forms.ModelForm):
                 'min': '0',
             }),
             'penggunaan': forms.Select(attrs={'class': INPUT_CLASS}),
-            'kondisi': forms.Textarea(attrs={'class': f'{INPUT_CLASS} !h-auto !py-3', 'rows': 3}),
+            'kondisi': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'Contoh: Tanah subur',
+            }),
             'foto': forms.ClearableFileInput(attrs={
                 'class': 'block w-full rounded-xl border border-line bg-paper px-3 py-2 text-sm',
                 'accept': 'image/*',

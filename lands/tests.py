@@ -208,6 +208,8 @@ class LandViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Lengkapi')
+        self.assertNotContains(response, 'Simpan sebagai draft')
         self.assertContains(response, 'value="-6.550000"')
         self.assertContains(response, 'value="106.750000"')
 
@@ -268,6 +270,7 @@ class LandViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'value="Draft Kebun"')
+        self.assertContains(response, 'Simpan sebagai draft')
 
         response = self.client.post(
             reverse('lands:ubah_lahan', args=[draft.pk]),
@@ -332,6 +335,14 @@ class LandViewTests(TestCase):
 
     def test_arsip_dan_pulihkan_lahan(self):
         self.client.force_login(self.owner)
+        confirmation = self.client.get(
+            reverse('lands:arsip_lahan', args=[self.lahan.pk])
+        )
+        self.assertEqual(confirmation.status_code, 200)
+        self.assertContains(confirmation, 'role="alertdialog"')
+        self.assertContains(confirmation, 'Arsipkan Kebun Cibodas?')
+        self.assertContains(confirmation, 'Ya, arsipkan')
+
         response = self.client.post(
             reverse('lands:arsip_lahan', args=[self.lahan.pk])
         )
@@ -356,6 +367,14 @@ class LandViewTests(TestCase):
     def test_arsip_ditolak_saat_ada_pesanan_aktif(self):
         self.client.force_login(self.owner)
         with patch.object(Land, 'punya_pesanan_aktif', return_value=True):
+            confirmation = self.client.get(
+                reverse('lands:arsip_lahan', args=[self.lahan.pk])
+            )
+            self.assertEqual(confirmation.status_code, 200)
+            self.assertContains(confirmation, 'role="alertdialog"')
+            self.assertContains(confirmation, 'Belum bisa mengarsipkan')
+            self.assertContains(confirmation, 'Mengerti')
+
             response = self.client.post(
                 reverse('lands:arsip_lahan', args=[self.lahan.pk])
             )
@@ -378,6 +397,9 @@ class LandViewTests(TestCase):
             reverse('lands:hapus_lahan', args=[lahan.pk])
         )
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'role="alertdialog"')
+        self.assertContains(response, 'Hapus Draft Sementara?')
+        self.assertContains(response, 'Ya, hapus')
 
         response = self.client.post(
             reverse('lands:hapus_lahan', args=[lahan.pk])
