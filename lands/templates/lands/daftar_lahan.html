@@ -16,11 +16,17 @@
 </div>
 
 <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <div class="flex w-fit gap-1 rounded-full bg-paper p-1" aria-label="Filter status lahan">
-    <a href="{% url 'lands:daftar_lahan' %}{% if q %}?q={{ q|urlencode }}{% endif %}" class="tab {% if not tampilkan_arsip %}is-on{% endif %}">
-      Aktif <span class="ml-1 opacity-70">{{ jumlah_lahan }}</span>
+  <div class="flex w-fit flex-wrap gap-1 rounded-full bg-paper p-1" aria-label="Filter status lahan">
+    <a href="{% url 'lands:daftar_lahan' %}?status=all{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if status_filter == 'all' %}is-on{% endif %}">
+      Semua <span class="ml-1 opacity-70">{{ jumlah_semua }}</span>
     </a>
-    <a href="{% url 'lands:daftar_lahan' %}?arsip=1{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if tampilkan_arsip %}is-on{% endif %}">
+    <a href="{% url 'lands:daftar_lahan' %}?status=active{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if status_filter == 'active' %}is-on{% endif %}">
+      Aktif <span class="ml-1 opacity-70">{{ jumlah_aktif }}</span>
+    </a>
+    <a href="{% url 'lands:daftar_lahan' %}?status=draft{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if status_filter == 'draft' %}is-on{% endif %}">
+      Draft <span class="ml-1 opacity-70">{{ jumlah_draf }}</span>
+    </a>
+    <a href="{% url 'lands:daftar_lahan' %}?status=archived{% if q %}&q={{ q|urlencode }}{% endif %}" class="tab {% if status_filter == 'archived' %}is-on{% endif %}">
       Arsip <span class="ml-1 opacity-70">{{ jumlah_arsip }}</span>
     </a>
   </div>
@@ -30,7 +36,7 @@
         hx-target="#daftar-lahan"
         hx-trigger="input changed delay:400ms, submit"
         hx-push-url="true">
-    {% if tampilkan_arsip %}<input type="hidden" name="arsip" value="1">{% endif %}
+    <input type="hidden" name="status" value="{{ status_filter }}">
     <svg class="ic ic-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"><use href="#i-search"/></svg>
     <input type="search" name="q" value="{{ q }}" placeholder="Cari nama atau alamat..."
            class="field-input !h-11 !pl-9" aria-label="Cari lahan">

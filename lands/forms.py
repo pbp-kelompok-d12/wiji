@@ -67,6 +67,8 @@ class LahanForm(forms.ModelForm):
         self.fields['tujuan'].required = False
         self.fields['foto'].required = False
         self.fields['kondisi'].required = False
+        for name in models.Lahan.REQUIRED_FIELDS:
+            self.fields[name].required = False
         self.fields['latitude'].help_text = 'Terisi otomatis dari peta.'
         self.fields['longitude'].help_text = 'Terisi otomatis dari peta.'
 

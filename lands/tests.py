@@ -32,10 +32,14 @@ class LandModelTests(TestCase):
         data.update(kwargs)
         return Land(**data)
 
-    def test_lahan_draf_saat_koordinat_kosong(self):
+    def test_lahan_lengkap_tanpa_koordinat_bukan_draf(self):
         lahan = self.buat_lahan()
-        self.assertTrue(lahan.adalah_draf)
+        self.assertFalse(lahan.adalah_draf)
         self.assertFalse(lahan.punya_koordinat)
+
+    def test_lahan_draf_saat_field_wajib_kosong(self):
+        lahan = self.buat_lahan(luas_m2=None)
+        self.assertTrue(lahan.adalah_draf)
 
     def test_lahan_lengkap_saat_koordinat_terisi(self):
         lahan = self.buat_lahan(
@@ -133,6 +137,43 @@ class LandViewTests(TestCase):
         self.assertContains(response, '-6.550000')
         self.assertNotContains(response, 'Sawah Lain')
 
+    def test_daftar_semua_status_dan_filter_masing_masing(self):
+        draft = Land.objects.create(
+            owner=self.owner,
+            nama='Draft Sawah',
+        )
+        archived = Land.objects.create(
+            owner=self.owner,
+            nama='Arsip Kebun',
+            alamat='Bogor',
+            luas_m2=Decimal('100.00'),
+            penggunaan=Land.Penggunaan.KEBUN,
+        )
+        archived.arsipkan()
+        self.client.force_login(self.owner)
+
+        semua = self.client.get(reverse('lands:daftar_lahan'))
+        aktif = self.client.get(reverse('lands:daftar_lahan'), {'status': 'active'})
+        draf = self.client.get(reverse('lands:daftar_lahan'), {'status': 'draft'})
+        arsip = self.client.get(reverse('lands:daftar_lahan'), {'status': 'archived'})
+
+        self.assertContains(semua, 'Kebun Cibodas')
+        self.assertContains(semua, 'Draft Sawah')
+        self.assertContains(semua, 'Arsip Kebun')
+        self.assertContains(aktif, 'Kebun Cibodas')
+        self.assertNotContains(aktif, 'Draft Sawah')
+        self.assertNotContains(aktif, 'Arsip Kebun')
+        self.assertContains(draf, 'Draft Sawah')
+        self.assertNotContains(draf, 'Kebun Cibodas')
+        self.assertContains(arsip, 'Arsip Kebun')
+        self.assertNotContains(arsip, 'Kebun Cibodas')
+        self.assertContains(draf, 'Lengkapi data lahan')
+        self.assertContains(draf, reverse('lands:hapus_lahan', args=[draft.pk]))
+        self.assertContains(aktif, reverse('lands:ubah_lahan', args=[self.lahan.pk]))
+        self.assertContains(aktif, reverse('lands:arsip_lahan', args=[self.lahan.pk]))
+        self.assertContains(arsip, 'Pulihkan')
+        self.assertTrue(draft.adalah_draf)
+
     def test_pencarian_lahan(self):
         self.client.force_login(self.owner)
         response = self.client.get(reverse('lands:daftar_lahan'), {'q': 'Cibodas'})
@@ -196,8 +237,59 @@ class LandViewTests(TestCase):
             reverse('lands:detail_lahan', args=[lahan.pk]),
         )
         self.assertEqual(lahan.owner, self.owner)
-        self.assertTrue(lahan.adalah_draf)
+        self.assertFalse(lahan.adalah_draf)
         self.assertIn(self.goal, lahan.tujuan.all())
+
+    def test_tambah_lahan_tidak_lengkap_disimpan_sebagai_draf(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(reverse('lands:tambah_lahan'), {
+            'nama': 'Draft Kebun',
+            'alamat': '',
+            'latitude': '',
+            'longitude': '',
+            'luas_m2': '',
+            'penggunaan': '',
+        })
+
+        lahan = Land.objects.get(nama='Draft Kebun')
+        self.assertRedirects(
+            response,
+            f"{reverse('lands:daftar_lahan')}?status=draft",
+        )
+        self.assertEqual(lahan.owner, self.owner)
+        self.assertTrue(lahan.adalah_draf)
+
+    def test_draft_bisa_dilengkapi_menjadi_lahan_aktif(self):
+        draft = Land.objects.create(owner=self.owner, nama='Draft Kebun')
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            reverse('lands:ubah_lahan', args=[draft.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Draft Kebun"')
+
+        response = self.client.post(
+            reverse('lands:ubah_lahan', args=[draft.pk]),
+            {
+                'nama': 'Kebun Selesai',
+                'alamat': 'Dramaga, Bogor',
+                'latitude': '',
+                'longitude': '',
+                'luas_m2': '100.00',
+                'penggunaan': Land.Penggunaan.KEBUN,
+                'kondisi': '',
+                'tujuan': [],
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('lands:detail_lahan', args=[draft.pk]),
+        )
+        draft.refresh_from_db()
+        self.assertFalse(draft.adalah_draf)
+        self.assertEqual(draft.nama, 'Kebun Selesai')
 
     def test_tambah_lahan_tidak_valid_tetap_di_form(self):
         self.client.force_login(self.owner)
@@ -278,10 +370,7 @@ class LandViewTests(TestCase):
     def test_hapus_lahan(self):
         lahan = Land.objects.create(
             owner=self.owner,
-            nama='Land Sementara',
-            alamat='Bogor',
-            luas_m2=Decimal('10.00'),
-            penggunaan=Land.Penggunaan.LAINNYA,
+            nama='Draft Sementara',
         )
         self.client.force_login(self.owner)
 
@@ -295,6 +384,18 @@ class LandViewTests(TestCase):
         )
         self.assertRedirects(response, reverse('lands:daftar_lahan'))
         self.assertFalse(Land.objects.filter(pk=lahan.pk).exists())
+
+    def test_hapus_permanen_lahan_aktif_ditolak(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('lands:hapus_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('lands:detail_lahan', args=[self.lahan.pk]),
+        )
+        self.assertTrue(Land.objects.filter(pk=self.lahan.pk).exists())
 
     def test_api_lahan_hanya_milik_sendiri(self):
         self.client.force_login(self.owner)
@@ -326,6 +427,20 @@ class LandViewTests(TestCase):
         self.assertEqual(aktif, [])
         self.assertEqual(len(arsip), 1)
         self.assertTrue(arsip[0]['diarsipkan'])
+
+    def test_api_lahan_draft_mendukung_field_wajib_kosong(self):
+        draft = Land.objects.create(
+            owner=self.owner,
+            nama='Draft API',
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse('lands:api_lahan'))
+        data = next(item for item in response.json() if item['id'] == str(draft.pk))
+
+        self.assertEqual(data['status'], 'draft')
+        self.assertIsNone(data['luas_m2'])
+        self.assertIsNone(data['penggunaan'])
 
     def test_api_wajib_login(self):
         response = self.client.get(reverse('lands:api_lahan'))

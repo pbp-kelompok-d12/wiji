@@ -25,6 +25,8 @@ class ManagementGoal(models.Model):
 
 
 class Lahan(models.Model):
+    REQUIRED_FIELDS = ('nama', 'alamat', 'luas_m2', 'penggunaan')
+
     class Penggunaan(models.TextChoices):
         SAWAH = 'sawah', 'Sawah'
         KEBUN = 'kebun', 'Kebun'
@@ -39,8 +41,8 @@ class Lahan(models.Model):
         on_delete=models.CASCADE,
         related_name='lands',
     )
-    nama = models.CharField(max_length=120)
-    alamat = models.TextField()
+    nama = models.CharField(max_length=120, null=True, blank=True)
+    alamat = models.TextField(null=True, blank=True)
     latitude = models.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -58,10 +60,17 @@ class Lahan(models.Model):
     luas_m2 = models.DecimalField(
         max_digits=12,
         decimal_places=2,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(0)],
         help_text='Luas lahan dalam meter persegi.',
     )
-    penggunaan = models.CharField(max_length=20, choices=Penggunaan.choices)
+    penggunaan = models.CharField(
+        max_length=20,
+        choices=Penggunaan.choices,
+        null=True,
+        blank=True,
+    )
     kondisi = models.TextField(blank=True)
     foto = models.ImageField(upload_to='lahan/%Y/%m/', blank=True, null=True)
     tujuan = models.ManyToManyField(
@@ -81,7 +90,7 @@ class Lahan(models.Model):
         verbose_name_plural = 'Lahan'
 
     def __str__(self):
-        return self.nama
+        return self.nama or 'Lahan tanpa nama'
 
     def get_absolute_url(self):
         return reverse('lands:detail_lahan', args=[self.pk])
@@ -92,7 +101,10 @@ class Lahan(models.Model):
 
     @property
     def adalah_draf(self):
-        return not self.punya_koordinat
+        return any(
+            getattr(self, field_name) in (None, '')
+            for field_name in self.REQUIRED_FIELDS
+        )
 
     def clean(self):
         super().clean()

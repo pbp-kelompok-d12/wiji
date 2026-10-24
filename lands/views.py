@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET
 
 from . import forms
@@ -33,12 +34,35 @@ def _lahan_owner(request):
     return Land.objects.filter(owner=request.user)
 
 
+def _draf_filter():
+    Land = getattr(models, 'Land', None) or getattr(models, 'Lahan')
+    draf_filter = Q()
+    for field_name in Land.REQUIRED_FIELDS:
+        field = Land._meta.get_field(field_name)
+        kosong = Q(**{f'{field_name}__isnull': True})
+        if field.get_internal_type() in ('CharField', 'TextField'):
+            kosong |= Q(**{field_name: ''})
+        draf_filter |= kosong
+    return draf_filter
+
+
 @owner_required
 def daftar_lahan(request):
     q = request.GET.get('q', '').strip()
-    tampilkan_arsip = request.GET.get('arsip') == '1'
+    status = request.GET.get('status')
+    if status not in ('all', 'active', 'draft', 'archived'):
+        status = 'archived' if request.GET.get('arsip') == '1' else 'all'
 
-    lahan_list = _lahan_owner(request).filter(diarsipkan=tampilkan_arsip)
+    semua_lahan = _lahan_owner(request)
+    draf_filter = _draf_filter()
+    lahan_list = semua_lahan
+    if status == 'active':
+        lahan_list = lahan_list.filter(diarsipkan=False).exclude(draf_filter)
+    elif status == 'draft':
+        lahan_list = lahan_list.filter(diarsipkan=False).filter(draf_filter)
+    elif status == 'archived':
+        lahan_list = lahan_list.filter(diarsipkan=True)
+
     if q:
         lahan_list = lahan_list.filter(Q(nama__icontains=q) | Q(alamat__icontains=q))
     lahan_list = lahan_list.prefetch_related('tujuan')
@@ -47,9 +71,15 @@ def daftar_lahan(request):
         'active_nav': 'lahan',
         'lahan_list': lahan_list,
         'q': q,
-        'tampilkan_arsip': tampilkan_arsip,
-        'jumlah_lahan': _lahan_owner(request).filter(diarsipkan=False).count(),
-        'jumlah_arsip': _lahan_owner(request).filter(diarsipkan=True).count(),
+        'status_filter': status,
+        'jumlah_semua': semua_lahan.count(),
+        'jumlah_aktif': (
+            semua_lahan.filter(diarsipkan=False).exclude(draf_filter).count()
+        ),
+        'jumlah_draf': (
+            semua_lahan.filter(diarsipkan=False).filter(draf_filter).count()
+        ),
+        'jumlah_arsip': semua_lahan.filter(diarsipkan=True).count(),
     }
 
     if request.headers.get('HX-Request') == 'true':
@@ -65,6 +95,12 @@ def tambah_lahan(request):
         lahan.owner = request.user
         lahan.save()
         form.save_m2m()
+        if lahan.adalah_draf:
+            messages.info(
+                request,
+                f'Draft lahan {lahan.nama or "tanpa nama"} berhasil disimpan.',
+            )
+            return redirect(f'{reverse("lands:daftar_lahan")}?status=draft')
         messages.success(request, f'Lahan {lahan.nama} berhasil ditambahkan.')
         return redirect('lands:detail_lahan', pk=lahan.pk)
 
@@ -98,6 +134,12 @@ def ubah_lahan(request, pk):
     )
     if request.method == 'POST' and form.is_valid():
         form.save()
+        if lahan.adalah_draf:
+            messages.info(
+                request,
+                f'Draft lahan {lahan.nama or "tanpa nama"} berhasil diperbarui.',
+            )
+            return redirect(f'{reverse("lands:daftar_lahan")}?status=draft')
         messages.success(request, f'Lahan {lahan.nama} berhasil diperbarui.')
         return redirect('lands:detail_lahan', pk=lahan.pk)
 
@@ -116,6 +158,10 @@ def arsip_lahan(request, pk):
     if lahan.diarsipkan:
         messages.info(request, 'Lahan ini sudah diarsipkan.')
         return redirect('lands:detail_lahan', pk=lahan.pk)
+
+    if lahan.adalah_draf:
+        messages.error(request, 'Lengkapi data wajib sebelum mengarsipkan lahan.')
+        return redirect('lands:ubah_lahan', pk=lahan.pk)
 
     if lahan.punya_pesanan_aktif():
         messages.error(
@@ -148,8 +194,15 @@ def pulihkan_lahan(request, pk):
 def hapus_lahan(request, pk):
     lahan = get_object_or_404(_lahan_owner(request), pk=pk)
 
+    if not lahan.adalah_draf:
+        messages.error(
+            request,
+            'Lahan aktif tidak dapat dihapus permanen; gunakan Hapus untuk mengarsipkannya.',
+        )
+        return redirect('lands:detail_lahan', pk=lahan.pk)
+
     if not lahan.dapat_dihapus:
-        messages.error(request, 'Lahan ini punya riwayat, jadi hanya bisa diarsipkan.')
+        messages.error(request, 'Lahan draft ini punya riwayat, jadi tidak dapat dihapus.')
         return redirect('lands:detail_lahan', pk=lahan.pk)
 
     if request.method == 'POST':
@@ -171,7 +224,7 @@ def _serialisasi_lahan(lahan):
         'alamat': lahan.alamat,
         'latitude': float(lahan.latitude) if lahan.latitude is not None else None,
         'longitude': float(lahan.longitude) if lahan.longitude is not None else None,
-        'luas_m2': float(lahan.luas_m2),
+        'luas_m2': float(lahan.luas_m2) if lahan.luas_m2 is not None else None,
         'penggunaan': lahan.penggunaan,
         'penggunaan_label': lahan.get_penggunaan_display(),
         'kondisi': lahan.kondisi,
@@ -179,6 +232,11 @@ def _serialisasi_lahan(lahan):
         'tujuan': [tujuan.nama for tujuan in lahan.tujuan.all()],
         'punya_koordinat': lahan.punya_koordinat,
         'diarsipkan': lahan.diarsipkan,
+        'status': (
+            'archived'
+            if lahan.diarsipkan
+            else 'draft' if lahan.adalah_draf else 'active'
+        ),
         'dibuat_pada': lahan.dibuat_pada.isoformat(),
         'diperbarui_pada': lahan.diperbarui_pada.isoformat(),
     }

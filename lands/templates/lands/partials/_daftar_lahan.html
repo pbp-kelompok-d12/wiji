@@ -15,28 +15,28 @@
       </div>
       {% endif %}
       <span class="absolute left-3 top-3 chip {% if lahan.diarsipkan %}chip-paper{% elif lahan.adalah_draf %}chip-sand{% else %}chip-up{% endif %}">
-        {% if lahan.diarsipkan %}Diarsipkan{% elif lahan.adalah_draf %}Draf{% else %}Lengkap{% endif %}
+        {% if lahan.diarsipkan %}Diarsipkan{% elif lahan.adalah_draf %}Draft{% else %}Aktif{% endif %}
       </span>
     </div>
 
     <div class="flex flex-1 flex-col p-4">
       <div class="flex items-start justify-between gap-2">
         <h2 class="d-title text-base">
-          <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="hover:text-moss">{{ lahan.nama }}</a>
+          <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="hover:text-moss">{{ lahan.nama|default:"Lahan tanpa nama" }}</a>
         </h2>
-        <span class="chip chip-paper shrink-0">{{ lahan.get_penggunaan_display }}</span>
+        {% if lahan.penggunaan %}<span class="chip chip-paper shrink-0">{{ lahan.get_penggunaan_display }}</span>{% endif %}
       </div>
 
-      <p class="mt-1 line-clamp-2 text-[13px] leading-5 text-ink-soft">{{ lahan.alamat }}</p>
+      <p class="mt-1 line-clamp-2 text-[13px] leading-5 text-ink-soft">{{ lahan.alamat|default:"Alamat belum diisi" }}</p>
 
       <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div class="rounded-xl bg-paper px-3 py-2">
           <dt class="text-ink-soft">Luas</dt>
-          <dd class="font-bold">{{ lahan.luas_m2|floatformat:"2" }} m²</dd>
+          <dd class="font-bold">{% if lahan.luas_m2 %}{{ lahan.luas_m2|floatformat:"2" }} m²{% else %}Belum diisi{% endif %}</dd>
         </div>
         <div class="rounded-xl bg-paper px-3 py-2">
           <dt class="text-ink-soft">Lokasi</dt>
-          <dd class="font-bold">{% if lahan.punya_koordinat %}Sudah ditandai{% else %}Belum ditandai{% endif %}</dd>
+          <dd class="font-bold">{% if lahan.punya_koordinat %}{{ lahan.latitude|unlocalize }}, {{ lahan.longitude|unlocalize }}{% else %}Opsional{% endif %}</dd>
         </div>
       </dl>
 
@@ -53,20 +53,26 @@
       {% endif %}
       {% endwith %}
 
-      <div class="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3">
-        <span class="flex items-center gap-1.5 text-[11px] font-semibold {% if lahan.punya_koordinat %}text-ink-soft{% else %}text-clay-deep{% endif %}">
-          <svg class="ic ic-sm"><use href="#i-{% if lahan.punya_koordinat %}pin{% else %}alert{% endif %}"/></svg>
-          {% if lahan.punya_koordinat %}{{ lahan.latitude|unlocalize }}, {{ lahan.longitude|unlocalize }}{% else %}Lengkapi koordinat{% endif %}
-        </span>
-        <div class="flex items-center gap-2">
-          {% if lahan.diarsipkan %}
+      <div class="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+        {% if lahan.diarsipkan %}
           <form method="post" action="{% url 'lands:pulihkan_lahan' lahan.pk %}">
             {% csrf_token %}
             <button type="submit" class="d-btn-sm">Pulihkan</button>
           </form>
+        {% elif lahan.adalah_draf %}
+          <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="d-btn-sm">Lengkapi data lahan</a>
+          {% if lahan.dapat_dihapus %}
+          <a href="{% url 'lands:hapus_lahan' lahan.pk %}" class="d-btn-sm text-brick">Hapus</a>
           {% endif %}
+        {% else %}
           <a href="{% url 'lands:detail_lahan' lahan.pk %}" class="d-btn-sm">Detail <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
-        </div>
+          <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="d-btn-sm">Ubah</a>
+          {% if lahan.dapat_diarsipkan %}
+          <a href="{% url 'lands:arsip_lahan' lahan.pk %}" class="d-btn-sm text-brick">Hapus</a>
+          {% else %}
+          <span class="chip chip-sand">Punya pesanan aktif</span>
+          {% endif %}
+        {% endif %}
       </div>
     </div>
   </article>
@@ -78,12 +84,12 @@
     <svg class="ic size-6"><use href="#i-pin"/></svg>
   </span>
   <h2 class="mt-4 text-lg font-bold">
-    {% if q %}Tidak ada lahan yang cocok{% elif tampilkan_arsip %}Arsip masih kosong{% else %}Belum ada lahan{% endif %}
+    {% if q %}Tidak ada lahan yang cocok{% elif status_filter == 'archived' %}Arsip masih kosong{% elif status_filter == 'draft' %}Belum ada draft lahan{% elif status_filter == 'active' %}Belum ada lahan aktif{% else %}Belum ada lahan{% endif %}
   </h2>
   <p class="mt-1 max-w-sm text-sm text-ink-soft">
-    {% if q %}Coba kata kunci lain atau ubah filter status lahan.{% elif tampilkan_arsip %}Lahan yang diarsipkan akan muncul di sini.{% else %}Tambahkan lahan pertamamu, lalu tandai lokasinya langsung di peta.{% endif %}
+    {% if q %}Coba kata kunci lain atau ubah filter status lahan.{% elif status_filter == 'archived' %}Lahan yang diarsipkan akan muncul di sini.{% elif status_filter == 'draft' %}Draft akan muncul di sini saat data wajib belum lengkap.{% elif status_filter == 'active' %}Lahan dengan semua data wajib akan muncul di sini.{% else %}Tambahkan lahan pertamamu. Data yang belum lengkap bisa disimpan sebagai draft.{% endif %}
   </p>
-  {% if not tampilkan_arsip and not q %}
+  {% if status_filter == 'all' and not q %}
   <a href="{% url 'lands:tambah_lahan' %}" class="btn btn-primary mt-5 gap-2"><svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan</a>
   {% endif %}
 </div>
