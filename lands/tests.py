@@ -32,9 +32,9 @@ class LandModelTests(TestCase):
         data.update(kwargs)
         return Land(**data)
 
-    def test_lahan_lengkap_tanpa_koordinat_bukan_draf(self):
+    def test_lahan_lengkap_tanpa_koordinat_masih_draf(self):
         lahan = self.buat_lahan()
-        self.assertFalse(lahan.adalah_draf)
+        self.assertTrue(lahan.adalah_draf)
         self.assertFalse(lahan.punya_koordinat)
 
     def test_lahan_draf_saat_field_wajib_kosong(self):
@@ -225,8 +225,8 @@ class LandViewTests(TestCase):
         response = self.client.post(reverse('lands:tambah_lahan'), {
             'nama': 'Sawah Baru',
             'alamat': 'Dramaga, Bogor',
-            'latitude': '',
-            'longitude': '',
+            'latitude': '-6.550000',
+            'longitude': '106.750000',
             'luas_m2': '500.00',
             'penggunaan': Land.Penggunaan.SAWAH,
             'kondisi': 'Tanah masih gembur.',
@@ -261,6 +261,24 @@ class LandViewTests(TestCase):
         self.assertEqual(lahan.owner, self.owner)
         self.assertTrue(lahan.adalah_draf)
 
+    def test_lahan_tanpa_koordinat_disimpan_sebagai_draf(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(reverse('lands:tambah_lahan'), {
+            'nama': 'Kebun Belakang',
+            'alamat': 'Cibinong, Bogor',
+            'latitude': '',
+            'longitude': '',
+            'luas_m2': '210.00',
+            'penggunaan': Land.Penggunaan.KEBUN,
+        })
+
+        lahan = Land.objects.get(nama='Kebun Belakang')
+        self.assertRedirects(
+            response,
+            f"{reverse('lands:daftar_lahan')}?status=draft",
+        )
+        self.assertTrue(lahan.adalah_draf)
+
     def test_draft_bisa_dilengkapi_menjadi_lahan_aktif(self):
         draft = Land.objects.create(owner=self.owner, nama='Draft Kebun')
         self.client.force_login(self.owner)
@@ -277,8 +295,8 @@ class LandViewTests(TestCase):
             {
                 'nama': 'Kebun Selesai',
                 'alamat': 'Dramaga, Bogor',
-                'latitude': '',
-                'longitude': '',
+                'latitude': '-6.550000',
+                'longitude': '106.750000',
                 'luas_m2': '100.00',
                 'penggunaan': Land.Penggunaan.KEBUN,
                 'kondisi': '',

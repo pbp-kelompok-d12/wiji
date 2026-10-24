@@ -25,7 +25,14 @@ class ManagementGoal(models.Model):
 
 
 class Lahan(models.Model):
-    REQUIRED_FIELDS = ('nama', 'alamat', 'luas_m2', 'penggunaan')
+    REQUIRED_FIELDS = (
+        'nama',
+        'alamat',
+        'latitude',
+        'longitude',
+        'luas_m2',
+        'penggunaan',
+    )
 
     class Penggunaan(models.TextChoices):
         SAWAH = 'sawah', 'Sawah'

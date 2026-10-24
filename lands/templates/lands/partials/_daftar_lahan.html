@@ -30,7 +30,7 @@
       </p>
 
       {% if lahan.adalah_draf %}
-      <p class="mt-0.5 text-xs text-ink-soft">Draft · lengkapi data wajib agar lahan menjadi aktif.</p>
+      <p class="mt-0.5 text-xs text-ink-soft">Draft · lengkapi data wajib{% if not lahan.punya_koordinat %}, termasuk titik koordinat,{% endif %} agar lahan menjadi aktif.</p>
       {% elif lahan.diarsipkan %}
       <p class="mt-0.5 text-xs text-ink-soft">Lahan diarsipkan. Riwayat pesanan dan hasil tetap tersimpan.</p>
       {% endif %}

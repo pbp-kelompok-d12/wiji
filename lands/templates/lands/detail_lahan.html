@@ -45,7 +45,7 @@
 </div>
 {% elif lahan.adalah_draf %}
 <div class="alert alert-info mt-5">
-  Data wajib lahan ini belum lengkap. Lengkapi semua field wajib agar statusnya menjadi aktif.
+  Data wajib lahan ini belum lengkap{% if not lahan.punya_koordinat %}, termasuk titik koordinat{% endif %}. Lengkapi data wajib agar statusnya menjadi aktif.
   <a href="{% url 'lands:ubah_lahan' lahan.pk %}" class="link">Lengkapi sekarang</a>.
 </div>
 {% endif %}

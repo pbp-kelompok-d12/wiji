@@ -93,7 +93,7 @@
     </div>
 
     <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-      <p class="max-w-xs text-xs leading-5 text-ink-soft">Data wajib yang belum lengkap akan tersimpan sebagai draft.</p>
+      <p class="max-w-xs text-xs leading-5 text-ink-soft">Lahan tanpa data wajib atau titik koordinat akan tersimpan sebagai draft dan belum bisa dipesan.</p>
       <div class="flex flex-wrap justify-end gap-2">
         <a href="{% if lahan %}{% url 'lands:detail_lahan' lahan.pk %}{% else %}{% url 'lands:daftar_lahan' %}{% endif %}" class="btn btn-ghost">Batal</a>
         {% if lahan and lahan.adalah_draf %}
@@ -115,7 +115,7 @@
       <p class="eyebrow">Setelah mendaftar</p>
       <ol class="mt-2 space-y-2 text-[13px] leading-5">
         <li class="flex gap-2"><span class="font-bold text-moss">01</span><span>Lengkapi data dan simpan lahanmu.</span></li>
-        <li class="flex gap-2"><span class="font-bold text-moss">02</span><span>Koordinat membantu menampilkan lokasi lahan di peta.</span></li>
+        <li class="flex gap-2"><span class="font-bold text-moss">02</span><span>Tandai titik koordinat agar lahan aktif dan bisa dipesan untuk pemeriksaan.</span></li>
       </ol>
     </section>
   </aside>
