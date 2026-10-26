@@ -152,9 +152,12 @@
       <button type="button" class="btn btn-ghost !min-h-10 border border-line" disabled title="Fitur pemeriksaan belum tersedia di halaman lahan">
         Pesan pemeriksaan
       </button>
-      <button type="button" class="btn btn-primary !min-h-10" disabled title="Fitur pemeriksaan belum tersedia di halaman lahan">
-        Isi hasil mandiri
-      </button>
+      {% if request.user.is_owner and not lahan.diarsipkan %}
+        <a href="{% url 'soil_results:tambah_hasil_mandiri' lahan.pk %}"
+          class="btn btn-primary !min-h-10">
+          Isi hasil mandiri
+        </a>
+      {% endif %}
     </div>
   </div>
 </section>
