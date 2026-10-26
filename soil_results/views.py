@@ -35,7 +35,7 @@ def tambah_hasil_mandiri(request, lahan_id):
             hasil.save()
 
             messages.success(request, "Hasil mandiri berhasil disimpan.")
-            return redirect(lahan.get_absolute_url())
+            return redirect("soil_results:detail_hasil", hasil_id=hasil.pk)
     else:
         form = HasilMandiriForm()
 

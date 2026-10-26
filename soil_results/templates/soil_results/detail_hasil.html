@@ -1,0 +1,59 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Detail hasil pemeriksaan{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <a href="{{ hasil.lahan.get_absolute_url }}"
+     class="text-sm underline">
+    ← Kembali ke lahan
+  </a>
+
+  <h1 class="heading mt-4 text-[28px]">
+    Detail hasil pemeriksaan
+  </h1>
+  <p class="mt-2 text-sm text-ink-soft">
+    {{ hasil.lahan.nama|default:"Lahan tanpa nama" }}
+  </p>
+  <span class="chip chip-up mt-3">
+    {{ hasil.get_asal_display }}
+  </span>
+
+  <dl class="d-card mt-5 space-y-4 p-5">
+    <div>
+      <dt class="text-sm text-ink-soft">Sumber pemeriksaan</dt>
+      <dd>{{ hasil.sumber|default:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Tanggal pemeriksaan</dt>
+      <dd>{{ hasil.tanggal_pemeriksaan|date:"d M Y" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">pH</dt>
+      <dd>{{ hasil.ph|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Kelembapan (%)</dt>
+      <dd>{{ hasil.kelembapan|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Tekstur</dt>
+      <dd>{{ hasil.tekstur|default:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Bahan organik (%)</dt>
+      <dd>{{ hasil.bahan_organik|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Catatan</dt>
+      <dd>{{ hasil.catatan|default:"Tidak ada catatan"|linebreaksbr }}</dd>
+    </div>
+  </dl>
+</div>
+{% endblock %}

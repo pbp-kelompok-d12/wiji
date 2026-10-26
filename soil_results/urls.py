@@ -9,4 +9,9 @@ urlpatterns = [
         views.tambah_hasil_mandiri,
         name="tambah_hasil_mandiri",
     ),
+    path(
+        "<int:hasil_id>/",
+        views.detail_hasil,
+        name="detail_hasil",
+    ),
 ]
