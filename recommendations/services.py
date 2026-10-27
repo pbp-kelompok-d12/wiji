@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+from .environment import fetch_environmental_data
 from core.models import Tanaman
 
 
@@ -242,6 +243,7 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
         )
 
     input_snapshot = _build_input_snapshot(lahan, hasil_pemeriksaan)
+    data_lingkungan = fetch_environmental_data(lahan)
 
     rekomendasi = []
     diblokir = []
@@ -296,7 +298,7 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
                 alasan=alasan,
                 kelengkapan_data=kelengkapan,
                 input_snapshot=input_snapshot,
-                data_lingkungan={},
+                data_lingkungan=data_lingkungan,
             )
         )
 
@@ -309,5 +311,6 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
         "diblokir": diblokir,
         "kelengkapan_data": kelengkapan,
         "input_snapshot": input_snapshot,
+        "data_lingkungan": data_lingkungan,
         "versi_aturan": RULE_VERSION,
     }

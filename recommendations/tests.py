@@ -239,6 +239,26 @@ class RecommendationScoringTests(TestCase):
             ph=Decimal("6.50"),
             kelembapan=Decimal("45.00"),
         )
+        self.environmental_data = {
+            "status": "available",
+            "source": "Open-Meteo",
+            "reason": None,
+            "message": "Data cuaca berhasil diambil.",
+            "timezone": "Asia/Jakarta",
+            "current": {
+                "temperature_2m": 30.1,
+            },
+            "units": {
+                "temperature_2m": "°C",
+            },
+        }
+
+        environment_patcher = patch(
+            "recommendations.services.fetch_environmental_data",
+            return_value=self.environmental_data,
+        )
+        self.environment_mock = environment_patcher.start()
+        self.addCleanup(environment_patcher.stop)
 
     def create_plant(self, **overrides):
         data = {
@@ -271,6 +291,8 @@ class RecommendationScoringTests(TestCase):
         self.assertTrue(candidate.alasan)
         self.assertEqual(candidate.kelengkapan_data, 33)
         self.assertEqual(candidate.versi_aturan, "v1")
+        self.assertEqual(result["data_lingkungan"]["status"],"available",)
+        self.assertEqual(candidate.data_lingkungan["current"]["temperature_2m"],30.1,)
 
     def test_unavailable_plant_is_excluded(self):
         self.create_plant(tersedia_di_indonesia=False)
@@ -339,6 +361,37 @@ class RecommendationScoringTests(TestCase):
                 self.result,
                 self.goal,
             )
+
+    def test_api_failure_does_not_fabricate_weather_in_recommendations(self):
+        self.create_plant()
+
+        unavailable_data = {
+            "status": "unavailable",
+            "source": "Open-Meteo",
+            "reason": "api_unavailable",
+            "message": "Data cuaca sementara tidak tersedia.",
+            "timezone": None,
+            "current": {},
+            "units": {},
+        }
+        self.environment_mock.return_value = unavailable_data
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertEqual(
+            result["data_lingkungan"]["status"],
+            "unavailable",
+        )
+        self.assertEqual(result["data_lingkungan"]["current"], {})
+        self.assertEqual(len(result["rekomendasi"]), 1)
+        self.assertEqual(
+            result["rekomendasi"][0].data_lingkungan["current"],
+            {},
+        )
 
 class OpenMeteoEnvironmentTests(TestCase):
     def setUp(self):
