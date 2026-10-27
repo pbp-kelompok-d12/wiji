@@ -1,3 +1,294 @@
-from django.test import TestCase
+from datetime import date
 
-# Create your tests here.
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from lands.models import Lahan
+from .models import HasilPemeriksaan
+
+from datetime import timedelta
+from tempfile import TemporaryDirectory
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django.utils import timezone
+
+from .forms import HasilMandiriForm, DokumenLaboratoriumForm
+
+
+class AksesHasilTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+
+        self.pemilik = User.objects.create_user(
+            username="pemilik_tes",
+            password="password-test-123",
+            role="owner",
+        )
+        self.pengguna_lain = User.objects.create_user(
+            username="pengguna_lain",
+            password="password-test-123",
+            role="owner",
+        )
+
+        self.lahan = Lahan.objects.create(
+            owner=self.pemilik,
+            nama="Lahan pengujian",
+        )
+        self.hasil = HasilPemeriksaan.objects.create(
+            lahan=self.lahan,
+            dibuat_oleh=self.pemilik,
+            tanggal_pemeriksaan=date(2026, 1, 1),
+            asal=HasilPemeriksaan.Asal.MANDIRI,
+            sumber="Laboratorium pengujian",
+            ph="6.50",
+        )
+
+    def test_pemilik_bisa_membaca_detail(self):
+        self.client.force_login(self.pemilik)
+
+        response = self.client.get(
+            reverse(
+                "soil_results:detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Laboratorium pengujian")
+
+    def test_pengguna_lain_tidak_bisa_membaca_detail(self):
+        self.client.force_login(self.pengguna_lain)
+
+        response = self.client.get(
+            reverse(
+                "soil_results:detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_tanpa_login_ditolak(self):
+        response = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_api_pengguna_lain_tidak_memuat_hasil(self):
+        self.client.force_login(self.pengguna_lain)
+
+        response = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["results"], [])
+
+    def test_pengguna_lain_tidak_bisa_mengubah_hasil(self):
+        self.client.force_login(self.pengguna_lain)
+
+        response = self.client.post(
+            reverse(
+                "soil_results:ubah_hasil_mandiri",
+                args=[self.hasil.pk],
+            ),
+            {
+                "sumber": "Diubah pengguna lain",
+                "tanggal_pemeriksaan": "2026-01-01",
+                "ph": "9.00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.hasil.refresh_from_db()
+        self.assertEqual(self.hasil.sumber, "Laboratorium pengujian")
+
+    def test_pengguna_lain_tidak_bisa_menghapus_hasil(self):
+        self.client.force_login(self.pengguna_lain)
+
+        response = self.client.post(
+            reverse(
+                "soil_results:hapus_hasil_mandiri",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(
+            HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
+        )
+
+    def test_membuka_konfirmasi_tidak_menghapus_data(self):
+        self.client.force_login(self.pemilik)
+
+        response = self.client.get(
+            reverse(
+                "soil_results:hapus_hasil_mandiri",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
+        )
+
+class ValidasiFormTests(TestCase):
+    def data_hasil(self, **perubahan):
+        data = {
+            "sumber": "Laboratorium pengujian",
+            "tanggal_pemeriksaan": "2026-01-01",
+            "ph": "6.50",
+            "kelembapan": "40",
+            "tekstur": "Lempung",
+            "bahan_organik": "3",
+            "catatan": "",
+        }
+        data.update(perubahan)
+        return data
+
+    def test_data_valid_diterima(self):
+        form = HasilMandiriForm(data=self.data_hasil())
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_ph_di_luar_batas_ditolak(self):
+        form = HasilMandiriForm(data=self.data_hasil(ph="15"))
+        self.assertFalse(form.is_valid())
+        self.assertIn("ph", form.errors)
+
+    def test_kelembapan_negatif_ditolak(self):
+        form = HasilMandiriForm(
+            data=self.data_hasil(kelembapan="-1")
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("kelembapan", form.errors)
+
+    def test_tanggal_masa_depan_ditolak(self):
+        besok = timezone.localdate() + timedelta(days=1)
+        form = HasilMandiriForm(
+            data=self.data_hasil(
+                tanggal_pemeriksaan=besok.isoformat()
+            )
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("tanggal_pemeriksaan", form.errors)
+
+    def test_file_bernama_pdf_tapi_isi_bukan_pdf_ditolak(self):
+        berkas = SimpleUploadedFile(
+            "palsu.pdf",
+            b"Ini bukan PDF",
+            content_type="application/pdf",
+        )
+        form = DokumenLaboratoriumForm(
+            data={},
+            files={"dokumen": berkas},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("dokumen", form.errors)
+
+    def test_file_lebih_dari_5_mb_ditolak(self):
+        berkas = SimpleUploadedFile(
+            "besar.pdf",
+            b"%PDF-" + b"x" * (5 * 1024 * 1024),
+            content_type="application/pdf",
+        )
+        form = DokumenLaboratoriumForm(
+            data={},
+            files={"dokumen": berkas},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("dokumen", form.errors)
+
+
+class DokumenPrivatTests(TestCase):
+    def setUp(self):
+        from .storage import private_document_storage
+
+        self.storage = private_document_storage
+
+        self.folder = TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+
+        self.pengaturan = override_settings(
+            PRIVATE_MEDIA_ROOT=self.folder.name
+        )
+        self.pengaturan.enable()
+        self.addCleanup(self.pengaturan.disable)
+
+        # Storage yang sudah dibuat saat import perlu diarahkan
+        # ke folder sementara khusus pengujian.
+        self.lokasi_lama = self.storage._location
+        self.storage._location = self.folder.name
+        self.storage.__dict__.pop("base_location", None)
+        self.storage.__dict__.pop("location", None)
+        self.addCleanup(self.pulihkan_storage)
+
+        User = get_user_model()
+        self.pemilik = User.objects.create_user(
+            username="pemilik_dokumen",
+            role="owner",
+        )
+        self.orang_lain = User.objects.create_user(
+            username="orang_lain",
+            role="owner",
+        )
+        self.admin = User.objects.create_user(
+            username="admin_dokumen",
+            is_staff=True,
+        )
+        lahan = Lahan.objects.create(
+            owner=self.pemilik,
+            nama="Lahan dokumen",
+        )
+        self.hasil = HasilPemeriksaan.objects.create(
+            lahan=lahan,
+            dibuat_oleh=self.pemilik,
+            tanggal_pemeriksaan=date(2026, 1, 1),
+            sumber="Lab pengujian",
+        )
+        self.isi_file = b"%PDF-1.4\nDokumen sintetis untuk tes akses\n"
+        self.hasil.dokumen_laboratorium.save(
+            "uji-akses.pdf",
+            SimpleUploadedFile("uji-akses.pdf", self.isi_file),
+        )
+        self.url = reverse(
+            "soil_results:unduh_dokumen",
+            args=[self.hasil.pk],
+        )
+
+    def pulihkan_storage(self):
+        self.storage._location = self.lokasi_lama
+        self.storage.__dict__.pop("base_location", None)
+        self.storage.__dict__.pop("location", None)
+
+    def test_pemilik_bisa_mengunduh(self):
+        self.client.force_login(self.pemilik)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            b"".join(response.streaming_content),
+            self.isi_file,
+        )
+        response.close()
+
+    def test_admin_bisa_mengunduh(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        response.close()
+
+    def test_pengguna_lain_ditolak(self):
+        self.client.force_login(self.orang_lain)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_tanpa_login_diarahkan_ke_login(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("next=", response.url)
