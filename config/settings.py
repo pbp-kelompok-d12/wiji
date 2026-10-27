@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'lands',
     'soil_results',
     'recommendations',
+    'inspections',
 ]
 
 MIDDLEWARE = [
