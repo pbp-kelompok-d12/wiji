@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .environment import fetch_environmental_data
 from urllib.error import URLError
+from django.urls import reverse
 
 
 User = get_user_model()
@@ -503,3 +504,106 @@ class OpenMeteoEnvironmentTests(TestCase):
         self.assertEqual(result["status"], "unavailable")
         self.assertEqual(result["reason"], "coordinates_invalid")
         mock_urlopen.assert_not_called()
+
+class RecommendationListViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="recommendation_page_owner",
+            password="test-password-123",
+        )
+        self.land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan Saya",
+        )
+        self.result = HasilPemeriksaan.objects.create(
+            lahan=self.land,
+            dibuat_oleh=self.user,
+            tanggal_pemeriksaan=date(2026, 10, 20),
+        )
+        self.goal = ManagementGoal.objects.create(
+            nama="Tujuan Halaman",
+            slug="tujuan-halaman",
+        )
+        self.url = reverse("recommendations:daftar_rekomendasi")
+
+    def test_page_requires_login(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_owner_can_open_recommendation_page(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "recommendations/daftar_rekomendasi.html",
+        )
+
+    def test_only_current_users_lands_are_listed(self):
+        other_user = User.objects.create_user(
+            username="other_recommendation_owner",
+            password="test-password-123",
+        )
+        Lahan.objects.create(
+            owner=other_user,
+            nama="Lahan Rahasia Pengguna Lain",
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(
+            list(response.context["lahan_list"]),
+            [self.land],
+        )
+
+    def test_officer_cannot_open_owner_recommendation_page(self):
+        officer = User.objects.create_user(
+            username="recommendation_officer",
+            password="test-password-123",
+            role=User.Role.OFFICER,
+        )
+        self.client.force_login(officer)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_invalid_land_id_does_not_crash_page(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            self.url,
+            {"lahan": "not-a-valid-uuid"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_results_are_filtered_by_selected_land(self):
+        another_land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan Kedua",
+        )
+        another_result = HasilPemeriksaan.objects.create(
+            lahan=another_land,
+            dibuat_oleh=self.user,
+            tanggal_pemeriksaan=date(2026, 10, 21),
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            self.url,
+            {"lahan": str(self.land.pk)},
+        )
+
+        self.assertEqual(
+            list(response.context["hasil_list"]),
+            [self.result],
+        )
+        self.assertNotIn(
+            another_result,
+            response.context["hasil_list"],
+        )

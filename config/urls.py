@@ -10,6 +10,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('lahan/', include('lands.urls')),
     path('hasil-tanah/', include('soil_results.urls')),
+    path('rekomendasi/', include('recommendations.urls')),
 ]
 
 if settings.DEBUG:

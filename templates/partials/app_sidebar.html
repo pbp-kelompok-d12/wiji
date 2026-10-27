@@ -16,7 +16,11 @@
       <svg class="ic"><use href="#i-doc"/></svg>
       Hasil tanah
     </a>
-    <a href="#" class="side-link"><svg class="ic"><use href="#i-sprout"/></svg>Rekomendasi</a>
+    <a href="{% url 'recommendations:daftar_rekomendasi' %}"
+      class="side-link {% if active_nav == 'rekomendasi' %}is-active{% endif %}">
+      <svg class="ic"><use href="#i-sprout"/></svg>
+      Rekomendasi
+    </a>
     <a href="#" class="side-link"><svg class="ic"><use href="#i-cal"/></svg>Rencana tanam <span class="side-count">1</span></a>
 
     <p class="side-label">Referensi</p>
