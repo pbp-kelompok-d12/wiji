@@ -10,6 +10,9 @@
     <h1 class="heading mt-1 text-[28px] leading-[34px]">Pesanan <span class="heading-accent">pemeriksaan</span></h1>
     <p class="mt-1 text-sm text-ink-soft">Pantau pesanan pemeriksaan tanah untuk lahanmu.</p>
   </div>
+  <a href="{% url 'inspections:pesan_pemeriksaan' %}" class="btn btn-primary !min-h-10 gap-2">
+    <svg class="ic ic-sm"><use href="#i-plus"/></svg>Pesan pemeriksaan
+  </a>
 </div>
 
 <div id="daftar-pesanan" class="mt-6">
@@ -45,6 +48,7 @@
     </span>
     <h2 class="mt-4 text-lg font-bold">Belum ada pesanan</h2>
     <p class="mt-1 max-w-sm text-sm text-ink-soft">Pesanan pemeriksaan untuk lahanmu akan muncul di sini.</p>
+    <a href="{% url 'inspections:pesan_pemeriksaan' %}" class="btn btn-primary mt-5">Pesan pemeriksaan</a>
   </div>
   {% endif %}
 </div>

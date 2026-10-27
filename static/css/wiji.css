@@ -529,3 +529,12 @@ body { overflow-x: clip; }
 .timeline li:last-child::before { display: none; }
 .timeline li::after { content: ''; position: absolute; left: 0; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; border: 2px solid var(--color-moss); }
 .timeline li.is-now::after { background: var(--color-moss); box-shadow: 0 0 0 4px rgba(47, 107, 63, 0.18); }
+
+/* Pilihan berbentuk kartu (radio) */
+.choice { position: relative; display: block; border: 1px solid var(--color-line); border-radius: 14px; padding: 0.875rem 1rem; cursor: pointer; background: #fff; transition: border-color 0.15s ease, background-color 0.15s ease; }
+.choice:hover { background: var(--color-paper); }
+.choice input { position: absolute; opacity: 0; }
+.choice:has(input:checked) { border-color: var(--color-moss); background: var(--color-leaf); box-shadow: 0 0 0 1px var(--color-moss); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--color-forest); outline-offset: 2px; }
+.choice .dot { width: 1.125rem; height: 1.125rem; border-radius: 50%; border: 2px solid var(--color-line); background: #fff; flex-shrink: 0; }
+.choice:has(input:checked) .dot { border-color: var(--color-moss); background: radial-gradient(circle, var(--color-moss) 45%, #fff 50%); }
