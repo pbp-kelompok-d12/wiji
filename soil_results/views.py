@@ -102,3 +102,35 @@ def ubah_hasil_mandiri(request, hasil_id):
             "is_edit": True,
         },
     )
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def hapus_hasil_mandiri(request, hasil_id):
+    if not request.user.is_owner:
+        raise PermissionDenied(
+            "Hanya pemilik lahan yang dapat menghapus hasil mandiri."
+        )
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan.objects.select_related("lahan"),
+        pk=hasil_id,
+        lahan__owner=request.user,
+        lahan__diarsipkan=False,
+        asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+
+    # TODO integrasi Modul E:
+    # Blokir penghapusan jika hasil sudah dipakai dalam rencana.
+
+    if request.method == "POST":
+        lahan_url = hasil.lahan.get_absolute_url()
+        hasil.delete()
+
+        messages.success(request, "Hasil mandiri berhasil dihapus.")
+        return redirect(lahan_url)
+
+    return render(
+        request,
+        "soil_results/konfirmasi_hapus.html",
+        {"hasil": hasil},
+    )

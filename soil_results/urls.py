@@ -19,4 +19,9 @@ urlpatterns = [
         views.ubah_hasil_mandiri,
         name="ubah_hasil_mandiri",
     ),
+        path(
+        "<int:hasil_id>/hapus/",
+        views.hapus_hasil_mandiri,
+        name="hapus_hasil_mandiri",
+    ),
 ]

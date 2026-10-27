@@ -20,10 +20,15 @@
   </span>
 
   {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
-    <div class="mt-4">
+    <div class="mt-4 flex flex-wrap gap-3">
         <a href="{% url 'soil_results:ubah_hasil_mandiri' hasil.pk %}"
         class="btn btn-primary">
         Ubah hasil
+        </a>
+        
+        <a href="{% url 'soil_results:hapus_hasil_mandiri' hasil.pk %}"
+        class="btn btn-ghost border border-line">
+        Hapus hasil
         </a>
     </div>
   {% endif %}
