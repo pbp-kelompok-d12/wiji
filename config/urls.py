@@ -9,6 +9,7 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('', include('core.urls')),
     path('lahan/', include('lands.urls')),
+    path('hasil-tanah/', include('soil_results.urls')),
 ]
 
 if settings.DEBUG:

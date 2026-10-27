@@ -1,0 +1,49 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Unggah dokumen{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">Unggah dokumen laboratorium</h1>
+
+  {% if hasil.dokumen_laboratorium %}
+    <p class="mt-2 text-sm text-ink-soft">
+      Dokumen baru akan menggantikan dokumen sebelumnya.
+    </p>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data"
+        class="d-card mt-5 space-y-4 p-5">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="space-y-2">
+      <label for="{{ form.dokumen.id_for_label }}"
+            class="block text-sm font-semibold">
+        Dokumen laboratorium
+      </label>
+
+      <div class="min-w-0 overflow-hidden">
+        {{ form.dokumen }}
+      </div>
+
+      <p class="text-sm text-ink-soft">
+        PDF, maksimal 5 MB.
+      </p>
+
+      {% for error in form.dokumen.errors %}
+        <p role="alert" class="text-sm text-red-700">
+          {{ error }}
+        </p>
+      {% endfor %}
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <button type="submit" class="btn btn-primary">Unggah PDF</button>
+      <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+         class="btn btn-ghost">
+        Batal
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

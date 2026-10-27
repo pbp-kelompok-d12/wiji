@@ -142,7 +142,18 @@
       <p class="eyebrow">Hasil tanah</p>
       {% if lahan.soil_results.exists %}
       <p class="mt-1 text-sm font-bold">Hasil pemeriksaan tersedia</p>
-      <p class="mt-1 text-xs text-ink-soft">Lihat hasil pemeriksaan melalui fitur pemeriksaan tanah.</p>
+      <ul class="mt-3 space-y-2">
+        {% for hasil in lahan.soil_results.all %}
+          <li>
+            <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+              class="text-sm font-semibold underline">
+              {{ hasil.tanggal_pemeriksaan|date:"d M Y" }}
+              · {{ hasil.get_asal_display }}
+              · Lihat detail
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
       {% else %}
       <p class="mt-1 text-sm font-bold">Belum ada hasil.</p>
       <p class="mt-1 text-xs text-ink-soft">Masukkan hasil sendiri atau pesan pemeriksaan ke petugas.</p>
@@ -152,9 +163,12 @@
       <button type="button" class="btn btn-ghost !min-h-10 border border-line" disabled title="Fitur pemeriksaan belum tersedia di halaman lahan">
         Pesan pemeriksaan
       </button>
-      <button type="button" class="btn btn-primary !min-h-10" disabled title="Fitur pemeriksaan belum tersedia di halaman lahan">
-        Isi hasil mandiri
-      </button>
+      {% if request.user.is_owner and not lahan.diarsipkan %}
+        <a href="{% url 'soil_results:tambah_hasil_mandiri' lahan.pk %}"
+          class="btn btn-primary !min-h-10">
+          Isi hasil mandiri
+        </a>
+      {% endif %}
     </div>
   </div>
 </section>

@@ -1,0 +1,146 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Detail hasil pemeriksaan{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <a href="{{ hasil.lahan.get_absolute_url }}"
+     class="text-sm underline">
+    ← Kembali ke lahan
+  </a>
+
+  <h1 class="heading mt-4 text-[28px]">
+    Detail hasil pemeriksaan
+  </h1>
+  <p class="mt-2 text-sm text-ink-soft">
+    {{ hasil.lahan.nama|default:"Lahan tanpa nama" }}
+  </p>
+  <span class="chip chip-up mt-3">
+    {{ hasil.get_asal_display }}
+  </span>
+
+  {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    <div class="mt-4 flex flex-wrap gap-3">
+        <a href="{% url 'soil_results:ubah_hasil_mandiri' hasil.pk %}"
+        class="btn btn-primary">
+        Ubah hasil
+        </a>
+
+        <a href="{% url 'soil_results:hapus_hasil_mandiri' hasil.pk %}"
+        class="btn btn-ghost border border-line">
+        Hapus hasil
+        </a>
+    </div>
+  {% endif %}
+
+  <dl class="d-card mt-5 space-y-4 p-5">
+    <div>
+      <dt class="text-sm text-ink-soft">Sumber pemeriksaan</dt>
+      <dd>{{ hasil.sumber|default:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Tanggal pemeriksaan</dt>
+      <dd>{{ hasil.tanggal_pemeriksaan|date:"d M Y" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">pH</dt>
+      <dd>{{ hasil.ph|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Kelembapan (%)</dt>
+      <dd>{{ hasil.kelembapan|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Tekstur</dt>
+      <dd>{{ hasil.tekstur|default:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Bahan organik (%)</dt>
+      <dd>{{ hasil.bahan_organik|default_if_none:"Belum diisi" }}</dd>
+    </div>
+
+    <div>
+      <dt class="text-sm text-ink-soft">Catatan</dt>
+      <dd>{{ hasil.catatan|default:"Tidak ada catatan"|linebreaksbr }}</dd>
+    </div>
+  </dl>
+
+  <section class="d-card mt-5 p-5">
+    <h2 class="heading text-xl">Dokumen laboratorium</h2>
+
+    {% if hasil.dokumen_laboratorium %}
+        <a href="{% url 'soil_results:unduh_dokumen' hasil.pk %}"
+          class="mt-3 inline-block underline">
+          Unduh PDF
+        </a>
+    {% else %}
+        <p class="mt-2 text-sm text-ink-soft">Belum ada dokumen.</p>
+    {% endif %}
+
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+        <div class="mt-3">
+          <a href="{% url 'soil_results:unggah_dokumen' hasil.pk %}"
+            class="btn btn-ghost border border-line">
+            {% if hasil.dokumen_laboratorium %}
+              Ganti dokumen
+            {% else %}
+              Unggah dokumen
+            {% endif %}
+          </a>
+        </div>
+    {% endif %}
+    </section>
+  
+  <section class="d-card mt-5 p-5">
+    <h2 class="heading text-xl">Pengukuran unsur hara</h2>
+
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+        <a href="{% url 'soil_results:tambah_unsur_hara' hasil.pk %}"
+           class="btn btn-ghost mt-3 border border-line">
+          Tambah pengukuran
+        </a>
+    {% endif %}
+
+    <ul class="mt-4 space-y-3">
+        {% for pengukuran in hasil.nutrient_measurements.all %}
+          <li class="border-b border-line pb-3">
+            <p class="font-semibold">
+              {{ pengukuran.nama_unsur }}:
+              {{ pengukuran.nilai }} {{ pengukuran.get_satuan_display }}
+            </p>
+            {% if pengukuran.metode %}
+              <p class="text-sm text-ink-soft">
+                Metode: {{ pengukuran.metode }}
+            </p>
+            {% endif %}
+
+            {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+            <div class="mt-2 flex flex-wrap gap-4">
+                <a href="{% url 'soil_results:ubah_unsur_hara' pengukuran.pk %}"
+                  class="text-sm font-semibold underline">
+                  Ubah pengukuran
+                </a>
+
+                <a href="{% url 'soil_results:hapus_unsur_hara' pengukuran.pk %}"
+                  class="text-sm font-semibold underline">
+                  Hapus pengukuran
+                </a>
+            </div>
+            {% endif %}
+        </li>
+
+      {% empty %}
+        <li class="text-sm text-ink-soft">
+          Belum ada pengukuran unsur hara.
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+</div>
+{% endblock %}

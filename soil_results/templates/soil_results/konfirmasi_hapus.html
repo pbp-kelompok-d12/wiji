@@ -1,0 +1,35 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Hapus hasil mandiri{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">Hapus hasil mandiri</h1>
+
+  <div class="d-card mt-5 p-5">
+    <p>
+      Hapus hasil pemeriksaan untuk
+      <strong>{{ hasil.lahan.nama|default:"Lahan tanpa nama" }}</strong>
+      tanggal
+      <strong>{{ hasil.tanggal_pemeriksaan|date:"d M Y" }}</strong>?
+    </p>
+
+    <p class="mt-2 text-sm text-ink-soft">
+      Data yang dihapus tidak dapat dikembalikan.
+    </p>
+
+    <form method="post" class="mt-5 flex flex-wrap gap-3">
+      {% csrf_token %}
+
+      <button type="submit" class="btn btn-primary">
+        Ya, hapus hasil
+      </button>
+
+      <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+         class="btn btn-ghost">
+        Batal
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

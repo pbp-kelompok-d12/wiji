@@ -1,0 +1,68 @@
+{% extends 'app_base.html' %}
+
+{% block title %}
+    {% if is_edit %}Ubah hasil mandiri
+    {% else %}Isi hasil mandiri
+    {% endif %}
+{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">
+    {% if is_edit %}Ubah hasil mandiri
+    {% else %}Isi hasil mandiri
+    {% endif %}
+  </h1>
+  <p class="mt-2 text-sm text-ink-soft">
+    Lahan: {{ lahan.nama|default:"Lahan tanpa nama" }}
+  </p>
+  <p class="mt-1 text-sm text-ink-soft">
+    Masukkan hasil pemeriksaan dari luar Wiji.
+    Data ini akan diberi label Hasil Mandiri.
+  </p>
+
+  <form method="post" class="d-card mt-6 space-y-5 p-5">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div role="alert" class="text-sm text-red-700">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}"
+               class="mb-1 block text-sm font-semibold">
+          {{ field.label }}{% if field.field.required %} *{% endif %}
+        </label>
+
+        {{ field }}
+
+        {% if field.help_text %}
+          <p class="mt-1 text-xs text-ink-soft">
+            {{ field.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in field.errors %}
+          <p role="alert" class="mt-1 text-sm text-red-700">
+            {{ error }}
+          </p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="flex flex-wrap gap-3">
+      <button type="submit" class="btn btn-primary">
+        {% if is_edit %}Simpan perubahan
+        {% else %}Simpan hasil mandiri
+        {% endif %}
+      </button>
+      <a href="{{ lahan.get_absolute_url }}" class="btn btn-ghost">
+        Batal
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}
