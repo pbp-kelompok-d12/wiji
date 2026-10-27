@@ -394,6 +394,26 @@ class RecommendationScoringTests(TestCase):
             {},
         )
 
+    def test_recorded_contaminant_blocks_recommendations(self):
+        self.create_plant()
+        self.result.kontaminan = "Pb: 380 mg/kg; batas aman 100 mg/kg."
+        self.result.sumber = "Laboratorium uji"
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
+        self.assertEqual(
+            result["temuan_risiko"]["temuan"],
+            self.result.kontaminan,
+        )
+        self.environment_mock.assert_not_called()
+
 class OpenMeteoEnvironmentTests(TestCase):
     def setUp(self):
         self.land = SimpleNamespace(
@@ -607,3 +627,416 @@ class RecommendationListViewTests(TestCase):
             another_result,
             response.context["hasil_list"],
         )
+class ManagementPlanViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="plan_owner",
+            password="test-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            username="plan_other_owner",
+            password="test-password-123",
+        )
+
+        self.land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan Rencana",
+        )
+        self.goal = ManagementGoal.objects.create(
+            nama="Menambah bahan organik",
+            slug="tujuan-rencana-organik",
+        )
+        self.result = HasilPemeriksaan.objects.create(
+            lahan=self.land,
+            dibuat_oleh=self.user,
+            tanggal_pemeriksaan=date(2026, 10, 20),
+            ph=Decimal("6.50"),
+            kelembapan=Decimal("45.00"),
+        )
+        self.plant = Tanaman.objects.create(
+            nama="Tanaman Rencana",
+            nama_latin="Planta consilii",
+            fungsi="Menambah bahan organik dan unsur hara",
+            deskripsi="Tanaman untuk mendukung bahan organik tanah",
+            kondisi_pertumbuhan="Informasi kondisi pertumbuhan tercatat",
+            tersedia_di_indonesia=True,
+            risiko_penggunaan="",
+        )
+
+        self.environment_data = {
+            "status": "unavailable",
+            "source": "Open-Meteo",
+            "reason": "coordinates_missing",
+            "message": "Koordinat lahan belum tersedia.",
+            "timezone": None,
+            "current": {},
+            "units": {},
+        }
+        environment_patcher = patch(
+            "recommendations.services.fetch_environmental_data",
+            return_value=self.environment_data,
+        )
+        self.environment_mock = environment_patcher.start()
+        self.addCleanup(environment_patcher.stop)
+
+        self.recommendation_url = reverse(
+            "recommendations:daftar_rekomendasi"
+        )
+        self.list_url = reverse("recommendations:daftar_rencana")
+
+    def create_plan(self, owner=None):
+        snapshot = RecommendationSnapshot.objects.create(
+            lahan=self.land,
+            hasil_pemeriksaan=self.result,
+            tanaman=self.plant,
+            tujuan=self.goal,
+            skor=85,
+            alasan=["Cocok dengan kata kunci tujuan."],
+            input_snapshot={"ph": "6.50"},
+            data_lingkungan=self.environment_data,
+            kelengkapan_data=33,
+            versi_aturan="v1",
+        )
+        plan = ManagementPlan(
+            pemilik=owner or self.user,
+            lahan=self.land,
+            rekomendasi=snapshot,
+            luas_tanam_m2=Decimal("100.00"),
+            jumlah_bibit=50,
+            catatan="Rencana uji",
+        )
+        plan.full_clean()
+        plan.save()
+        return plan
+
+    def test_plan_list_requires_login(self):
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_owner_can_open_empty_plan_list(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "recommendations/daftar_rencana.html",
+        )
+
+    def test_plan_list_only_shows_current_users_plans(self):
+        own_plan = self.create_plan()
+
+        other_land = Lahan.objects.create(
+            owner=self.other_user,
+            nama="Lahan Pemilik Lain",
+        )
+        other_result = HasilPemeriksaan.objects.create(
+            lahan=other_land,
+            dibuat_oleh=self.other_user,
+            tanggal_pemeriksaan=date(2026, 10, 21),
+        )
+        other_goal = ManagementGoal.objects.create(
+            nama="Tujuan Pemilik Lain",
+            slug="tujuan-pemilik-lain",
+        )
+        other_snapshot = RecommendationSnapshot.objects.create(
+            lahan=other_land,
+            hasil_pemeriksaan=other_result,
+            tanaman=self.plant,
+            tujuan=other_goal,
+            skor=70,
+            kelengkapan_data=33,
+        )
+        ManagementPlan.objects.create(
+            pemilik=self.other_user,
+            lahan=other_land,
+            rekomendasi=other_snapshot,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(
+            list(response.context["rencana_list"]),
+            [own_plan],
+        )
+
+    def test_owner_can_open_plan_detail(self):
+        plan = self.create_plan()
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("recommendations:detail_rencana", args=[plan.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["rencana"], plan)
+
+    def test_other_user_cannot_open_plan_detail(self):
+        plan = self.create_plan()
+        self.client.force_login(self.other_user)
+
+        response = self.client.get(
+            reverse("recommendations:detail_rencana", args=[plan.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_create_plan_from_valid_recommendation(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(self.plant.pk),
+                "luas_tanam_m2": "100",
+                "jumlah_bibit": "50",
+                "tanggal_tanam": "2026-11-01",
+                "catatan": "Mulai setelah persiapan lahan.",
+            },
+        )
+
+        self.assertEqual(ManagementPlan.objects.count(), 1)
+        plan = ManagementPlan.objects.select_related(
+            "rekomendasi"
+        ).get()
+
+        self.assertEqual(plan.pemilik, self.user)
+        self.assertEqual(plan.lahan, self.land)
+        self.assertEqual(plan.rekomendasi.tanaman, self.plant)
+        self.assertEqual(plan.rekomendasi.input_snapshot["ph"], "6.50")
+        self.assertEqual(plan.rekomendasi.versi_aturan, "v1")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse("recommendations:detail_rencana", args=[plan.pk]),
+        )
+
+    def test_high_risk_plant_cannot_be_saved_as_plan(self):
+        risky_plant = Tanaman.objects.create(
+            nama="Tanaman Berisiko",
+            nama_latin="Planta periculosa",
+            fungsi="Menambah bahan organik dan unsur hara",
+            deskripsi="Tanaman yang perlu penilaian risiko",
+            kondisi_pertumbuhan="Informasi kondisi pertumbuhan tersedia",
+            tersedia_di_indonesia=True,
+            risiko_penggunaan="Beracun jika dikonsumsi.",
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(risky_plant.pk),
+                "catatan": "Uji safety",
+            },
+        )
+
+        self.assertEqual(ManagementPlan.objects.count(), 0)
+        self.assertEqual(RecommendationSnapshot.objects.count(), 0)
+        self.assertEqual(response.status_code, 302)
+
+    def test_user_cannot_create_plan_for_another_users_land(self):
+        other_land = Lahan.objects.create(
+            owner=self.other_user,
+            nama="Bukan Lahan Saya",
+        )
+        other_result = HasilPemeriksaan.objects.create(
+            lahan=other_land,
+            dibuat_oleh=self.other_user,
+            tanggal_pemeriksaan=date(2026, 10, 21),
+            ph=Decimal("6.50"),
+            kelembapan=Decimal("45.00"),
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(other_land.pk),
+                "hasil": str(other_result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(self.plant.pk),
+            },
+        )
+
+        self.assertEqual(ManagementPlan.objects.count(), 0)
+        self.assertEqual(RecommendationSnapshot.objects.count(), 0)
+        self.assertEqual(response.status_code, 302)
+
+    def test_owner_can_edit_plan(self):
+        plan = self.create_plan()
+        snapshot_id = plan.rekomendasi_id
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:edit_rencana", args=[plan.pk]),
+            {
+                "luas_tanam_m2": "125.50",
+                "jumlah_bibit": "75",
+                "tanggal_tanam": "2026-11-15",
+                "catatan": "Detail rencana diperbarui.",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("recommendations:detail_rencana", args=[plan.pk]),
+        )
+
+        plan.refresh_from_db()
+        self.assertEqual(plan.luas_tanam_m2, Decimal("125.50"))
+        self.assertEqual(plan.jumlah_bibit, 75)
+        self.assertEqual(plan.tanggal_tanam, date(2026, 11, 15))
+        self.assertEqual(plan.catatan, "Detail rencana diperbarui.")
+
+        # Snapshot rekomendasi tetap dipertahankan.
+        self.assertEqual(plan.rekomendasi_id, snapshot_id)
+        self.assertEqual(plan.rekomendasi.skor, 85)
+
+    def test_edit_form_is_displayed(self):
+        plan = self.create_plan()
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("recommendations:edit_rencana", args=[plan.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "recommendations/edit_rencana.html",
+        )
+
+    def test_other_user_cannot_edit_plan(self):
+        plan = self.create_plan()
+        self.client.force_login(self.other_user)
+
+        response = self.client.post(
+            reverse("recommendations:edit_rencana", args=[plan.pk]),
+            {
+                "luas_tanam_m2": "200",
+                "jumlah_bibit": "100",
+                "catatan": "Percobaan akses.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        plan.refresh_from_db()
+        self.assertEqual(plan.luas_tanam_m2, Decimal("100.00"))
+
+    def test_delete_confirmation_does_not_delete_plan(self):
+        plan = self.create_plan()
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("recommendations:hapus_rencana", args=[plan.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "recommendations/konfirmasi_hapus_rencana.html",
+        )
+        self.assertTrue(
+            ManagementPlan.objects.filter(pk=plan.pk).exists()
+        )
+        self.assertTrue(
+            RecommendationSnapshot.objects.filter(
+                pk=plan.rekomendasi_id
+            ).exists()
+        )
+
+    def test_owner_can_delete_plan_and_its_snapshot(self):
+        plan = self.create_plan()
+        plan_id = plan.pk
+        snapshot_id = plan.rekomendasi_id
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:hapus_rencana", args=[plan_id])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("recommendations:daftar_rencana"),
+        )
+        self.assertFalse(
+            ManagementPlan.objects.filter(pk=plan_id).exists()
+        )
+        self.assertFalse(
+            RecommendationSnapshot.objects.filter(pk=snapshot_id).exists()
+        )
+
+    def test_other_user_cannot_delete_plan(self):
+        plan = self.create_plan()
+        snapshot_id = plan.rekomendasi_id
+        self.client.force_login(self.other_user)
+
+        response = self.client.post(
+            reverse("recommendations:hapus_rencana", args=[plan.pk])
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(
+            ManagementPlan.objects.filter(pk=plan.pk).exists()
+        )
+        self.assertTrue(
+            RecommendationSnapshot.objects.filter(pk=snapshot_id).exists()
+        )
+
+    def test_contaminated_result_displays_risk_page(self):
+        self.result.kontaminan = "Pb: 380 mg/kg; batas aman 100 mg/kg."
+        self.result.sumber = "Laboratorium uji"
+        self.result.save()
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            self.recommendation_url,
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "recommendations/risiko_tinggi.html",
+        )
+        self.assertTrue(
+            response.context["temuan_risiko"]["risiko_tinggi"]
+        )
+        self.environment_mock.assert_not_called()
+
+    def test_contaminated_result_cannot_create_plan(self):
+        self.result.kontaminan = "Pb: 380 mg/kg; batas aman 100 mg/kg."
+        self.result.sumber = "Laboratorium uji"
+        self.result.save()
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(self.plant.pk),
+                "luas_tanam_m2": "100",
+                "jumlah_bibit": "50",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ManagementPlan.objects.count(), 0)
+        self.assertEqual(RecommendationSnapshot.objects.count(), 0)
+

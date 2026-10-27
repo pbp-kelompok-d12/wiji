@@ -38,6 +38,7 @@
             </option>
           {% endfor %}
         </select>
+
         {% if not lahan_list %}
           <p class="field-hint">
             Belum ada lahan aktif. Tambahkan lahan terlebih dahulu.
@@ -60,6 +61,7 @@
             </option>
           {% endfor %}
         </select>
+
         {% if lahan_terpilih and not hasil_list %}
           <p class="field-hint">
             Belum ada hasil pemeriksaan untuk lahan ini.
@@ -116,6 +118,7 @@
               Sumber: {{ hasil_scoring.data_lingkungan.source }}
             </p>
           </div>
+
           {% if hasil_scoring.data_lingkungan.status == "available" %}
             <span class="badge badge-leaf">Data tersedia</span>
           {% else %}
@@ -129,6 +132,7 @@
             {{ hasil_scoring.data_lingkungan.current.time }}
             ({{ hasil_scoring.data_lingkungan.timezone }})
           </p>
+
           <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div class="rounded-xl border border-line bg-white p-3">
               <p class="text-xs text-ink-soft">Suhu</p>
@@ -137,6 +141,7 @@
                 {{ hasil_scoring.data_lingkungan.units.temperature_2m }}
               </p>
             </div>
+
             <div class="rounded-xl border border-line bg-white p-3">
               <p class="text-xs text-ink-soft">Kelembapan udara</p>
               <p class="mt-1 font-bold">
@@ -144,6 +149,7 @@
                 {{ hasil_scoring.data_lingkungan.units.relative_humidity_2m }}
               </p>
             </div>
+
             <div class="rounded-xl border border-line bg-white p-3">
               <p class="text-xs text-ink-soft">Curah hujan</p>
               <p class="mt-1 font-bold">
@@ -151,6 +157,7 @@
                 {{ hasil_scoring.data_lingkungan.units.precipitation }}
               </p>
             </div>
+
             <div class="rounded-xl border border-line bg-white p-3">
               <p class="text-xs text-ink-soft">Kecepatan angin</p>
               <p class="mt-1 font-bold">
@@ -186,11 +193,13 @@
                   <h3 class="text-lg font-bold">
                     {{ kandidat.tanaman.nama }}
                   </h3>
+
                   {% if kandidat.tanaman.nama_latin %}
                     <p class="mt-1 text-sm italic text-ink-soft">
                       {{ kandidat.tanaman.nama_latin }}
                     </p>
                   {% endif %}
+
                   <p class="mt-3 text-sm leading-6">
                     {{ kandidat.tanaman.deskripsi }}
                   </p>
@@ -219,6 +228,7 @@
                   Kelengkapan data saat penilaian:
                   {{ kandidat.kelengkapan_data }}%.
                 </p>
+
                 {% if kandidat.tanaman.kondisi_pertumbuhan %}
                   <p class="mt-2 text-sm">
                     <strong>Informasi pertumbuhan:</strong>
@@ -226,6 +236,85 @@
                   </p>
                 {% endif %}
               </div>
+
+              <!-- Form pembuatan rencana pengelolaan -->
+              <form method="post"
+                    action="{% url 'recommendations:buat_rencana' %}"
+                    class="mt-5 border-t border-line pt-4">
+                {% csrf_token %}
+
+                <input type="hidden" name="lahan"
+                       value="{{ lahan_terpilih.pk }}">
+                <input type="hidden" name="hasil"
+                       value="{{ hasil_terpilih.pk }}">
+                <input type="hidden" name="tujuan"
+                       value="{{ tujuan_terpilih.pk }}">
+                <input type="hidden" name="tanaman"
+                       value="{{ kandidat.tanaman.pk }}">
+
+                <h4 class="font-bold">Buat rencana pengelolaan</h4>
+                <p class="mt-1 text-sm text-ink-soft">
+                  Tambahkan detail pelaksanaan. Skor dan alasan rekomendasi
+                  akan disimpan sebagai snapshot.
+                </p>
+
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div class="field">
+                    <label class="field-label"
+                           for="luas-{{ kandidat.tanaman.pk }}">
+                      Luas tanam (m²)
+                    </label>
+                    <input id="luas-{{ kandidat.tanaman.pk }}"
+                           type="number"
+                           name="luas_tanam_m2"
+                           class="field-input"
+                           min="0.01"
+                           step="0.01"
+                           placeholder="Contoh: 100">
+                  </div>
+
+                  <div class="field">
+                    <label class="field-label"
+                           for="bibit-{{ kandidat.tanaman.pk }}">
+                      Jumlah bibit
+                    </label>
+                    <input id="bibit-{{ kandidat.tanaman.pk }}"
+                           type="number"
+                           name="jumlah_bibit"
+                           class="field-input"
+                           min="1"
+                           step="1"
+                           placeholder="Contoh: 50">
+                  </div>
+
+                  <div class="field sm:col-span-2">
+                    <label class="field-label"
+                           for="tanggal-{{ kandidat.tanaman.pk }}">
+                      Tanggal tanam (opsional)
+                    </label>
+                    <input id="tanggal-{{ kandidat.tanaman.pk }}"
+                           type="date"
+                           name="tanggal_tanam"
+                           class="field-input">
+                  </div>
+
+                  <div class="field sm:col-span-2">
+                    <label class="field-label"
+                           for="catatan-{{ kandidat.tanaman.pk }}">
+                      Catatan (opsional)
+                    </label>
+                    <textarea id="catatan-{{ kandidat.tanaman.pk }}"
+                              name="catatan"
+                              class="field-input"
+                              rows="3"
+                              placeholder="Catatan pelaksanaan rencana"></textarea>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-4">
+                  Simpan sebagai rencana
+                </button>
+              </form>
             </article>
           {% endfor %}
         </div>
@@ -247,11 +336,14 @@
             Kandidat berikut tidak dimasukkan ke rekomendasi otomatis
             karena informasi risikonya memerlukan pemeriksaan lebih lanjut.
           </p>
+
           <ul class="mt-3 space-y-3">
             {% for item in hasil_scoring.diblokir %}
               <li class="border-t border-line pt-3">
                 <p class="font-semibold">{{ item.tanaman.nama }}</p>
-                <p class="mt-1 text-sm text-ink-soft">{{ item.alasan }}</p>
+                <p class="mt-1 text-sm text-ink-soft">
+                  {{ item.alasan }}
+                </p>
               </li>
             {% endfor %}
           </ul>

@@ -215,12 +215,59 @@ def _is_high_risk(tanaman):
     risk_text = (tanaman.risiko_penggunaan or "").casefold()
     return any(term in risk_text for term in HIGH_RISK_TERMS)
 
+def assess_soil_risk(hasil_pemeriksaan):
+    """
+    Periksa apakah catatan kontaminan memerlukan penilaian ahli.
+
+    Karena nilai dan batas aman disimpan sebagai teks bebas,
+    fungsi ini tidak mengklaim bahwa suatu angka melampaui batas resmi.
+    """
+    raw = (hasil_pemeriksaan.kontaminan or "").strip()
+    normalized = " ".join(raw.casefold().split()).strip(" .,:;")
+
+    explicit_no_contaminant = {
+        "tidak ada",
+        "tidak ada kontaminan",
+        "tidak terdeteksi",
+        "tidak terdeteksi kontaminan",
+        "none detected",
+        "no contaminant detected",
+        "no contaminants detected",
+        "negatif",
+    }
+
+    if not raw or normalized in explicit_no_contaminant:
+        return {
+            "risiko_tinggi": False,
+            "temuan": raw,
+            "sumber": (
+                hasil_pemeriksaan.sumber
+                or hasil_pemeriksaan.get_asal_display()
+            ),
+            "alasan": None,
+        }
+
+    return {
+        "risiko_tinggi": True,
+        "temuan": raw,
+        "sumber": (
+            hasil_pemeriksaan.sumber
+            or hasil_pemeriksaan.get_asal_display()
+        ),
+        "alasan": (
+            "Hasil pemeriksaan mencatat kontaminan, tetapi nilai dan "
+            "batas aman belum diverifikasi menggunakan aturan yang "
+            "terstruktur. Rekomendasi otomatis memerlukan penilaian ahli."
+        ),
+    }
+
 
 def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     """
-    Menghasilkan kandidat rekomendasi tanpa menyimpan snapshot ke database.
+    Menghasilkan kandidat rekomendasi tanpa menyimpan snapshot.
 
-    Snapshot permanen dibuat saat pengguna benar-benar menyimpan rencana.
+    Jika hasil pemeriksaan mencatat kontaminan yang belum terverifikasi,
+    rekomendasi otomatis dihentikan dan hasil diarahkan ke penilaian ahli.
     """
     if hasil_pemeriksaan.lahan_id != lahan.pk:
         raise RecommendationInputError(
@@ -235,6 +282,34 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     _, jumlah_terisi, kelengkapan = _soil_data_status(
         hasil_pemeriksaan
     )
+    input_snapshot = _build_input_snapshot(lahan, hasil_pemeriksaan)
+
+    risiko_tanah = assess_soil_risk(hasil_pemeriksaan)
+
+    # Jangan menghitung skor atau mengambil data lingkungan ketika
+    # catatan kontaminan belum diverifikasi.
+    if risiko_tanah["risiko_tinggi"]:
+        return {
+            "rekomendasi": [],
+            "diblokir": [],
+            "kelengkapan_data": kelengkapan,
+            "input_snapshot": input_snapshot,
+            "data_lingkungan": {
+                "status": "unavailable",
+                "source": "Open-Meteo",
+                "reason": "soil_risk_review_required",
+                "message": (
+                    "Data lingkungan tidak diambil karena hasil "
+                    "pemeriksaan membutuhkan penilaian ahli."
+                ),
+                "timezone": None,
+                "current": {},
+                "units": {},
+            },
+            "versi_aturan": RULE_VERSION,
+            "risiko_tinggi": True,
+            "temuan_risiko": risiko_tanah,
+        }
 
     if jumlah_terisi < MINIMUM_DATA_CATEGORIES:
         raise RecommendationInputError(
@@ -242,7 +317,6 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
             "data pemeriksaan sebelum meminta rekomendasi."
         )
 
-    input_snapshot = _build_input_snapshot(lahan, hasil_pemeriksaan)
     data_lingkungan = fetch_environmental_data(lahan)
 
     rekomendasi = []
@@ -270,7 +344,6 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
             "Fungsi tanaman cocok dengan kata kunci tujuan pengelolaan."
         ]
 
-        # Ketersediaan adalah syarat filter; alasan ini menjelaskannya.
         skor += 15
         alasan.append("Tanaman tercatat tersedia di Indonesia.")
 
@@ -313,4 +386,6 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
         "input_snapshot": input_snapshot,
         "data_lingkungan": data_lingkungan,
         "versi_aturan": RULE_VERSION,
+        "risiko_tinggi": False,
+        "temuan_risiko": None,
     }

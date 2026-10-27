@@ -1,0 +1,93 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Edit Rencana Pengelolaan{% endblock %}
+{% block crumb %}Edit rencana{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-3xl">
+  <a href="{% url 'recommendations:detail_rencana' rencana.pk %}"
+     class="text-sm font-semibold text-ink-soft hover:text-ink">
+    &larr; Kembali ke detail
+  </a>
+
+  <div class="mt-4">
+    <p class="eyebrow">Rencana pengelolaan</p>
+    <h1 class="heading mt-1 text-[28px] leading-tight">
+      Edit <span class="heading-accent">rencana</span>
+    </h1>
+    <p class="mt-2 text-sm leading-6 text-ink-soft">
+      Perbarui detail pelaksanaan untuk
+      {{ rencana.rekomendasi.tanaman.nama }}.
+      Snapshot rekomendasi awal tetap dipertahankan.
+    </p>
+  </div>
+
+  <section class="mt-6 rounded-panel border border-line bg-white p-5 sm:p-6">
+    <form method="post">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="mb-4 rounded-xl border border-line p-3 text-sm">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="field">
+          <label for="{{ form.luas_tanam_m2.id_for_label }}"
+                 class="field-label">
+            Luas tanam (m²)
+          </label>
+          {{ form.luas_tanam_m2 }}
+          {% for error in form.luas_tanam_m2.errors %}
+            <p class="field-hint">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="field">
+          <label for="{{ form.jumlah_bibit.id_for_label }}"
+                 class="field-label">
+            Jumlah bibit
+          </label>
+          {{ form.jumlah_bibit }}
+          {% for error in form.jumlah_bibit.errors %}
+            <p class="field-hint">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="field sm:col-span-2">
+          <label for="{{ form.tanggal_tanam.id_for_label }}"
+                 class="field-label">
+            Tanggal tanam
+          </label>
+          {{ form.tanggal_tanam }}
+          {% for error in form.tanggal_tanam.errors %}
+            <p class="field-hint">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="field sm:col-span-2">
+          <label for="{{ form.catatan.id_for_label }}"
+                 class="field-label">
+            Catatan
+          </label>
+          {{ form.catatan }}
+          {% for error in form.catatan.errors %}
+            <p class="field-hint">{{ error }}</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="submit" class="btn btn-primary">
+          Simpan perubahan
+        </button>
+        <a href="{% url 'recommendations:detail_rencana' rencana.pk %}"
+           class="btn btn-ghost">
+          Batal
+        </a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
