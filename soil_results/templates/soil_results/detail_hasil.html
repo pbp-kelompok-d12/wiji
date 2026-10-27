@@ -25,7 +25,7 @@
         class="btn btn-primary">
         Ubah hasil
         </a>
-        
+
         <a href="{% url 'soil_results:hapus_hasil_mandiri' hasil.pk %}"
         class="btn btn-ghost border border-line">
         Hapus hasil
@@ -69,5 +69,52 @@
       <dd>{{ hasil.catatan|default:"Tidak ada catatan"|linebreaksbr }}</dd>
     </div>
   </dl>
+  
+  <section class="d-card mt-5 p-5">
+    <h2 class="heading text-xl">Pengukuran unsur hara</h2>
+
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+        <a href="{% url 'soil_results:tambah_unsur_hara' hasil.pk %}"
+           class="btn btn-ghost mt-3 border border-line">
+          Tambah pengukuran
+        </a>
+    {% endif %}
+
+    <ul class="mt-4 space-y-3">
+        {% for pengukuran in hasil.nutrient_measurements.all %}
+          <li class="border-b border-line pb-3">
+            <p class="font-semibold">
+              {{ pengukuran.nama_unsur }}:
+              {{ pengukuran.nilai }} {{ pengukuran.get_satuan_display }}
+            </p>
+            {% if pengukuran.metode %}
+              <p class="text-sm text-ink-soft">
+                Metode: {{ pengukuran.metode }}
+            </p>
+            {% endif %}
+
+            {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+            <div class="mt-2 flex flex-wrap gap-4">
+                <a href="{% url 'soil_results:ubah_unsur_hara' pengukuran.pk %}"
+                  class="text-sm font-semibold underline">
+                  Ubah pengukuran
+                </a>
+
+                <a href="{% url 'soil_results:hapus_unsur_hara' pengukuran.pk %}"
+                  class="text-sm font-semibold underline">
+                  Hapus pengukuran
+                </a>
+            </div>
+            {% endif %}
+        </li>
+
+      {% empty %}
+        <li class="text-sm text-ink-soft">
+          Belum ada pengukuran unsur hara.
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
 </div>
 {% endblock %}

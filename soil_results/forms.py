@@ -1,5 +1,5 @@
 from django import forms
-from .models import HasilPemeriksaan
+from .models import HasilPemeriksaan, NutrientMeasurement
 
 
 class HasilMandiriForm(forms.ModelForm):
@@ -32,6 +32,26 @@ class HasilMandiriForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields["sumber"].required = True
+
+        for field in self.fields.values():
+            field.widget.attrs["class"] = (
+                "w-full rounded-xl border border-line "
+                "bg-white px-3 py-2"
+            )
+
+class NutrientMeasurementForm(forms.ModelForm):
+    class Meta:
+        model = NutrientMeasurement
+        fields = ["nama_unsur", "nilai", "satuan", "metode"]
+        labels = {
+            "nama_unsur": "Nama unsur / parameter",
+            "nilai": "Nilai pengukuran",
+            "satuan": "Satuan",
+            "metode": "Metode pemeriksaan",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         for field in self.fields.values():
             field.widget.attrs["class"] = (

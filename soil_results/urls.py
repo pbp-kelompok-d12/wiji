@@ -24,4 +24,19 @@ urlpatterns = [
         views.hapus_hasil_mandiri,
         name="hapus_hasil_mandiri",
     ),
+        path(
+        "<int:hasil_id>/unsur-hara/tambah/",
+        views.tambah_unsur_hara,
+        name="tambah_unsur_hara",
+    ),
+        path(
+        "unsur-hara/<int:pengukuran_id>/ubah/",
+        views.ubah_unsur_hara,
+        name="ubah_unsur_hara",
+    ),
+        path(
+        "unsur-hara/<int:pengukuran_id>/hapus/",
+        views.hapus_unsur_hara,
+        name="hapus_unsur_hara",
+    ),
 ]

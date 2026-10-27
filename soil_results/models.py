@@ -93,3 +93,42 @@ class HasilPemeriksaan(models.Model):
                 "tanggal_pemeriksaan":
                     "Tanggal pemeriksaan tidak boleh di masa depan."
             })
+
+
+class NutrientMeasurement(models.Model):
+    class Satuan(models.TextChoices):
+        PERSEN = "%", "%"
+        MG_KG = "mg/kg", "mg/kg"
+        CMOL_KG = "cmol(+)/kg", "cmol(+)/kg"
+
+    hasil = models.ForeignKey(
+        HasilPemeriksaan,
+        on_delete=models.CASCADE,
+        related_name="nutrient_measurements",
+    )
+    nama_unsur = models.CharField(
+        max_length=100,
+        help_text="Nama unsur atau parameter sesuai laporan laboratorium.",
+    )
+    nilai = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        validators=[MinValueValidator(0)],
+    )
+    satuan = models.CharField(
+        max_length=20,
+        choices=Satuan.choices,
+    )
+    metode = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Metode pemeriksaan, jika tercantum dalam laporan.",
+    )
+
+    class Meta:
+        ordering = ["nama_unsur", "pk"]
+        verbose_name = "Pengukuran unsur hara"
+        verbose_name_plural = "Pengukuran unsur hara"
+
+    def __str__(self):
+        return f"{self.nama_unsur}: {self.nilai} {self.satuan}"
