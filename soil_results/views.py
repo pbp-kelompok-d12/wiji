@@ -9,7 +9,7 @@ from lands.models import Lahan
 from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm
 from .models import HasilPemeriksaan, NutrientMeasurement
 import uuid
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -395,3 +395,90 @@ def daftar_hasil(request):
         template = "soil_results/daftar_hasil.html"
 
     return render(request, template, context)
+
+
+def hasil_ke_dict(hasil):
+    return {
+        "id": hasil.pk,
+        "lahan": {
+            "id": str(hasil.lahan_id),
+            "nama": hasil.lahan.nama,
+        },
+        "asal": hasil.asal,
+        "sumber": hasil.sumber,
+        "tanggal_pemeriksaan": hasil.tanggal_pemeriksaan.isoformat(),
+        "ph": hasil.ph,
+        "kelembapan": hasil.kelembapan,
+        "tekstur": hasil.tekstur,
+        "bahan_organik": hasil.bahan_organik,
+        "catatan": hasil.catatan,
+        "ada_dokumen": bool(hasil.dokumen_laboratorium),
+        "pengukuran_unsur_hara": [
+            {
+                "id": item.pk,
+                "nama_unsur": item.nama_unsur,
+                "nilai": item.nilai,
+                "satuan": item.satuan,
+                "metode": item.metode,
+            }
+            for item in hasil.nutrient_measurements.all()
+        ],
+    }
+
+
+@require_http_methods(["GET"])
+def api_daftar_hasil(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Silakan login terlebih dahulu."},
+            status=401,
+        )
+
+    hasil_list = (
+        HasilPemeriksaan.objects
+        .filter(lahan__owner=request.user)
+        .select_related("lahan")
+        .prefetch_related("nutrient_measurements")
+    )
+
+    pencarian = request.GET.get("q", "").strip()
+    asal = request.GET.get("asal", "")
+
+    if pencarian:
+        hasil_list = hasil_list.filter(lahan__nama__icontains=pencarian)
+
+    if asal in HasilPemeriksaan.Asal.values:
+        hasil_list = hasil_list.filter(asal=asal)
+
+    response = JsonResponse({
+        "results": [hasil_ke_dict(hasil) for hasil in hasil_list],
+    })
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@require_http_methods(["GET"])
+def api_detail_hasil(request, hasil_id):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Silakan login terlebih dahulu."},
+            status=401,
+        )
+
+    hasil = (
+        HasilPemeriksaan.objects
+        .filter(pk=hasil_id, lahan__owner=request.user)
+        .select_related("lahan")
+        .prefetch_related("nutrient_measurements")
+        .first()
+    )
+
+    if hasil is None:
+        return JsonResponse(
+            {"error": "Hasil tidak ditemukan."},
+            status=404,
+        )
+
+    response = JsonResponse(hasil_ke_dict(hasil))
+    response["Cache-Control"] = "private, no-store"
+    return response

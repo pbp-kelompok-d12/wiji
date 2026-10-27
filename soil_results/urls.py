@@ -54,5 +54,15 @@ urlpatterns = [
         views.daftar_hasil, 
         name="daftar_hasil"
     ),
-    
+    path(
+        "api/hasil/",
+        views.api_daftar_hasil,
+        name="api_daftar_hasil",
+    ),
+    path(
+        "api/hasil/<int:hasil_id>/",
+        views.api_detail_hasil,
+        name="api_detail_hasil",
+    ),
+
 ]
