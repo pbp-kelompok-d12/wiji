@@ -12,6 +12,10 @@ from lands.models import Lahan, ManagementGoal
 from soil_results.models import HasilPemeriksaan
 
 from .models import ManagementPlan, RecommendationSnapshot
+from .services import (
+    RecommendationInputError,
+    calculate_recommendations,
+)
 
 
 User = get_user_model()
@@ -205,3 +209,125 @@ class ManagementPlanTests(TestCase):
                     lahan=self.land,
                     rekomendasi=self.snapshot,
                 )
+
+class RecommendationScoringTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="scoring_user",
+            password="test-password-123",
+        )
+        self.land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan Scoring",
+        )
+        self.goal = ManagementGoal.objects.create(
+            nama="Menambah bahan organik",
+            slug="menambah-bahan-organik",
+        )
+        self.result = HasilPemeriksaan.objects.create(
+            lahan=self.land,
+            dibuat_oleh=self.user,
+            tanggal_pemeriksaan=date(2026, 10, 20),
+            ph=Decimal("6.50"),
+            kelembapan=Decimal("45.00"),
+        )
+
+    def create_plant(self, **overrides):
+        data = {
+            "nama": "Tanaman Organik",
+            "nama_latin": "Planta organica",
+            "fungsi": "Menambah bahan organik dan unsur hara",
+            "deskripsi": "Mendukung penambahan bahan organik tanah",
+            "kondisi_pertumbuhan": "Informasi kondisi pertumbuhan tersedia",
+            "tersedia_di_indonesia": True,
+            "risiko_penggunaan": "",
+        }
+        data.update(overrides)
+        return Tanaman.objects.create(**data)
+
+    def test_matching_plant_is_scored(self):
+        plant = self.create_plant()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertEqual(len(result["rekomendasi"]), 1)
+        candidate = result["rekomendasi"][0]
+
+        self.assertEqual(candidate.tanaman, plant)
+        self.assertGreaterEqual(candidate.skor, 0)
+        self.assertLessEqual(candidate.skor, 100)
+        self.assertTrue(candidate.alasan)
+        self.assertEqual(candidate.kelengkapan_data, 33)
+        self.assertEqual(candidate.versi_aturan, "v1")
+
+    def test_unavailable_plant_is_excluded(self):
+        self.create_plant(tersedia_di_indonesia=False)
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertEqual(result["rekomendasi"], [])
+
+    def test_high_risk_plant_is_blocked(self):
+        plant = self.create_plant(
+            risiko_penggunaan="Beracun jika dikonsumsi.",
+        )
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        recommended_plants = [
+            item.tanaman for item in result["rekomendasi"]
+        ]
+        blocked_plants = [
+            item["tanaman"] for item in result["diblokir"]
+        ]
+
+        self.assertNotIn(plant, recommended_plants)
+        self.assertIn(plant, blocked_plants)
+
+    def test_insufficient_data_is_rejected(self):
+        self.result.ph = None
+        self.result.kelembapan = None
+        self.result.save()
+
+        with self.assertRaises(RecommendationInputError):
+            calculate_recommendations(
+                self.land,
+                self.result,
+                self.goal,
+            )
+
+    def test_result_from_another_land_is_rejected(self):
+        other_land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan Lain",
+        )
+
+        with self.assertRaises(RecommendationInputError):
+            calculate_recommendations(
+                other_land,
+                self.result,
+                self.goal,
+            )
+
+    def test_inactive_goal_is_rejected(self):
+        self.goal.aktif = False
+        self.goal.save()
+
+        with self.assertRaises(RecommendationInputError):
+            calculate_recommendations(
+                self.land,
+                self.result,
+                self.goal,
+            )
