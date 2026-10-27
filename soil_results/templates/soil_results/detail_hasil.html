@@ -19,6 +19,15 @@
     {{ hasil.get_asal_display }}
   </span>
 
+  {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    <div class="mt-4">
+        <a href="{% url 'soil_results:ubah_hasil_mandiri' hasil.pk %}"
+        class="btn btn-primary">
+        Ubah hasil
+        </a>
+    </div>
+  {% endif %}
+
   <dl class="d-card mt-5 space-y-4 p-5">
     <div>
       <dt class="text-sm text-ink-soft">Sumber pemeriksaan</dt>

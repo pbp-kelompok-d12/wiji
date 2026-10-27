@@ -1,10 +1,18 @@
 {% extends 'app_base.html' %}
 
-{% block title %}Isi hasil mandiri{% endblock %}
+{% block title %}
+    {% if is_edit %}Ubah hasil mandiri
+    {% else %}Isi hasil mandiri
+    {% endif %}
+{% endblock %}
 
 {% block app_content %}
 <div class="mx-auto max-w-2xl">
-  <h1 class="heading text-[28px]">Isi hasil mandiri</h1>
+  <h1 class="heading text-[28px]">
+    {% if is_edit %}Ubah hasil mandiri
+    {% else %}Isi hasil mandiri
+    {% endif %}
+  </h1>
   <p class="mt-2 text-sm text-ink-soft">
     Lahan: {{ lahan.nama|default:"Lahan tanpa nama" }}
   </p>
@@ -47,7 +55,9 @@
 
     <div class="flex flex-wrap gap-3">
       <button type="submit" class="btn btn-primary">
-        Simpan hasil mandiri
+        {% if is_edit %}Simpan perubahan
+        {% else %}Simpan hasil mandiri
+        {% endif %}
       </button>
       <a href="{{ lahan.get_absolute_url }}" class="btn btn-ghost">
         Batal

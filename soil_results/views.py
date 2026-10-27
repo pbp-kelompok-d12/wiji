@@ -59,3 +59,46 @@ def detail_hasil(request, hasil_id):
         "soil_results/detail_hasil.html",
         {"hasil": hasil},
     )
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def ubah_hasil_mandiri(request, hasil_id):
+    if not request.user.is_owner:
+        raise PermissionDenied(
+            "Hanya pemilik lahan yang dapat mengubah hasil mandiri."
+        )
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan.objects.select_related("lahan"),
+        pk=hasil_id,
+        lahan__owner=request.user,
+        lahan__diarsipkan=False,
+        asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+
+    # TODO integrasi Modul E
+    # Blokir perubahan jika hasil sudah dipakai dalam rencana.
+
+    if request.method == "POST":
+        form = HasilMandiriForm(request.POST, instance=hasil)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Hasil mandiri berhasil diperbarui.")
+            return redirect(
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
+            )
+    else:
+        form = HasilMandiriForm(instance=hasil)
+
+    return render(
+        request,
+        "soil_results/form_hasil_mandiri.html",
+        {
+            "form": form,
+            "lahan": hasil.lahan,
+            "hasil": hasil,
+            "is_edit": True,
+        },
+    )
