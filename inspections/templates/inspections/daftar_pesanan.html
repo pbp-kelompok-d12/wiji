@@ -1,0 +1,51 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Pemeriksaan{% endblock %}
+{% block crumb %}Pemeriksaan{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="eyebrow">Pemeriksaan tanah</p>
+    <h1 class="heading mt-1 text-[28px] leading-[34px]">Pesanan <span class="heading-accent">pemeriksaan</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Pantau pesanan pemeriksaan tanah untuk lahanmu.</p>
+  </div>
+</div>
+
+<div id="daftar-pesanan" class="mt-6">
+  {% if pesanan_list %}
+  <div class="d-card divide-y divide-line px-5 py-1">
+    {% for pesanan in pesanan_list %}
+    <article class="row-hover -mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-4">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="text-sm font-bold hover:text-moss">{{ pesanan.kode }}</a>
+          {% include 'inspections/partials/_status.html' %}
+        </div>
+        <p class="mt-0.5 truncate text-[13px] text-ink-soft">
+          {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }} · {{ pesanan.jenis.nama }}
+        </p>
+        <p class="mt-0.5 text-xs text-ink-soft">
+          {% if pesanan.tanggal_final %}
+          Jadwal {{ pesanan.tanggal_final|date:"D, j M Y" }} · {{ pesanan.get_sesi_final_display }}
+          {% else %}
+          Usulan {{ pesanan.tanggal_usulan|date:"D, j M Y" }} · {{ pesanan.get_sesi_usulan_display }}
+          {% endif %}
+          · Petugas: {{ pesanan.petugas.display_name|default:"belum ditugaskan" }}
+        </p>
+      </div>
+      <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="d-btn-sm">Lihat detail</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="d-card grid place-items-center px-6 py-14 text-center">
+    <span class="grid size-14 place-items-center rounded-full bg-paper text-ink-soft">
+      <svg class="ic size-6"><use href="#i-flask"/></svg>
+    </span>
+    <h2 class="mt-4 text-lg font-bold">Belum ada pesanan</h2>
+    <p class="mt-1 max-w-sm text-sm text-ink-soft">Pesanan pemeriksaan untuk lahanmu akan muncul di sini.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

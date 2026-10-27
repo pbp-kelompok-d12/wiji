@@ -1,0 +1,64 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ pesanan.kode }}{% endblock %}
+{% block crumb %}Pemeriksaan / {{ pesanan.kode }}{% endblock %}
+
+{% block app_content %}
+<a href="{% url 'inspections:daftar_pesanan' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+  <svg class="ic ic-sm"><use href="#i-back"/></svg>Pemeriksaan
+</a>
+
+<header class="mt-4 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <p class="eyebrow">Pesanan {{ pesanan.kode }}</p>
+    <h1 class="heading mt-1 flex flex-wrap items-center gap-3 text-[28px] leading-[34px]">
+      {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }}
+      {% include 'inspections/partials/_status.html' %}
+    </h1>
+    <p class="mt-1 text-sm text-ink-soft">Pemeriksaan {{ pesanan.jenis.nama }} · dibuat {{ pesanan.dibuat_pada|date:"j M Y" }}</p>
+  </div>
+</header>
+
+{% if langkah %}
+<section class="d-card mt-6 p-6" aria-label="Status pesanan">
+  <ol class="stepper mx-auto max-w-3xl">
+    {% for l in langkah %}<li class="{{ l.keadaan }}"><b></b>{{ l.label }}</li>{% endfor %}
+  </ol>
+</section>
+{% else %}
+<div class="alert alert-error mt-6">Pesanan ini dibatalkan. Pesanan tetap disimpan sebagai riwayat dan nggak bisa dibuka lagi.</div>
+{% endif %}
+
+<div class="mt-4 grid items-start gap-4 lg:grid-cols-[1fr_1.2fr]">
+  <article class="d-card p-6">
+    <p class="eyebrow">Rincian</p>
+    <dl class="mt-3 text-sm">
+      <div class="flex justify-between gap-4 border-t border-line py-3 first:border-0"><dt class="text-ink-soft">Lahan</dt><dd class="text-right font-semibold"><a href="{% url 'lands:detail_lahan' pesanan.lahan.pk %}" class="hover:text-moss">{{ pesanan.lahan.nama|default:"Lahan tanpa nama" }}</a></dd></div>
+      <div class="flex justify-between gap-4 border-t border-line py-3"><dt class="text-ink-soft">Jenis pemeriksaan</dt><dd class="font-semibold">{{ pesanan.jenis.nama }}</dd></div>
+      <div class="flex justify-between gap-4 border-t border-line py-3"><dt class="text-ink-soft">Jadwal usulan</dt><dd class="text-right font-semibold">{{ pesanan.tanggal_usulan|date:"D, j M Y" }} · {{ pesanan.get_sesi_usulan_display }}</dd></div>
+      <div class="flex justify-between gap-4 border-t border-line py-3"><dt class="text-ink-soft">Jadwal final</dt><dd class="text-right font-semibold">{% if pesanan.tanggal_final %}{{ pesanan.tanggal_final|date:"D, j M Y" }} · {{ pesanan.get_sesi_final_display }}{% else %}<span class="font-normal text-ink-soft">Belum ditetapkan admin</span>{% endif %}</dd></div>
+      <div class="flex justify-between gap-4 border-t border-line py-3"><dt class="text-ink-soft">Petugas</dt><dd class="text-right font-semibold">{{ pesanan.petugas.display_name|default:"Belum ditugaskan" }}</dd></div>
+    </dl>
+    {% if pesanan.catatan %}
+    <div class="mt-3 rounded-xl bg-paper p-3 text-sm">
+      <p class="text-xs font-bold text-ink-soft">Catatan untuk petugas</p>
+      <p class="mt-1">{{ pesanan.catatan }}</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="d-card p-6">
+    <p class="eyebrow">Riwayat</p>
+    <ol class="timeline mt-4">
+      {% for r in riwayat %}
+      <li{% if forloop.first %} class="is-now"{% endif %}>
+        <p class="text-sm font-bold">{% if r.jenis == 'status' %}{{ r.get_status_sesudah_display }}{% else %}{{ r.get_jenis_display }}{% endif %}</p>
+        <p class="text-xs text-ink-soft">{{ r.oleh.display_name|default:"Sistem" }} · {{ r.dibuat_pada|date:"j M, H.i" }}</p>
+        {% if r.tanggal_baru %}<p class="mt-0.5 text-[13px]">{{ r.tanggal_lama|date:"j M Y" }} → {{ r.tanggal_baru|date:"j M Y" }}</p>{% endif %}
+        {% if r.catatan %}<p class="mt-0.5 text-[13px]">{{ r.catatan }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </article>
+</div>
+{% endblock %}

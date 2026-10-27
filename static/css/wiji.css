@@ -520,3 +520,12 @@ body { overflow-x: clip; }
   * { transition: none !important; }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* Linimasa riwayat pesanan */
+.timeline { position: relative; }
+.timeline li { position: relative; padding-left: 1.75rem; padding-bottom: 1.25rem; }
+.timeline li::before { content: ''; position: absolute; left: 0.4375rem; top: 0.875rem; bottom: -0.25rem; width: 2px; background: var(--color-line); }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li:last-child::before { display: none; }
+.timeline li::after { content: ''; position: absolute; left: 0; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; border: 2px solid var(--color-moss); }
+.timeline li.is-now::after { background: var(--color-moss); box-shadow: 0 0 0 4px rgba(47, 107, 63, 0.18); }
