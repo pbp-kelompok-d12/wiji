@@ -49,4 +49,10 @@ urlpatterns = [
         views.unduh_dokumen,
         name="unduh_dokumen",
     ),
+    path(
+        "", 
+        views.daftar_hasil, 
+        name="daftar_hasil"
+    ),
+    
 ]

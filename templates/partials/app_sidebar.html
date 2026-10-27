@@ -11,7 +11,11 @@
     <a href="{% url 'dashboard:home' %}" class="side-link {% if active_nav == 'dashboard' %}is-active{% endif %}"><svg class="ic"><use href="#i-home"/></svg>Dashboard</a>
     <a href="{% url 'lands:daftar_lahan' %}" class="side-link {% if active_nav == 'lahan' %}is-active{% endif %}"><svg class="ic"><use href="#i-pin"/></svg>Lahan <span class="side-count">4</span></a>
     <a href="#" class="side-link"><svg class="ic"><use href="#i-flask"/></svg>Pemeriksaan <span class="side-count">1</span></a>
-    <a href="#" class="side-link"><svg class="ic"><use href="#i-doc"/></svg>Hasil tanah <span class="side-count">3</span></a>
+    <a href="{% url 'soil_results:daftar_hasil' %}"
+      class="side-link {% if request.resolver_match.app_name == 'soil_results' %}is-active{% endif %}">
+      <svg class="ic"><use href="#i-doc"/></svg>
+      Hasil tanah
+    </a>
     <a href="#" class="side-link"><svg class="ic"><use href="#i-sprout"/></svg>Rekomendasi</a>
     <a href="#" class="side-link"><svg class="ic"><use href="#i-cal"/></svg>Rencana tanam <span class="side-count">1</span></a>
 

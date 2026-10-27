@@ -330,3 +330,32 @@ def unduh_dokumen(request, hasil_id):
     response["Cache-Control"] = "private, no-store"
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@login_required
+@require_http_methods(["GET"])
+def daftar_hasil(request):
+    hasil_list = (
+        HasilPemeriksaan.objects
+        .filter(lahan__owner=request.user)
+        .select_related("lahan")
+    )
+
+    pencarian = request.GET.get("q", "").strip()
+    asal = request.GET.get("asal", "")
+
+    if pencarian:
+        hasil_list = hasil_list.filter(lahan__nama__icontains=pencarian)
+
+    if asal in HasilPemeriksaan.Asal.values:
+        hasil_list = hasil_list.filter(asal=asal)
+
+    return render(
+        request,
+        "soil_results/daftar_hasil.html",
+        {
+            "hasil_list": hasil_list,
+            "pencarian": pencarian,
+            "asal": asal,
+        },
+    )

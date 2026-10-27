@@ -1,0 +1,65 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Hasil tanah{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-4xl">
+  <h1 class="heading text-[28px]">Hasil tanah</h1>
+  <p class="mt-2 text-sm text-ink-soft">
+    Riwayat hasil pemeriksaan untuk lahan milikmu.
+  </p>
+
+  <form method="get" class="mt-5 flex flex-wrap gap-3">
+    <label for="cari-hasil" class="sr-only">Cari nama lahan</label>
+    <input id="cari-hasil" type="search" name="q"
+           value="{{ pencarian }}"
+           placeholder="Cari nama lahan..."
+           class="rounded-xl border border-line px-3 py-2">
+
+    <label for="filter-asal" class="sr-only">Asal hasil</label>
+    <select id="filter-asal" name="asal"
+            class="rounded-xl border border-line px-3 py-2">
+      <option value="">Semua asal</option>
+      <option value="mandiri"
+              {% if asal == "mandiri" %}selected{% endif %}>
+        Hasil Mandiri
+      </option>
+      <option value="wiji"
+              {% if asal == "wiji" %}selected{% endif %}>
+        Hasil Wiji
+      </option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Terapkan</button>
+    <a href="{% url 'soil_results:daftar_hasil' %}"
+       class="btn btn-ghost">Reset</a>
+  </form>
+
+  <div class="mt-5 space-y-3">
+    {% for hasil in hasil_list %}
+      <article class="d-card p-5">
+        <span class="chip chip-up">{{ hasil.get_asal_display }}</span>
+        <h2 class="heading mt-2 text-xl">
+          {{ hasil.lahan.nama|default:"Lahan tanpa nama" }}
+        </h2>
+        <p class="mt-1 text-sm text-ink-soft">
+          {{ hasil.tanggal_pemeriksaan|date:"d M Y" }}
+          · pH: {{ hasil.ph|default_if_none:"Belum diisi" }}
+        </p>
+        <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+           class="mt-3 inline-block font-semibold underline">
+          Lihat detail
+        </a>
+      </article>
+    {% empty %}
+      <div class="d-card p-5">
+        <p>Tidak ada hasil pemeriksaan yang sesuai.</p>
+        <a href="{% url 'lands:daftar_lahan' %}"
+           class="mt-3 inline-block underline">
+          Buka lahan untuk mengisi hasil mandiri
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
