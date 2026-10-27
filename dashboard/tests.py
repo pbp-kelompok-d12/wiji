@@ -43,9 +43,10 @@ class DashboardContentTests(TestCase):
         for text in ['Lahan saya', 'Rekomendasi terbaik', 'Pesanan aktif', 'Catatan dari Wiji', 'Kebun Lereng Cibodas']:
             self.assertContains(self.response, text)
 
-    def test_order_stepper_has_six_statuses_with_one_current(self):
-        self.assertContains(self.response, 'class="now"', count=1)
-        self.assertContains(self.response, 'class="done"', count=2)
+    def test_without_orders_shows_empty_state_with_order_button(self):
+        self.assertContains(self.response, 'Belum ada pesanan berjalan')
+        self.assertContains(self.response, reverse('inspections:pesan_pemeriksaan'))
+        self.assertNotContains(self.response, 'class="now"')
 
     def test_chart_data_is_embedded_as_json(self):
         self.assertContains(self.response, 'id="chart-data"')
@@ -58,3 +59,49 @@ class DashboardContentTests(TestCase):
 
     def test_dashboard_loads_its_script(self):
         self.assertContains(self.response, 'js/dashboard.js')
+
+
+class DashboardActiveOrderTests(TestCase):
+    def setUp(self):
+        from inspections.tests.helpers import buat_lahan, buat_pesanan
+        from inspections import services
+
+        self.owner = User.objects.create_user('sari', 'sari@contoh.id', 'tanah12345', first_name='Sari Rahayu')
+        self.order = buat_pesanan(buat_lahan(self.owner, nama='Kebun Cibodas'))
+        officer = User.objects.create_user('bima', 'b@contoh.id', 'tanah12345', first_name='Bima', role=User.Role.OFFICER)
+        services.konfirmasi_pesanan(self.order, officer)
+        self.client.force_login(self.owner)
+        self.response = self.client.get(reverse('dashboard:home'))
+
+    def test_shows_real_active_order(self):
+        self.assertContains(self.response, self.order.kode)
+        self.assertContains(self.response, 'Kebun Cibodas')
+        self.assertContains(self.response, 'Petugas: Bima')
+
+    def test_stepper_marks_current_status(self):
+        self.assertContains(self.response, 'class="now"', count=1)
+        self.assertContains(self.response, 'class="done"', count=1)
+
+    def test_order_card_links_to_detail_and_actions(self):
+        self.assertContains(self.response, reverse('inspections:detail_pesanan', args=[self.order.pk]))
+        self.assertContains(self.response, reverse('inspections:batalkan_pesanan', args=[self.order.pk]))
+        self.assertContains(self.response, reverse('inspections:jadwal_ulang', args=[self.order.pk]))
+
+    def test_summary_card_counts_active_orders(self):
+        kpi = self.response.context['kpis'][1]
+        self.assertEqual((kpi['label'], kpi['value']), ('Pesanan aktif', 1))
+        self.assertEqual(kpi['chip']['text'], 'Dikonfirmasi')
+
+    def test_cancelled_order_is_not_shown_as_active(self):
+        from inspections import pemesanan
+
+        pemesanan.batalkan_pesanan(self.order, self.owner, 'Salah lahan')
+        response = self.client.get(reverse('dashboard:home'))
+        self.assertContains(response, 'Belum ada pesanan berjalan')
+        self.assertEqual(response.context['kpis'][1]['value'], 0)
+
+    def test_other_owners_orders_are_not_shown(self):
+        other = User.objects.create_user('dewi', 'd@contoh.id', 'tanah12345')
+        self.client.force_login(other)
+        response = self.client.get(reverse('dashboard:home'))
+        self.assertNotContains(response, self.order.kode)

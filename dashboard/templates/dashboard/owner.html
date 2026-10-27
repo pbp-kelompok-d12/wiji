@@ -73,16 +73,32 @@
   </article>
 
   <article class="d-card p-5">
-    <div class="flex items-center justify-between"><h2 class="d-title">Pesanan aktif</h2><a href="#" class="d-btn-sm">Detail</a></div>
+    {% if order %}
+    <div class="flex items-center justify-between"><h2 class="d-title">Pesanan aktif</h2><a href="{% url 'inspections:detail_pesanan' order.pesanan.pk %}" class="d-btn-sm">Detail</a></div>
     <div class="mt-3 rounded-xl bg-paper p-3">
-      <p class="text-[11px] font-bold text-ink-soft">{{ order.code }} · {{ order.type }}</p>
-      <p class="mt-0.5 text-sm font-bold">{{ order.land }}</p>
-      <p class="mt-1 flex items-center gap-1.5 text-xs text-ink-soft"><svg class="ic ic-sm"><use href="#i-cal"/></svg>{{ order.schedule }} · Petugas: {{ order.officer }}</p>
+      <p class="text-[11px] font-bold text-ink-soft">{{ order.pesanan.kode }} · {{ order.pesanan.jenis.nama }}</p>
+      <p class="mt-0.5 text-sm font-bold">{{ order.pesanan.lahan.nama|default:"Lahan tanpa nama" }}</p>
+      <p class="mt-1 flex items-center gap-1.5 text-xs text-ink-soft"><svg class="ic ic-sm"><use href="#i-cal"/></svg>
+        {% if order.pesanan.tanggal_final %}{{ order.pesanan.tanggal_final|date:"j M" }}, {{ order.pesanan.get_sesi_final_display }}{% else %}Usulan {{ order.pesanan.tanggal_usulan|date:"j M" }}, {{ order.pesanan.get_sesi_usulan_display }}{% endif %}
+        · Petugas: {{ order.pesanan.petugas.display_name|default:"belum ditugaskan" }}</p>
     </div>
     <ol class="stepper mt-5" aria-label="Status pesanan">
       {% for step in order.steps %}<li class="{{ step.state }}"><b></b>{{ step.label }}</li>{% endfor %}
     </ol>
-    <div class="mt-5 flex gap-2"><button type="button" class="d-btn-sm flex-1 justify-center">Jadwal ulang</button><button type="button" class="d-btn-sm flex-1 justify-center text-brick">Batalkan</button></div>
+    <div class="mt-5 flex gap-2">
+      {% if order.bisa_jadwal_ulang %}<a href="{% url 'inspections:jadwal_ulang' order.pesanan.pk %}" class="d-btn-sm flex-1 justify-center">Jadwal ulang</a>{% endif %}
+      {% if order.bisa_batal %}<a href="{% url 'inspections:batalkan_pesanan' order.pesanan.pk %}" class="d-btn-sm flex-1 justify-center text-brick">Batalkan</a>{% endif %}
+      {% if not order.bisa_jadwal_ulang and not order.bisa_batal %}<a href="{% url 'inspections:detail_pesanan' order.pesanan.pk %}" class="d-btn-sm flex-1 justify-center">Lihat perkembangan</a>{% endif %}
+    </div>
+    {% else %}
+    <div class="flex items-center justify-between"><h2 class="d-title">Pesanan aktif</h2><a href="{% url 'inspections:daftar_pesanan' %}" class="d-btn-sm">Riwayat</a></div>
+    <div class="mt-6 grid place-items-center text-center">
+      <span class="grid size-12 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic"><use href="#i-flask"/></svg></span>
+      <p class="mt-3 text-sm font-bold">Belum ada pesanan berjalan</p>
+      <p class="mt-1 text-xs leading-5 text-ink-soft">Pesan pemeriksaan buat tahu kondisi tanah lahanmu.</p>
+      <a href="{% url 'inspections:pesan_pemeriksaan' %}" class="btn btn-primary mt-4 !min-h-10">Pesan pemeriksaan</a>
+    </div>
+    {% endif %}
   </article>
 </section>
 
