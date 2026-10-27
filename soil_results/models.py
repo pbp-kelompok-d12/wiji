@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from .storage import private_document_storage
 
 
 class HasilPemeriksaan(models.Model):
@@ -44,6 +45,7 @@ class HasilPemeriksaan(models.Model):
         help_text="Tuliskan hasil pemeriksaan kontaminan beserta satuannya.",
     )
     dokumen_laboratorium = models.FileField(
+        storage=private_document_storage,
         upload_to="hasil_pemeriksaan/%Y/%m/",
         blank=True,
     )

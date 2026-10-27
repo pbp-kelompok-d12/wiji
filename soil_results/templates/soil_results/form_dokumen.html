@@ -1,0 +1,29 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Unggah dokumen{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">Unggah dokumen laboratorium</h1>
+
+  {% if hasil.dokumen_laboratorium %}
+    <p class="mt-2 text-sm text-ink-soft">
+      Dokumen baru akan menggantikan dokumen sebelumnya.
+    </p>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data"
+        class="d-card mt-5 space-y-4 p-5">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <div class="flex flex-wrap gap-3">
+      <button type="submit" class="btn btn-primary">Unggah PDF</button>
+      <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+         class="btn btn-ghost">
+        Batal
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

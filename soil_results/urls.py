@@ -14,29 +14,39 @@ urlpatterns = [
         views.detail_hasil,
         name="detail_hasil",
     ),
-        path(
+    path(
         "<int:hasil_id>/ubah/",
         views.ubah_hasil_mandiri,
         name="ubah_hasil_mandiri",
     ),
-        path(
+    path(
         "<int:hasil_id>/hapus/",
         views.hapus_hasil_mandiri,
         name="hapus_hasil_mandiri",
     ),
-        path(
+    path(
         "<int:hasil_id>/unsur-hara/tambah/",
         views.tambah_unsur_hara,
         name="tambah_unsur_hara",
     ),
-        path(
+    path(
         "unsur-hara/<int:pengukuran_id>/ubah/",
         views.ubah_unsur_hara,
         name="ubah_unsur_hara",
     ),
-        path(
+    path(
         "unsur-hara/<int:pengukuran_id>/hapus/",
         views.hapus_unsur_hara,
         name="hapus_unsur_hara",
+    ),
+    path(
+        "<int:hasil_id>/dokumen/unggah/",
+        views.unggah_dokumen,
+        name="unggah_dokumen",
+    ),
+    path(
+        "<int:hasil_id>/dokumen/unduh/",
+        views.unduh_dokumen,
+        name="unduh_dokumen",
     ),
 ]

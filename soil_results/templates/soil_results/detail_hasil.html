@@ -69,6 +69,32 @@
       <dd>{{ hasil.catatan|default:"Tidak ada catatan"|linebreaksbr }}</dd>
     </div>
   </dl>
+
+  <section class="d-card mt-5 p-5">
+    <h2 class="heading text-xl">Dokumen laboratorium</h2>
+
+    {% if hasil.dokumen_laboratorium %}
+        <a href="{% url 'soil_results:unduh_dokumen' hasil.pk %}"
+          class="mt-3 inline-block underline">
+          Unduh PDF
+        </a>
+    {% else %}
+        <p class="mt-2 text-sm text-ink-soft">Belum ada dokumen.</p>
+    {% endif %}
+
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+        <div class="mt-3">
+          <a href="{% url 'soil_results:unggah_dokumen' hasil.pk %}"
+            class="btn btn-ghost border border-line">
+            {% if hasil.dokumen_laboratorium %}
+              Ganti dokumen
+            {% else %}
+              Unggah dokumen
+            {% endif %}
+          </a>
+        </div>
+    {% endif %}
+    </section>
   
   <section class="d-card mt-5 p-5">
     <h2 class="heading text-xl">Pengukuran unsur hara</h2>

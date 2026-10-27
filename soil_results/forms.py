@@ -58,3 +58,28 @@ class NutrientMeasurementForm(forms.ModelForm):
                 "w-full rounded-xl border border-line "
                 "bg-white px-3 py-2"
             )
+
+
+class DokumenLaboratoriumForm(forms.Form):
+    dokumen = forms.FileField(
+        label="Dokumen laboratorium",
+        widget=forms.FileInput(attrs={"accept": ".pdf"}),
+        help_text="PDF, maksimal 5 MB.",
+    )
+
+    def clean_dokumen(self):
+        dokumen = self.cleaned_data["dokumen"]
+
+        if not dokumen.name.lower().endswith(".pdf"):
+            raise forms.ValidationError("Pilih file PDF.")
+
+        if dokumen.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("Ukuran maksimal 5 MB.")
+
+        header = dokumen.read(5)
+        dokumen.seek(0)
+
+        if header != b"%PDF-":
+            raise forms.ValidationError("Isi file tidak dikenali sebagai PDF.")
+
+        return dokumen

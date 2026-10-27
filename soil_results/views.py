@@ -5,9 +5,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from lands.models import Lahan
-from .forms import HasilMandiriForm, NutrientMeasurementForm
+from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm
 from .models import HasilPemeriksaan, NutrientMeasurement
-
+import uuid
+from django.http import FileResponse, Http404
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -255,3 +256,77 @@ def hapus_unsur_hara(request, pengukuran_id):
         "soil_results/konfirmasi_hapus_unsur_hara.html",
         {"pengukuran": pengukuran, "hasil": hasil},
     )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def unggah_dokumen(request, hasil_id):
+    if not request.user.is_owner:
+        raise PermissionDenied("Hanya pemilik yang dapat mengunggah dokumen.")
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan,
+        pk=hasil_id,
+        lahan__owner=request.user,
+        lahan__diarsipkan=False,
+        asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+
+    # TODO Modul E: blokir perubahan jika hasil dipakai dalam rencana.
+
+    if request.method == "POST":
+        form = DokumenLaboratoriumForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            nama_lama = hasil.dokumen_laboratorium.name
+            storage = hasil.dokumen_laboratorium.storage
+
+            hasil.dokumen_laboratorium.save(
+                f"{uuid.uuid4().hex}.pdf",
+                form.cleaned_data["dokumen"],
+                save=False,
+            )
+            hasil.save()
+
+            if nama_lama and nama_lama != hasil.dokumen_laboratorium.name:
+                storage.delete(nama_lama)
+
+            messages.success(request, "Dokumen berhasil diunggah.")
+            return redirect("soil_results:detail_hasil", hasil_id=hasil.pk)
+    else:
+        form = DokumenLaboratoriumForm()
+
+    return render(
+        request,
+        "soil_results/form_dokumen.html",
+        {"form": form, "hasil": hasil},
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+def unduh_dokumen(request, hasil_id):
+    queryset = HasilPemeriksaan.objects.all()
+
+    if not request.user.is_staff:
+        queryset = queryset.filter(lahan__owner=request.user)
+
+    hasil = get_object_or_404(queryset, pk=hasil_id)
+
+    if not hasil.dokumen_laboratorium:
+        raise Http404("Dokumen belum tersedia.")
+
+    try:
+        berkas = hasil.dokumen_laboratorium.open("rb")
+    except FileNotFoundError:
+        raise Http404("File dokumen tidak ditemukan.")
+
+    response = FileResponse(
+        berkas,
+        as_attachment=True,
+        filename=f"hasil-pemeriksaan-{hasil.pk}.pdf",
+        content_type="application/pdf",
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
