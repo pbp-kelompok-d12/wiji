@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.vary import vary_on_headers
 
 from lands.models import Lahan
 from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm
@@ -359,3 +360,38 @@ def daftar_hasil(request):
             "asal": asal,
         },
     )
+
+
+@login_required
+@require_http_methods(["GET"])
+@vary_on_headers("HX-Request")
+def daftar_hasil(request):
+    hasil_list = (
+        HasilPemeriksaan.objects
+        .filter(lahan__owner=request.user)
+        .select_related("lahan")
+    )
+
+    pencarian = request.GET.get("q", "").strip()
+    asal = request.GET.get("asal", "")
+
+    if pencarian:
+        hasil_list = hasil_list.filter(
+            lahan__nama__icontains=pencarian,
+        )
+
+    if asal in HasilPemeriksaan.Asal.values:
+        hasil_list = hasil_list.filter(asal=asal)
+
+    context = {
+        "hasil_list": hasil_list,
+        "pencarian": pencarian,
+        "asal": asal,
+    }
+
+    if request.headers.get("HX-Request") == "true":
+        template = "soil_results/partials/daftar_hasil_items.html"
+    else:
+        template = "soil_results/daftar_hasil.html"
+
+    return render(request, template, context)
