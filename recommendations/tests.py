@@ -1,4 +1,4 @@
-
+import json
 from datetime import date
 from decimal import Decimal
 
@@ -16,6 +16,14 @@ from .services import (
     RecommendationInputError,
     calculate_recommendations,
 )
+
+from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
+
+from .environment import fetch_environmental_data
+from urllib.error import URLError
 
 
 User = get_user_model()
@@ -331,3 +339,114 @@ class RecommendationScoringTests(TestCase):
                 self.result,
                 self.goal,
             )
+
+class OpenMeteoEnvironmentTests(TestCase):
+    def setUp(self):
+        self.land = SimpleNamespace(
+            latitude=Decimal("-6.200000"),
+            longitude=Decimal("106.800000"),
+        )
+
+    def api_payload(self):
+        return {
+            "timezone": "Asia/Jakarta",
+            "current": {
+                "time": "2026-10-27T19:00",
+                "temperature_2m": 30.1,
+                "relative_humidity_2m": 78,
+                "precipitation": 0.0,
+                "weather_code": 2,
+                "wind_speed_10m": 5.2,
+            },
+            "current_units": {
+                "temperature_2m": "°C",
+                "relative_humidity_2m": "%",
+                "precipitation": "mm",
+                "weather_code": "wmo code",
+                "wind_speed_10m": "km/h",
+            },
+        }
+
+    @patch("recommendations.environment.urlopen")
+    def test_successful_response_returns_weather(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode("utf-8")
+        )
+
+        result = fetch_environmental_data(self.land)
+
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["source"], "Open-Meteo")
+        self.assertEqual(
+            result["current"]["temperature_2m"], 30.1
+        )
+        self.assertEqual(
+            result["current"]["relative_humidity_2m"], 78
+        )
+        self.assertEqual(result["timezone"], "Asia/Jakarta")
+
+    @patch("recommendations.environment.urlopen")
+    def test_request_sends_only_coordinates_and_weather_parameters(
+        self, mock_urlopen
+    ):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode("utf-8")
+        )
+
+        fetch_environmental_data(self.land)
+
+        request = mock_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+
+        self.assertEqual(
+            set(query),
+            {"latitude", "longitude", "current", "timezone"},
+        )
+        self.assertEqual(query["latitude"], ["-6.2"])
+        self.assertEqual(query["longitude"], ["106.8"])
+
+    @patch("recommendations.environment.urlopen")
+    def test_missing_coordinates_do_not_call_api(self, mock_urlopen):
+        self.land.latitude = None
+
+        result = fetch_environmental_data(self.land)
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["reason"], "coordinates_missing")
+        self.assertEqual(result["current"], {})
+        mock_urlopen.assert_not_called()
+
+    @patch("recommendations.environment.urlopen")
+    def test_api_failure_does_not_fabricate_weather(self, mock_urlopen):
+        mock_urlopen.side_effect = URLError("Connection failed")
+
+        result = fetch_environmental_data(self.land)
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["reason"], "api_unavailable")
+        self.assertEqual(result["current"], {})
+        self.assertNotIn("temperature_2m", result["current"])
+
+    @patch("recommendations.environment.urlopen")
+    def test_invalid_response_is_not_used(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            b'{"timezone": "Asia/Jakarta", "current": {}}'
+        )
+
+        result = fetch_environmental_data(self.land)
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["reason"], "response_invalid")
+        self.assertEqual(result["current"], {})
+
+    @patch("recommendations.environment.urlopen")
+    def test_out_of_range_coordinates_do_not_call_api(
+        self, mock_urlopen
+    ):
+        self.land.latitude = Decimal("100")
+
+        result = fetch_environmental_data(self.land)
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["reason"], "coordinates_invalid")
+        mock_urlopen.assert_not_called()
