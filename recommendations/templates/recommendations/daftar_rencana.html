@@ -1,0 +1,207 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Rencana Pengelolaan{% endblock %}
+{% block crumb %}Rencana tanam{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-6xl">
+  <!-- Header -->
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="heading text-[28px] leading-tight">
+        Rencana <span class="heading-accent">pengelolaan</span>
+      </h1>
+      <p class="mt-2 text-sm leading-6 text-ink-soft">
+        Rekomendasi yang telah disimpan menjadi rencana pengelolaan.
+      </p>
+    </div>
+
+    <a href="{% url 'recommendations:daftar_rekomendasi' %}"
+       class="btn btn-primary">
+      <span aria-hidden="true">＋</span>
+      Buat rekomendasi baru
+    </a>
+  </div>
+
+  <!-- Daftar rencana -->
+  {% if rencana_list %}
+    <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {% for rencana in rencana_list %}
+
+        {% if forloop.counter|divisibleby:3 %}
+          <article class="flex flex-col rounded-2xl border border-line bg-paper p-5">
+        {% elif forloop.counter|divisibleby:2 %}
+          <article class="flex flex-col rounded-2xl border border-line bg-[#E7EEE4] p-5">
+        {% else %}
+          <article class="flex flex-col rounded-2xl border border-[#2F6B43] bg-[#2F6B43] p-5 text-white">
+        {% endif %}
+
+          <!-- Informasi rencana -->
+          <div class="flex-1">
+            <p class="text-[11px] font-semibold uppercase tracking-wider
+              {% if forloop.counter|divisibleby:3 %}text-ink-soft
+              {% elif forloop.counter|divisibleby:2 %}text-[#376A42]
+              {% else %}text-[#E0EBDD]{% endif %}">
+              Rencana · {{ rencana.dibuat_pada|date:"d M" }}
+            </p>
+
+            <h2 class="mt-5 text-lg font-bold leading-snug">
+              {{ rencana.rekomendasi.tanaman.nama }}
+              <span class="font-normal italic">
+                di {{ rencana.lahan.nama|default:"Lahan tanpa nama" }}
+              </span>
+            </h2>
+
+            {% if rencana.rekomendasi.tanaman.nama_latin %}
+              <p class="mt-1 text-sm italic
+                {% if forloop.counter|divisibleby:3 %}text-ink-soft
+                {% elif forloop.counter|divisibleby:2 %}text-[#647568]
+                {% else %}text-[#E0EBDD]{% endif %}">
+                {{ rencana.rekomendasi.tanaman.nama_latin }}
+              </p>
+            {% endif %}
+
+            <p class="mt-3 text-sm
+              {% if forloop.counter|divisibleby:3 %}text-ink-soft
+              {% elif forloop.counter|divisibleby:2 %}text-[#536657]
+              {% else %}text-[#E0EBDD]{% endif %}">
+              {% if rencana.luas_tanam_m2 %}
+                {{ rencana.luas_tanam_m2 }} m²
+              {% else %}
+                Luas belum ditentukan
+              {% endif %}
+
+              {% if rencana.jumlah_bibit %}
+                · {{ rencana.jumlah_bibit }} bibit
+              {% endif %}
+
+              {% if rencana.tanggal_tanam %}
+                · tanam {{ rencana.tanggal_tanam|date:"d M Y" }}
+              {% endif %}
+            </p>
+
+            <p class="mt-2 text-sm
+              {% if forloop.counter|divisibleby:3 %}text-ink-soft
+              {% elif forloop.counter|divisibleby:2 %}text-[#536657]
+              {% else %}text-[#E0EBDD]{% endif %}">
+              Tujuan: {{ rencana.rekomendasi.tujuan.nama }}
+            </p>
+          </div>
+
+          <!-- Skor dan status kelengkapan -->
+          <div class="mt-6 flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-3 py-1 text-xs font-semibold
+              {% if forloop.counter|divisibleby:3 %}bg-white text-ink
+              {% elif forloop.counter|divisibleby:2 %}bg-white text-[#315B39]
+              {% else %}bg-white text-[#244F31]{% endif %}">
+              Skor {{ rencana.rekomendasi.skor }}
+            </span>
+
+            <span class="rounded-full px-3 py-1 text-xs font-semibold
+              {% if forloop.counter|divisibleby:3 %}border border-line text-ink-soft
+              {% elif forloop.counter|divisibleby:2 %}bg-[#D4E4D0] text-[#315B39]
+              {% else %}bg-[#4C825B] text-white{% endif %}">
+              {% if rencana.rekomendasi.kelengkapan_data == 100 %}
+                Data lengkap
+              {% else %}
+                Data {{ rencana.rekomendasi.kelengkapan_data }}%
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="mt-3">
+            <p class="text-xs
+              {% if forloop.counter|divisibleby:3 %}text-ink-soft
+              {% elif forloop.counter|divisibleby:2 %}text-[#536657]
+              {% else %}text-[#E0EBDD]{% endif %}">
+              Status: {{ rencana.get_status_display }}
+            </p>
+          </div>
+
+          <!-- Aksi -->
+          <div class="mt-5 flex flex-wrap gap-2 border-t pt-4
+            {% if forloop.counter|divisibleby:3 %}border-line
+            {% elif forloop.counter|divisibleby:2 %}border-[#CAD8C6]
+            {% else %}border-[#568362]{% endif %}">
+
+            <a href="{% url 'recommendations:detail_rencana' rencana.pk %}"
+               class="inline-flex min-h-9 items-center justify-center rounded-full px-3 text-sm font-semibold
+               {% if forloop.counter|divisibleby:3 %}bg-[#14231A] text-white hover:bg-[#263D2D]
+               {% elif forloop.counter|divisibleby:2 %}bg-white text-[#244F31] hover:bg-[#F5F7F3]
+               {% else %}bg-white text-[#244F31] hover:bg-[#E7EEE4]{% endif %}">
+              Lihat detail
+            </a>
+
+            <a href="{% url 'recommendations:edit_rencana' rencana.pk %}"
+               class="inline-flex min-h-9 items-center justify-center rounded-full border px-3 text-sm font-semibold
+               {% if forloop.counter|divisibleby:3 %}border-line text-ink hover:bg-white
+               {% elif forloop.counter|divisibleby:2 %}border-[#B9CCB7] text-[#315B39] hover:bg-white
+               {% else %}border-[#80A58A] text-white hover:bg-[#376A42]{% endif %}">
+              Ubah
+            </a>
+
+            <a href="{% url 'recommendations:hapus_rencana' rencana.pk %}"
+               class="inline-flex min-h-9 items-center justify-center rounded-full border px-3 text-sm font-semibold
+               {% if forloop.counter|divisibleby:3 %}border-[#E7C7C1] text-[#A53628] hover:bg-[#F9E3DF]
+               {% elif forloop.counter|divisibleby:2 %}border-[#D6B9B1] text-[#A53628] hover:bg-[#F9E3DF]
+               {% else %}border-[#A8C9AE] text-white hover:bg-[#376A42]{% endif %}">
+              Hapus
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+
+      <!-- Kartu ajakan membuat rekomendasi -->
+      <article class="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-line bg-paper p-6 text-center">
+        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#376A42]">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 20A7 7 0 0 1 4 13c0-5 8-10 8-10s8 5 8 10a7 7 0 0 1-7 7"/>
+            <path d="M12 22v-8"/>
+          </svg>
+        </div>
+
+        <h2 class="mt-4 font-bold">Buat rencana berikutnya</h2>
+        <p class="mt-2 text-sm leading-5 text-ink-soft">
+          Pilih hasil pemeriksaan dan tujuan pengelolaan, lalu simpan
+          kandidat tanaman yang sesuai sebagai rencana.
+        </p>
+
+        <a href="{% url 'recommendations:daftar_rekomendasi' %}"
+           class="btn btn-primary mt-4">
+          Buat rekomendasi
+        </a>
+      </article>
+    </div>
+  {% else %}
+    <!-- Empty state -->
+    <section class="mt-6 flex min-h-64 flex-col items-center justify-center rounded-2xl border border-line bg-paper p-8 text-center">
+      <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#376A42]">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 20A7 7 0 0 1 4 13c0-5 8-10 8-10s8 5 8 10a7 7 0 0 1-7 7"/>
+          <path d="M12 22v-8"/>
+        </svg>
+      </div>
+
+      <h2 class="mt-4 font-bold">Belum ada rencana pengelolaan</h2>
+      <p class="mt-2 max-w-md text-sm leading-5 text-ink-soft">
+        Pilih hasil pemeriksaan tanah dan tujuan pengelolaan.
+        Setelah tersedia kandidat yang lolos filter risiko, simpan
+        tanaman pilihan sebagai rencana.
+      </p>
+
+      <a href="{% url 'recommendations:daftar_rekomendasi' %}"
+         class="btn btn-primary mt-4">
+        Buat rekomendasi
+      </a>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
