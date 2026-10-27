@@ -20,12 +20,37 @@ def _pesanan_pemilik(request):
     )
 
 
+# Pilihan filter di daftar: kunci -> (label, daftar status). None = semua status.
+FILTER_STATUS = {
+    'semua': ('Semua', None),
+    'berjalan': ('Berjalan', [s for s in PesananPemeriksaan.Status.values if s not in ('selesai', 'dibatalkan')]),
+    'selesai': ('Selesai', ['selesai']),
+    'dibatalkan': ('Dibatalkan', ['dibatalkan']),
+}
+
+
 @owner_required
 def daftar_pesanan(request):
-    return render(request, 'inspections/daftar_pesanan.html', {
-        'pesanan_list': _pesanan_pemilik(request),
+    semua = _pesanan_pemilik(request)
+    kunci = request.GET.get('status', 'semua')
+    if kunci not in FILTER_STATUS:
+        kunci = 'semua'
+    daftar_status = FILTER_STATUS[kunci][1]
+    pesanan_list = semua.filter(status__in=daftar_status) if daftar_status else semua
+
+    konteks = {
+        'pesanan_list': pesanan_list,
+        'filter_aktif': kunci,
+        'filter_list': [
+            {'kunci': k, 'label': label, 'jumlah': semua.filter(status__in=st).count() if st else semua.count()}
+            for k, (label, st) in FILTER_STATUS.items()
+        ],
         'active_nav': 'pesanan',
-    })
+    }
+    # Dari filter HTMX, cukup kirim bagian daftarnya saja
+    if request.headers.get('HX-Request') == 'true':
+        return render(request, 'inspections/partials/_daftar.html', konteks)
+    return render(request, 'inspections/daftar_pesanan.html', konteks)
 
 
 def _konteks_detail(pesanan):
