@@ -538,3 +538,8 @@ body { overflow-x: clip; }
 .choice:has(input:focus-visible) { outline: 2px solid var(--color-forest); outline-offset: 2px; }
 .choice .dot { width: 1.125rem; height: 1.125rem; border-radius: 50%; border: 2px solid var(--color-line); background: #fff; flex-shrink: 0; }
 .choice:has(input:checked) .dot { border-color: var(--color-moss); background: radial-gradient(circle, var(--color-moss) 45%, #fff 50%); }
+
+/* Modal (dibuka lewat HTMX) */
+.modal { position: fixed; inset: 0; z-index: 60; display: none; place-items: center; background: rgba(20, 32, 25, 0.45); padding: 1rem; }
+.modal.is-open { display: grid; }
+.modal-box { width: 100%; max-width: 30rem; max-height: 90vh; overflow-y: auto; background: #fff; border-radius: 22px; padding: 1.5rem; box-shadow: 0 30px 60px -20px rgba(20, 32, 25, 0.5); }
