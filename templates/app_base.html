@@ -19,7 +19,7 @@
         <input class="w-full min-w-0 bg-transparent outline-none placeholder:text-ink-soft" placeholder="Cari lahan, tanaman, atau hasil tanah..." aria-label="Cari">
         <kbd class="hidden whitespace-nowrap rounded-md bg-paper px-1.5 py-0.5 text-[11px] font-bold sm:block">⌘ K</kbd>
       </label>
-      {% if user.is_owner %}<a href="{% url 'lands:tambah_lahan' %}" class="btn btn-outline hidden !min-h-10 gap-2 md:inline-flex"><svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan</a>{% endif %}
+      {% if user.is_owner and not user.is_staff %}<a href="{% url 'lands:tambah_lahan' %}" class="btn btn-outline hidden !min-h-10 gap-2 md:inline-flex"><svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan</a>{% endif %}
       <button type="button" class="relative grid size-10 shrink-0 place-items-center rounded-xl border border-line" aria-label="Notifikasi"><svg class="ic"><use href="#i-bell"/></svg><i class="absolute right-2.5 top-2.5 size-2 rounded-full bg-brick"></i></button>
     </header>
     <div class="mx-auto max-w-[1240px] px-4 py-7 sm:px-6 xl:px-8">

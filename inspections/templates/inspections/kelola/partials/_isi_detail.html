@@ -1,0 +1,37 @@
+{# Isi halaman detail buat admin. Dibungkus id supaya bisa diganti lewat HTMX setelah aksi berhasil #}
+<div id="konten-pesanan">
+  {% if pesan_sukses %}<div class="alert alert-success mt-5" role="status">{{ pesan_sukses }}</div>{% endif %}
+
+  <header class="mt-4 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">Pesanan {{ pesanan.kode }}</p>
+      <h1 class="heading mt-1 flex flex-wrap items-center gap-3 text-[28px] leading-[34px]">
+        {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }}
+        {% include 'inspections/partials/_status.html' %}
+      </h1>
+      <p class="mt-1 text-sm text-ink-soft">Pemeriksaan {{ pesanan.jenis.nama }} · {{ pesanan.pemilik.display_name }} · dibuat {{ pesanan.dibuat_pada|date:"j M Y" }}</p>
+    </div>
+    {% if bisa_tugaskan or bisa_jadwalkan or bisa_ganti_petugas or bisa_batal %}
+    <div class="flex flex-wrap gap-2">
+      {% if bisa_tugaskan %}
+      <a href="{% url 'inspections:kelola_tugaskan' pesanan.pk %}" class="btn btn-primary !min-h-10"
+         hx-get="{% url 'inspections:kelola_tugaskan' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Tugaskan petugas</a>
+      {% endif %}
+      {% if bisa_jadwalkan %}
+      <a href="{% url 'inspections:kelola_jadwalkan' pesanan.pk %}" class="btn btn-primary !min-h-10"
+         hx-get="{% url 'inspections:kelola_jadwalkan' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Tetapkan jadwal</a>
+      {% endif %}
+      {% if bisa_ganti_petugas %}
+      <a href="{% url 'inspections:kelola_ganti_petugas' pesanan.pk %}" class="btn btn-outline !min-h-10"
+         hx-get="{% url 'inspections:kelola_ganti_petugas' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Ganti petugas</a>
+      {% endif %}
+      {% if bisa_batal %}
+      <a href="{% url 'inspections:kelola_batalkan' pesanan.pk %}" class="btn btn-outline !min-h-10 !text-brick"
+         hx-get="{% url 'inspections:kelola_batalkan' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Batalkan</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </header>
+
+  {% include 'inspections/partials/_rincian_riwayat.html' %}
+</div>
