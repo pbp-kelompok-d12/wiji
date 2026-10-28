@@ -5,7 +5,7 @@
 
 {# Versi halaman penuh buat aksi pesanan, dipakai kalau JavaScript mati #}
 {% block app_content %}
-<a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+<a href="{% url url_kembali pesanan.pk %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
   <svg class="ic ic-sm"><use href="#i-back"/></svg>{{ pesanan.kode }}
 </a>
 <div class="mx-auto mt-4 max-w-[560px]">
@@ -16,7 +16,7 @@
     {% include 'inspections/partials/_isian_aksi.html' %}
     <div class="flex gap-3 pt-2">
       <button type="submit" class="btn btn-primary {% if bahaya %}!bg-brick !border-brick{% endif %}">{{ label_kirim }}</button>
-      <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="btn btn-outline">Kembali</a>
+      <a href="{% url url_kembali pesanan.pk %}" class="btn btn-outline">Kembali</a>
     </div>
   </form>
 </div>
