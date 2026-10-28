@@ -9,6 +9,7 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('', include('core.urls')),
     path('lahan/', include('lands.urls')),
+    path('pemeriksaan/', include('inspections.urls')),
     path('hasil-tanah/', include('soil_results.urls')),
     path('rekomendasi/', include('recommendations.urls')),
 ]

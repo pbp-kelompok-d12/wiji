@@ -1,0 +1,23 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ judul }}{% endblock %}
+{% block crumb %}Pemeriksaan / {{ pesanan.kode }}{% endblock %}
+
+{# Versi halaman penuh buat aksi pesanan, dipakai kalau JavaScript mati #}
+{% block app_content %}
+<a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+  <svg class="ic ic-sm"><use href="#i-back"/></svg>{{ pesanan.kode }}
+</a>
+<div class="mx-auto mt-4 max-w-[560px]">
+  <h1 class="heading text-[28px] leading-[34px]">{{ judul }}</h1>
+  <p class="mt-1 text-sm text-ink-soft">{{ deskripsi }}</p>
+  <form method="post" class="d-card mt-6 grid gap-4 p-6" novalidate>
+    {% csrf_token %}
+    {% include 'inspections/partials/_isian_aksi.html' %}
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn btn-primary {% if bahaya %}!bg-brick !border-brick{% endif %}">{{ label_kirim }}</button>
+      <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="btn btn-outline">Kembali</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

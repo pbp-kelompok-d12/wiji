@@ -1,8 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-# Semua data di bawah ini cuma contoh. Nanti diganti query ke model lahan (Modul A),
-# pesanan (Modul B), hasil tanah (Modul C), tanaman (Modul D), dan rekomendasi (Modul E).
+from inspections.models import PesananPemeriksaan
+from inspections.tampilan import langkah_status
+from inspections.pemesanan import STATUS_BISA_BATAL, STATUS_BISA_JADWAL_ULANG
+
+# Data di bawah ini cuma contoh. Nanti diganti query ke model lahan (Modul A),
+# hasil tanah (Modul C), tanaman (Modul D), dan rekomendasi (Modul E).
+# Pesanan aktif sudah dari data asli (Modul B), lihat _pesanan_aktif().
 SAMPLE_KPIS = [
     {
         'icon': 'pin', 'label': 'Lahan terdaftar', 'value': 4,
@@ -42,17 +47,6 @@ SAMPLE_RECOMMENDATION = {
     'tags': ['pH 6,2', 'Lempung', 'Musim hujan'],
 }
 
-# Urutan status pesanan sesuai docs/DOMAIN.md. state: done, now, atau kosong
-SAMPLE_ORDER = {
-    'code': 'WJ-0012', 'type': 'Pemeriksaan dasar', 'land': 'Kebun Lereng Cibodas',
-    'schedule': '3 Okt, Pagi', 'officer': 'Budi S.',
-    'steps': [
-        {'label': 'Diajukan', 'state': 'done'}, {'label': 'Konfirmasi', 'state': 'done'},
-        {'label': 'Jadwal', 'state': 'now'}, {'label': 'Sampel', 'state': ''},
-        {'label': 'Proses', 'state': ''}, {'label': 'Selesai', 'state': ''},
-    ],
-}
-
 SAMPLE_CHART = {
     'title': 'Kelembapan tanah 7 hari', 'current': '42%', 'change': '-12% dari minggu lalu',
     'labels': ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
@@ -76,19 +70,71 @@ SAMPLE_ACTIVITY = [
 ]
 
 
+# Label garis status dipendekkan biar muat di kartu dashboard
+LABEL_SINGKAT = {
+    'Diajukan': 'Diajukan', 'Dikonfirmasi': 'Konfirmasi', 'Dijadwalkan': 'Jadwal',
+    'Sampel diambil': 'Sampel', 'Diproses': 'Proses', 'Selesai': 'Selesai',
+}
+
+
+def _pesanan_aktif(pemilik):
+    """Pesanan berjalan paling baru milik pemilik, lengkap dengan garis statusnya. None kalau nggak ada."""
+    pesanan = (
+        PesananPemeriksaan.objects.filter(lahan__owner=pemilik)
+        .exclude(status__in=PesananPemeriksaan.STATUS_AKHIR)
+        .select_related('lahan', 'jenis', 'petugas')
+        .first()
+    )
+    if pesanan is None:
+        return None
+    return {
+        'pesanan': pesanan,
+        'steps': [
+            {'label': LABEL_SINGKAT[l['label']], 'state': l['keadaan']} for l in langkah_status(pesanan)
+        ],
+        'bisa_jadwal_ulang': pesanan.status in STATUS_BISA_JADWAL_ULANG,
+        'bisa_batal': pesanan.status in STATUS_BISA_BATAL,
+    }
+
+
+# Warna chip di kartu angka, mengikuti status pesanan terbaru
+KIND_STATUS = {
+    'diajukan': 'sand', 'dikonfirmasi': 'paper', 'dijadwalkan': 'sky',
+    'sampel_diambil': 'sky', 'diproses': 'paper',
+}
+
+
+def _kpi_pesanan(pemilik, pesanan_aktif):
+    """Kartu angka 'Pesanan aktif' dari data asli."""
+    jumlah = PesananPemeriksaan.objects.filter(lahan__owner=pemilik).exclude(
+        status__in=PesananPemeriksaan.STATUS_AKHIR,
+    ).count()
+    kartu = dict(SAMPLE_KPIS[1], value=jumlah)
+    if pesanan_aktif:
+        pesanan = pesanan_aktif['pesanan']
+        kartu['chip'] = {'text': pesanan.get_status_display(), 'kind': KIND_STATUS.get(pesanan.status, 'paper')}
+    else:
+        kartu['chip'] = {'text': 'Belum ada', 'kind': 'paper'}
+    return kartu
+
+
 @login_required
 def home(request):
     # Petugas dan admin punya dashboard sendiri nanti (lihat docs/WORK-PLAN.md, issue 07)
     if not request.user.is_owner:
         return render(request, 'dashboard/pending.html', {'active_nav': 'dashboard'})
 
+    pesanan_aktif = _pesanan_aktif(request.user)
+    kpis = list(SAMPLE_KPIS)
+    kpis[1] = _kpi_pesanan(request.user, pesanan_aktif)
+
     context = {
         'active_nav': 'dashboard',
         'greeting_name': request.user.first_name.split()[0] if request.user.first_name else request.user.username,
-        'kpis': SAMPLE_KPIS,
+        'kpis': kpis,
         'lands': SAMPLE_LANDS,
         'recommendation': SAMPLE_RECOMMENDATION,
-        'order': SAMPLE_ORDER,
+        'order': pesanan_aktif,
         'chart': SAMPLE_CHART,
         'notes': SAMPLE_NOTES,
         'activity': SAMPLE_ACTIVITY,

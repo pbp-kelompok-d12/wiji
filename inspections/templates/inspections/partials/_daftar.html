@@ -1,0 +1,52 @@
+{# Filter status dan daftar pesanan. Dikirim utuh lewat HTMX pas filter diganti #}
+<nav class="flex flex-wrap gap-2" aria-label="Filter status pesanan">
+  {% for f in filter_list %}
+  <a href="{% url 'inspections:daftar_pesanan' %}?status={{ f.kunci }}"
+     class="tab rounded-full border border-line {% if f.kunci == filter_aktif %}is-on{% endif %}"
+     hx-get="{% url 'inspections:daftar_pesanan' %}?status={{ f.kunci }}" hx-target="#daftar-pesanan" hx-swap="innerHTML" hx-push-url="true">
+    {{ f.label }} <span class="ml-1 opacity-70">{{ f.jumlah }}</span>
+  </a>
+  {% endfor %}
+</nav>
+<div class="mt-4">
+  {% if pesanan_list %}
+  <div class="d-card divide-y divide-line px-5 py-1">
+    {% for pesanan in pesanan_list %}
+    <article class="row-hover -mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-4">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="text-sm font-bold hover:text-moss">{{ pesanan.kode }}</a>
+          {% include 'inspections/partials/_status.html' %}
+        </div>
+        <p class="mt-0.5 truncate text-[13px] text-ink-soft">
+          {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }} · {{ pesanan.jenis.nama }}
+        </p>
+        <p class="mt-0.5 text-xs text-ink-soft">
+          {% if pesanan.tanggal_final %}
+          Jadwal {{ pesanan.tanggal_final|date:"D, j M Y" }} · {{ pesanan.get_sesi_final_display }}
+          {% else %}
+          Usulan {{ pesanan.tanggal_usulan|date:"D, j M Y" }} · {{ pesanan.get_sesi_usulan_display }}
+          {% endif %}
+          · Petugas: {{ pesanan.petugas.display_name|default:"belum ditugaskan" }}
+        </p>
+      </div>
+      <a href="{% url 'inspections:detail_pesanan' pesanan.pk %}" class="d-btn-sm">Lihat detail</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="d-card grid place-items-center px-6 py-14 text-center">
+    <span class="grid size-14 place-items-center rounded-full bg-paper text-ink-soft">
+      <svg class="ic size-6"><use href="#i-flask"/></svg>
+    </span>
+    {% if filter_aktif == 'semua' %}
+    <h2 class="mt-4 text-lg font-bold">Belum ada pesanan</h2>
+    <p class="mt-1 max-w-sm text-sm text-ink-soft">Pesanan pemeriksaan untuk lahanmu akan muncul di sini.</p>
+    <a href="{% url 'inspections:pesan_pemeriksaan' %}" class="btn btn-primary mt-5">Pesan pemeriksaan</a>
+    {% else %}
+    <h2 class="mt-4 text-lg font-bold">Nggak ada pesanan di filter ini</h2>
+    <p class="mt-1 max-w-sm text-sm text-ink-soft">Coba pilih filter lain buat lihat pesanan yang lain.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

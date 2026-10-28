@@ -1,0 +1,15 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ pesanan.kode }}{% endblock %}
+{% block crumb %}Pemeriksaan / {{ pesanan.kode }}{% endblock %}
+
+{% block app_content %}
+<a href="{% url 'inspections:daftar_pesanan' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+  <svg class="ic ic-sm"><use href="#i-back"/></svg>Pemeriksaan
+</a>
+
+{% include 'inspections/partials/_isi_detail.html' %}
+
+{# Tempat modal aksi (diisi lewat HTMX) #}
+<div id="modal-slot"></div>
+{% endblock %}

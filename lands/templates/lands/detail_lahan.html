@@ -78,7 +78,7 @@
     <p class="eyebrow">Pesanan aktif</p>
     {% if lahan.punya_pesanan_aktif %}
     <p class="mt-2 text-sm font-semibold">Lahan ini memiliki pesanan yang sedang berjalan.</p>
-    <p class="mt-1 text-xs leading-5 text-ink-soft">Informasi dan pengelolaan pesanan tersedia melalui fitur Pesanan.</p>
+    <p class="mt-1 text-xs leading-5 text-ink-soft"><a href="{% url 'inspections:daftar_pesanan' %}" class="link">Lihat pesanan</a> buat memantau statusnya.</p>
     {% else %}
     <p class="mt-2 text-sm font-semibold">Belum ada pesanan aktif</p>
     <p class="mt-1 text-xs leading-5 text-ink-soft">Pesanan untuk lahan ini akan ditampilkan di sini.</p>
@@ -160,9 +160,16 @@
       {% endif %}
     </div>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn btn-ghost !min-h-10 border border-line" disabled title="Fitur pemeriksaan belum tersedia di halaman lahan">
+      {% if request.user.is_owner and not lahan.diarsipkan and not lahan.adalah_draf and not lahan.punya_pesanan_aktif %}
+      <a href="{% url 'inspections:pesan_pemeriksaan' %}?lahan={{ lahan.pk }}" class="btn btn-ghost !min-h-10 border border-line">
+        Pesan pemeriksaan
+      </a>
+      {% else %}
+      <button type="button" class="btn btn-ghost !min-h-10 border border-line" disabled
+              title="{% if lahan.punya_pesanan_aktif %}Lahan ini masih punya pesanan yang berjalan{% elif lahan.diarsipkan %}Lahan diarsipkan{% else %}Lengkapi data lahan dulu{% endif %}">
         Pesan pemeriksaan
       </button>
+      {% endif %}
       {% if request.user.is_owner and not lahan.diarsipkan %}
         <a href="{% url 'soil_results:tambah_hasil_mandiri' lahan.pk %}"
           class="btn btn-primary !min-h-10">
