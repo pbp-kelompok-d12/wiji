@@ -79,5 +79,10 @@ urlpatterns = [
         views.hapus_kontaminan,
         name="hapus_kontaminan",
     ),
+        path(
+        "petugas/pesanan/<int:pesanan_id>/hasil/",
+        views.isi_hasil_petugas,
+        name="isi_hasil_petugas",
+    ),
 
 ]

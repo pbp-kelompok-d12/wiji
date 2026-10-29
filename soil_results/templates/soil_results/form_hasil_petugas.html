@@ -1,0 +1,51 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Draf hasil pemeriksaan{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">Draf hasil pemeriksaan</h1>
+
+  <p class="mt-2 text-sm text-ink-soft">
+    {{ pesanan.kode }} · {{ pesanan.lahan.nama }}
+    · {{ pesanan.jenis.nama }}
+  </p>
+
+  <div class="mt-4 rounded-xl border border-line bg-paper p-4">
+    Hasil masih berupa draf dan belum dapat dilihat pemilik lahan.
+    Lengkapi data sesuai laporan pemeriksaan sebelum finalisasi.
+  </div>
+
+  <form method="post" class="d-card mt-5 space-y-5 p-5">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}"
+               class="mb-1 block text-sm font-semibold">
+          {{ field.label }}{% if field.field.required %} *{% endif %}
+        </label>
+
+        {{ field }}
+
+        {% if field.help_text %}
+          <p class="mt-1 text-xs text-ink-soft">
+            {{ field.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in field.errors %}
+          <p role="alert" class="mt-1 text-sm text-red-700">
+            {{ error }}
+          </p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary">
+      Simpan draf
+    </button>
+  </form>
+</div>
+{% endblock %}

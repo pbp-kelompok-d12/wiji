@@ -11,6 +11,9 @@ from .models import HasilPemeriksaan, NutrientMeasurement, ContaminantFinding
 import uuid
 from django.http import FileResponse, Http404, JsonResponse
 from django.db.models.deletion import ProtectedError
+from django.db import transaction
+from inspections.models import PesananPemeriksaan
+from .forms import HasilPetugasForm
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -699,4 +702,69 @@ def hapus_kontaminan(request, temuan_id):
         request,
         "soil_results/konfirmasi_hapus_kontaminan.html",
         {"temuan": temuan, "hasil": hasil},
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+@transaction.atomic
+def isi_hasil_petugas(request, pesanan_id):
+    if not request.user.is_officer:
+        raise PermissionDenied(
+            "Halaman ini hanya untuk petugas pemeriksa."
+        )
+
+    pesanan = get_object_or_404(
+        PesananPemeriksaan.objects.select_for_update(),
+        pk=pesanan_id,
+        petugas=request.user,
+        status=PesananPemeriksaan.Status.DIPROSES,
+    )
+
+    hasil = HasilPemeriksaan.objects.filter(
+        pesanan=pesanan,
+    ).first()
+
+    if hasil is not None and (
+        hasil.status_hasil != HasilPemeriksaan.StatusHasil.DRAF
+        or hasil.asal != HasilPemeriksaan.Asal.WIJI
+    ):
+        raise PermissionDenied(
+            "Hasil ini tidak dapat diubah melalui pengisian draf."
+        )
+
+    if hasil is None:
+        hasil = HasilPemeriksaan(
+            pesanan=pesanan,
+            lahan=pesanan.lahan,
+            dibuat_oleh=request.user,
+            asal=HasilPemeriksaan.Asal.WIJI,
+            status_hasil=HasilPemeriksaan.StatusHasil.DRAF,
+            sumber="Pemeriksaan Wiji",
+        )
+
+    if request.method == "POST":
+        form = HasilPetugasForm(request.POST, instance=hasil)
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                "Draf berhasil disimpan. Hasil belum ditampilkan kepada pemilik.",
+            )
+            return redirect(
+                "soil_results:isi_hasil_petugas",
+                pesanan_id=pesanan.pk,
+            )
+    else:
+        form = HasilPetugasForm(instance=hasil)
+
+    return render(
+        request,
+        "soil_results/form_hasil_petugas.html",
+        {
+            "form": form,
+            "hasil": hasil,
+            "pesanan": pesanan,
+        },
     )

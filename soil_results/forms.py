@@ -129,3 +129,26 @@ class ContaminantFindingForm(forms.ModelForm):
             )
 
         return kontaminan
+
+
+class HasilPetugasForm(HasilMandiriForm):
+    class Meta(HasilMandiriForm.Meta):
+        fields = [
+            "tanggal_pemeriksaan",
+            "ph",
+            "kelembapan",
+            "tekstur",
+            "bahan_organik",
+            "catatan",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        # Gunakan inisialisasi ModelForm karena form ini
+        # tidak menyertakan field sumber.
+        forms.ModelForm.__init__(self, *args, **kwargs)
+
+        for field in self.fields.values():
+            field.widget.attrs["class"] = (
+                "w-full rounded-xl border border-line "
+                "bg-white px-3 py-2"
+            )
