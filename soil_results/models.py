@@ -76,6 +76,27 @@ class HasilPemeriksaan(models.Model):
         help_text="Kadar bahan organik dalam persen (0–100).",
     )
 
+    class StatusHasil(models.TextChoices):
+        DRAF = "draf", "Draf"
+        FINAL = "final", "Final"
+
+    pesanan = models.OneToOneField(
+        "inspections.PesananPemeriksaan",
+        on_delete=models.PROTECT,
+        related_name="hasil_pemeriksaan",
+        null=True,
+        blank=True,
+    )
+    status_hasil = models.CharField(
+        max_length=10,
+        choices=StatusHasil.choices,
+        default=StatusHasil.FINAL,
+    )
+    difinalkan_pada = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    
     class Meta:
         ordering = ["-tanggal_pemeriksaan", "-dibuat_pada"]
         verbose_name = "Hasil pemeriksaan"
@@ -86,6 +107,19 @@ class HasilPemeriksaan(models.Model):
 
     def clean(self):
         super().clean()
+
+        if self.pesanan_id:
+            if self.asal != self.Asal.WIJI:
+                raise ValidationError({
+                    "pesanan":
+                        "Hanya hasil Wiji yang dapat terhubung ke pesanan."
+                })
+
+            if self.lahan_id != self.pesanan.lahan_id:
+                raise ValidationError({
+                    "lahan":
+                        "Lahan hasil pemeriksaan harus sama dengan lahan pesanan."
+                })
 
         if (
             self.tanggal_pemeriksaan
