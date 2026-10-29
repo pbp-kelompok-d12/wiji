@@ -1,0 +1,14 @@
+{% extends 'errors/_base.html' %}
+{% load static %}
+
+{% block title %}Terjadi kesalahan{% endblock %}
+{% block kode_kecil %}500{% endblock %}
+{% block judul %}Ada yang salah di <em class="lp-it">sisi kami.</em>{% endblock %}
+{% block lead %}Kami sudah mencatat masalahnya. Coba muat ulang halaman ini sebentar lagi.{% endblock %}
+{# Halaman 500 dirender tanpa request, jadi tombolnya pakai link biasa #}
+{% block tombol %}
+  <a href="" class="lp-btn lp-btn-dark">Muat ulang</a>
+  <a href="{% url 'core:landing' %}" class="lp-btn lp-btn-line">Ke beranda</a>
+{% endblock %}
+{% block foto %}{% static 'img/sawah-terasering.jpg' %}{% endblock %}
+{% block kode %}500{% endblock %}

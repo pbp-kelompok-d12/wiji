@@ -1,0 +1,13 @@
+{% extends 'errors/_base.html' %}
+{% load static %}
+
+{% block title %}Halaman tidak ditemukan{% endblock %}
+{% block kode_kecil %}404{% endblock %}
+{% block judul %}Halaman ini <em class="lp-it">nggak ketemu.</em>{% endblock %}
+{% block lead %}Tautannya mungkin salah, atau datanya sudah diarsipkan.{% endblock %}
+{% block tombol %}
+  <a href="{% url 'core:landing' %}" class="lp-btn lp-btn-dark">Ke beranda</a>
+  <a href="{% url 'core:daftar_tanaman' %}" class="lp-btn lp-btn-line">Lihat katalog</a>
+{% endblock %}
+{% block foto %}{% static 'img/tunas-muda.jpg' %}{% endblock %}
+{% block kode %}404{% endblock %}

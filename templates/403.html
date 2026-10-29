@@ -1,0 +1,24 @@
+{% extends 'errors/_base.html' %}
+{% load static %}
+
+{# Gelap, dan navbarnya transparan seperti di landing #}
+{% block navbar %}{% include 'partials/navbar.html' with overlay=True %}{% endblock %}
+{% block theme %} er--dark{% endblock %}
+{% block title %}Akses ditolak{% endblock %}
+{% block kode_kecil %}403{% endblock %}
+{% block judul %}Halaman ini <em class="lp-it">bukan milikmu.</em>{% endblock %}
+{% block lead %}Kamu hanya bisa membuka lahan, pesanan, dan rencana milikmu sendiri.{% endblock %}
+{% block tombol %}
+  {% if user.is_authenticated %}
+    <a href="{% url 'dashboard:home' %}" class="lp-btn lp-btn-sun">Kembali ke dashboard</a>
+    <form method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="lp-btn lp-btn-line">Keluar</button>
+    </form>
+  {% else %}
+    <a href="{% url 'accounts:login' %}" class="lp-btn lp-btn-sun">Masuk</a>
+    <a href="{% url 'core:landing' %}" class="lp-btn lp-btn-line">Ke beranda</a>
+  {% endif %}
+{% endblock %}
+{% block foto %}{% static 'img/hero-tanah.jpg' %}{% endblock %}
+{% block kode %}403{% endblock %}

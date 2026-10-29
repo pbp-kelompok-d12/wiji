@@ -38,14 +38,16 @@
 /* Transparan dulu, jadi putih pas halaman sudah lewat hero (kelas is-solid dari site.js) */
 .site-header--overlay { position: fixed; left: 0; right: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: rgba(255, 255, 255, 0.2); }
 .site-header--overlay .nav-link,
-.site-header--overlay .btn-ghost { color: #fff; }
+.site-header--overlay .btn-ghost,
+.site-header--overlay span { color: #fff; }
 .site-header--overlay .btn-ghost:hover { background: rgba(255, 255, 255, 0.16); }
 .site-header--overlay .nav-link:hover { color: #fff; }
 .site-header--overlay .nav-link::after { background: #fff; }
 .site-header--overlay .site-header__logo { filter: brightness(0) invert(1); transition: filter 0.3s ease; }
 .site-header--overlay.is-solid { background: rgba(251, 248, 239, 0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom-color: var(--lp-line); }
 .site-header--overlay.is-solid .nav-link,
-.site-header--overlay.is-solid .btn-ghost { color: var(--color-ink); }
+.site-header--overlay.is-solid .btn-ghost,
+.site-header--overlay.is-solid span { color: var(--color-ink); }
 .site-header--overlay.is-solid .btn-ghost:hover { background: var(--lp-card); }
 .site-header--overlay.is-solid .nav-link:hover { color: var(--color-moss); }
 .site-header--overlay.is-solid .nav-link::after { background: var(--color-moss); }
