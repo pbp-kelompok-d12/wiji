@@ -1,14 +1,15 @@
 {% load static %}
-{# Link menu nunjuk ke bagian-bagian di landing page #}
-<div class="site-header" id="site-header">
+{# Link menu nunjuk ke bagian-bagian di landing page. overlay=True: transparan di atas foto hero (landing) #}
+<div class="site-header{% if overlay %} site-header--overlay{% endif %}" id="site-header"{% if overlay %} data-overlay{% endif %}>
 <header class="mx-auto flex h-[68px] w-full max-w-[1200px] items-center gap-6 px-5 md:px-8">
-  <a href="{% url 'core:landing' %}" class="flex items-center" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="h-8 w-auto"></a>
+  <a href="{% url 'core:landing' %}" class="flex items-center" aria-label="Wiji, ke beranda"><img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji" class="site-header__logo h-8 w-auto"></a>
 
   <nav class="hidden flex-1 items-center justify-center gap-8 lg:flex" aria-label="Navigasi publik">
     <a class="nav-link" href="{% url 'core:landing' %}#cara-kerja">Cara kerja</a>
     <a class="nav-link" href="{% url 'core:landing' %}#langkah">Cara pakai</a>
-    <a class="nav-link" href="{% url 'core:landing' %}#katalog">Katalog tanaman</a>
-    <a class="nav-link" href="{% url 'core:landing' %}#alur">Pemeriksaan</a>
+    <a class="nav-link" href="{% url 'core:landing' %}#peran">Peran</a>
+    <a class="nav-link" href="{% url 'core:daftar_tanaman' %}">Katalog tanaman</a>
+    <a class="nav-link" href="{% url 'core:landing' %}#tanya">Tanya jawab</a>
   </nav>
 
   <div class="ml-auto flex items-center gap-2 lg:ml-0">
