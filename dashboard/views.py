@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from inspections.models import PesananPemeriksaan
+from inspections.ringkasan import ringkasan_admin, ringkasan_petugas
 from inspections.tampilan import langkah_status
 from inspections.pemesanan import STATUS_BISA_BATAL, STATUS_BISA_JADWAL_ULANG
 
@@ -118,11 +119,21 @@ def _kpi_pesanan(pemilik, pesanan_aktif):
     return kartu
 
 
+def _nama_sapaan(user):
+    return user.first_name.split()[0] if user.first_name else user.username
+
+
 @login_required
 def home(request):
-    # Petugas dan admin punya dashboard sendiri nanti (lihat docs/WORK-PLAN.md, issue 07)
-    if not request.user.is_owner:
-        return render(request, 'dashboard/pending.html', {'active_nav': 'dashboard'})
+    # Admin dicek duluan: akun staf bawaan (createsuperuser) perannya owner
+    if request.user.is_staff:
+        return render(request, 'dashboard/admin.html', {
+            'active_nav': 'dashboard', 'greeting_name': _nama_sapaan(request.user), **ringkasan_admin(),
+        })
+    if request.user.is_officer:
+        return render(request, 'dashboard/petugas.html', {
+            'active_nav': 'dashboard', 'greeting_name': _nama_sapaan(request.user), **ringkasan_petugas(request.user),
+        })
 
     pesanan_aktif = _pesanan_aktif(request.user)
     kpis = list(SAMPLE_KPIS)
@@ -130,7 +141,7 @@ def home(request):
 
     context = {
         'active_nav': 'dashboard',
-        'greeting_name': request.user.first_name.split()[0] if request.user.first_name else request.user.username,
+        'greeting_name': _nama_sapaan(request.user),
         'kpis': kpis,
         'lands': SAMPLE_LANDS,
         'recommendation': SAMPLE_RECOMMENDATION,
