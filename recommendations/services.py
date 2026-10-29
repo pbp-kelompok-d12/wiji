@@ -269,6 +269,11 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     Jika hasil pemeriksaan mencatat kontaminan yang belum terverifikasi,
     rekomendasi otomatis dihentikan dan hasil diarahkan ke penilaian ahli.
     """
+    if hasil_pemeriksaan.status_hasil != "final":
+        raise RecommendationInputError(
+            "Rekomendasi hanya dapat dibuat dari hasil pemeriksaan final."
+        )
+    
     if hasil_pemeriksaan.lahan_id != lahan.pk:
         raise RecommendationInputError(
             "Hasil pemeriksaan bukan milik lahan yang dipilih."

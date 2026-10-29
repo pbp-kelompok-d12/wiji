@@ -67,6 +67,7 @@ def daftar_rekomendasi(request):
         HasilPemeriksaan.objects.filter(
             lahan__owner=request.user,
             lahan__diarsipkan=False,
+            status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
         )
         .select_related("lahan")
     )
@@ -252,7 +253,10 @@ def buat_rencana(request):
         return redirect(target_rekomendasi)
 
     hasil_pemeriksaan = _first_by_pk(
-        HasilPemeriksaan.objects.filter(lahan=lahan),
+        HasilPemeriksaan.objects.filter(
+            lahan=lahan,
+            status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
+        ),
         hasil_id,
     )
 

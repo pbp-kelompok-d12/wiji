@@ -22,6 +22,11 @@ from recommendations.models import RecommendationSnapshot, ManagementPlan
 
 from unittest.mock import patch
 
+from recommendations.services import (
+    calculate_recommendations,
+    RecommendationInputError,
+)
+
 
 class AksesHasilTests(TestCase):
     def setUp(self):
@@ -614,6 +619,21 @@ class PenguncianRencanaTests(TestCase):
                 jenis.pk,
             ),
         ]
+
+    def test_rekomendasi_menolak_hasil_draf(self):
+        self.hasil.asal = HasilPemeriksaan.Asal.WIJI
+        self.hasil.status_hasil = HasilPemeriksaan.StatusHasil.DRAF
+        self.hasil.save()
+
+        with self.assertRaisesMessage(
+            RecommendationInputError,
+            "Rekomendasi hanya dapat dibuat dari hasil pemeriksaan final.",
+        ):
+            calculate_recommendations(
+                lahan=self.lahan,
+                hasil_pemeriksaan=self.hasil,
+                tujuan=self.rekomendasi.tujuan,
+            )
 
 
 class KontaminanTests(TestCase):
