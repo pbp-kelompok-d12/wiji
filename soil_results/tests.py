@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from lands.models import Lahan, ManagementGoal
-from .models import HasilPemeriksaan
+from .models import HasilPemeriksaan, NutrientMeasurement
 
 from datetime import timedelta
 from tempfile import TemporaryDirectory
@@ -18,6 +18,8 @@ from .forms import HasilMandiriForm, DokumenLaboratoriumForm
 
 from core.models import Tanaman
 from recommendations.models import RecommendationSnapshot, ManagementPlan
+
+from unittest.mock import patch
 
 
 class AksesHasilTests(TestCase):
@@ -404,4 +406,149 @@ class PenguncianRencanaTests(TestCase):
         )
         self.assertTrue(
             HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
+        )
+
+    def test_tambah_unsur_hara_saat_terkunci_ditolak(self):
+        self.buat_rencana()
+        jumlah_awal = self.hasil.nutrient_measurements.count()
+
+        response = self.client.post(
+            reverse(
+                "soil_results:tambah_unsur_hara",
+                args=[self.hasil.pk],
+            ),
+            {
+                "nama_unsur": "Nitrogen",
+                "nilai": "0.2",
+                "satuan": "%",
+                "metode": "Metode uji",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.assertEqual(
+            self.hasil.nutrient_measurements.count(),
+            jumlah_awal,
+        )
+
+    def test_ubah_unsur_hara_saat_terkunci_ditolak(self):
+        pengukuran = NutrientMeasurement.objects.create(
+            hasil=self.hasil,
+            nama_unsur="Nitrogen",
+            nilai="0.2",
+            satuan="%",
+        )
+        self.buat_rencana()
+
+        response = self.client.post(
+            reverse(
+                "soil_results:ubah_unsur_hara",
+                args=[pengukuran.pk],
+            ),
+            {
+                "nama_unsur": "Nama diubah",
+                "nilai": "0.5",
+                "satuan": "%",
+                "metode": "",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        pengukuran.refresh_from_db()
+        self.assertEqual(pengukuran.nama_unsur, "Nitrogen")
+        self.assertEqual(str(pengukuran.nilai), "0.2000")
+
+    def test_hapus_unsur_hara_saat_terkunci_ditolak(self):
+        pengukuran = NutrientMeasurement.objects.create(
+            hasil=self.hasil,
+            nama_unsur="Nitrogen",
+            nilai="0.2",
+            satuan="%",
+        )
+        self.buat_rencana()
+
+        response = self.client.post(
+            reverse(
+                "soil_results:hapus_unsur_hara",
+                args=[pengukuran.pk],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.assertTrue(
+            NutrientMeasurement.objects.filter(
+                pk=pengukuran.pk,
+            ).exists()
+        )
+
+    def test_unggah_dokumen_saat_terkunci_ditolak(self):
+        self.buat_rencana()
+        nama_awal = self.hasil.dokumen_laboratorium.name
+
+        dokumen = SimpleUploadedFile(
+            "uji.pdf",
+            b"%PDF-1.4\nDokumen sintetis\n",
+            content_type="application/pdf",
+        )
+
+        storage = self.hasil.dokumen_laboratorium.storage
+
+        with patch.object(storage, "save") as simpan_file:
+            response = self.client.post(
+                reverse(
+                    "soil_results:unggah_dokumen",
+                    args=[self.hasil.pk],
+                ),
+                {"dokumen": dokumen},
+            )
+
+            simpan_file.assert_not_called()
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.hasil.refresh_from_db()
+        self.assertEqual(
+            self.hasil.dokumen_laboratorium.name,
+            nama_awal,
+        )
+
+    def test_detail_terkunci_menyembunyikan_tombol_ubah(self):
+        self.buat_rencana()
+
+        response = self.client.get(
+            reverse(
+                "soil_results:detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Hasil digunakan dalam rencana pengelolaan",
+        )
+        self.assertNotContains(
+            response,
+            reverse(
+                "soil_results:ubah_hasil_mandiri",
+                args=[self.hasil.pk],
+            ),
+        )
+        self.assertNotContains(
+            response,
+            reverse(
+                "soil_results:unggah_dokumen",
+                args=[self.hasil.pk],
+            ),
         )
