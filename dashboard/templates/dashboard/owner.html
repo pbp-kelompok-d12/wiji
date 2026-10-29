@@ -9,7 +9,7 @@
     <h1 class="heading text-[28px] leading-[34px]">Selamat datang, <span class="heading-accent">{{ greeting_name }}!</span></h1>
     <p class="mt-1 text-sm text-ink-soft">Ini kondisi lahan dan pesananmu hari ini.</p>
   </div>
-  <button type="button" class="btn btn-primary !min-h-10 gap-2"><svg class="ic ic-sm"><use href="#i-cal"/></svg>30 hari terakhir<svg class="ic ic-sm"><use href="#i-down"/></svg></button>
+  <a href="{% url 'lands:tambah_lahan' %}" class="btn btn-primary !min-h-10 gap-2"><svg class="ic ic-sm"><use href="#i-plus"/></svg>Tambah lahan</a>
 </div>
 
 {# Kartu angka #}
@@ -38,38 +38,56 @@
 <section class="mt-4 grid gap-4 lg:grid-cols-[1.35fr_1fr_1fr]">
   <article class="d-card p-5">
     <div class="flex items-center justify-between"><h2 class="d-title">Lahan saya</h2><a href="{% url 'lands:daftar_lahan' %}" class="d-btn-sm">Lihat semua</a></div>
+    {% if lahan_kartu %}
     <ul class="mt-3">
-      {% for land in lands %}
+      {% for k in lahan_kartu %}
       <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
-        <span class="grid size-11 shrink-0 place-items-center rounded-xl {% if land.warn %}bg-sand text-clay-deep{% else %}bg-leaf text-moss-deep{% endif %}"><svg class="ic"><use href="#i-{{ land.icon }}"/></svg></span>
+        <span class="grid size-11 shrink-0 place-items-center rounded-xl {% if k.kind == 'sand' %}bg-sand text-clay-deep{% else %}bg-leaf text-moss-deep{% endif %}"><svg class="ic"><use href="#i-{% if k.kind == 'sand' %}alert{% else %}pin{% endif %}"/></svg></span>
         <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-bold">{{ land.name }}</p>
-          <p class="truncate text-xs text-ink-soft">{{ land.place }} · {{ land.area }} · {{ land.use }}</p>
+          <p class="truncate text-sm font-bold"><a href="{% url 'lands:detail_lahan' k.lahan.pk %}" class="hover:text-moss">{{ k.lahan.nama|default:"Lahan tanpa nama" }}</a></p>
+          <p class="truncate text-xs text-ink-soft">{{ k.lahan.alamat|default:"Alamat belum diisi" }}{% if k.lahan.luas_m2 %} · {{ k.lahan.luas_m2|floatformat:"0" }} m²{% endif %}{% if k.lahan.penggunaan %} · {{ k.lahan.get_penggunaan_display }}{% endif %}</p>
         </div>
-        <div class="hidden text-right sm:block"><p class="text-xs font-bold">{{ land.ph }}</p><p class="text-[11px] text-ink-soft">{{ land.texture }}</p></div>
-        <span class="chip chip-{{ land.kind }} whitespace-nowrap">{{ land.status }}</span>
-        <button type="button" class="text-ink-soft" aria-label="Menu lahan {{ land.name }}"><svg class="ic ic-sm"><use href="#i-dots"/></svg></button>
+        <div class="hidden text-right sm:block"><p class="text-xs font-bold">{{ k.ph }}</p><p class="text-[11px] text-ink-soft">{{ k.tekstur }}</p></div>
+        <span class="chip chip-{{ k.kind }} whitespace-nowrap">{{ k.status }}</span>
+        {% if k.bisa_pesan %}<a href="{% url 'inspections:pesan_pemeriksaan' %}?lahan={{ k.lahan.pk }}" class="d-btn-sm whitespace-nowrap">Pesan</a>{% elif k.kind == 'sand' %}<a href="{% url 'lands:ubah_lahan' k.lahan.pk %}" class="d-btn-sm whitespace-nowrap">Lengkapi</a>{% endif %}
       </li>
       {% endfor %}
     </ul>
+    {% else %}
+    <div class="mt-6 grid place-items-center text-center">
+      <span class="grid size-12 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic"><use href="#i-pin"/></svg></span>
+      <p class="mt-3 text-sm font-bold">Belum ada lahan</p>
+      <p class="mt-1 text-xs leading-5 text-ink-soft">Tambahkan lahan pertamamu. Data yang belum lengkap bisa disimpan sebagai draf.</p>
+      <a href="{% url 'lands:tambah_lahan' %}" class="btn btn-primary mt-4 !min-h-10">Tambah lahan</a>
+    </div>
+    {% endif %}
   </article>
 
   <article class="d-card flex flex-col p-5">
-    <div class="flex items-center gap-2"><h2 class="d-title">Rekomendasi terbaik</h2><span class="chip chip-paper">Baru</span></div>
+    <div class="flex items-center gap-2"><h2 class="d-title">Rekomendasi terbaik</h2></div>
+    {% if rekomendasi %}
     <div class="mt-4 flex items-center gap-3">
       {# Lingkaran skor: warna diisi sebesar nilai skor #}
-      <div class="grid size-[68px] shrink-0 place-items-center rounded-full" style="background:conic-gradient(var(--color-moss) {{ recommendation.score }}%, var(--color-line) 0)">
-        <div class="grid size-[56px] place-items-center rounded-full bg-white"><p class="heading text-xl leading-none">{{ recommendation.score }}</p></div>
+      <div class="grid size-[68px] shrink-0 place-items-center rounded-full" style="background:conic-gradient(var(--color-moss) {{ rekomendasi.snap.skor }}%, var(--color-line) 0)">
+        <div class="grid size-[56px] place-items-center rounded-full bg-white"><p class="heading text-xl leading-none">{{ rekomendasi.snap.skor }}</p></div>
       </div>
       <div>
-        <p class="heading text-lg leading-[22px]">{{ recommendation.plant }}</p>
-        <p class="text-xs italic text-ink-soft">{{ recommendation.latin }}</p>
-        <span class="chip chip-up mt-1.5">{{ recommendation.role }}</span>
+        <p class="heading text-lg leading-[22px]">{{ rekomendasi.snap.tanaman.nama }}</p>
+        {% if rekomendasi.snap.tanaman.nama_latin %}<p class="text-xs italic text-ink-soft">{{ rekomendasi.snap.tanaman.nama_latin }}</p>{% endif %}
+        <span class="chip chip-up mt-1.5">{{ rekomendasi.snap.tanaman.fungsi }}</span>
       </div>
     </div>
-    <p class="mt-4 text-[13px] leading-5 text-ink-soft">{{ recommendation.reason }}</p>
-    <div class="mt-3 flex flex-wrap gap-1.5">{% for tag in recommendation.tags %}<span class="chip chip-paper">{{ tag }}</span>{% endfor %}</div>
-    <a href="#" class="mt-auto flex h-10 items-center justify-between rounded-xl bg-paper px-3 text-[13px] font-bold transition hover:bg-leaf" style="margin-top:1rem">Lihat rekomendasi lengkap <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
+    <p class="mt-4 text-[13px] leading-5 text-ink-soft">Buat {{ rekomendasi.snap.lahan.nama|default:"lahanmu" }}. {{ rekomendasi.alasan }}</p>
+    {% if rekomendasi.tags %}<div class="mt-3 flex flex-wrap gap-1.5">{% for tag in rekomendasi.tags %}<span class="chip chip-paper">{{ tag }}</span>{% endfor %}</div>{% endif %}
+    <a href="{% url 'recommendations:daftar_rekomendasi' %}" class="mt-auto flex h-10 items-center justify-between rounded-xl bg-paper px-3 text-[13px] font-bold transition hover:bg-leaf" style="margin-top:1rem">Lihat rekomendasi lengkap <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
+    {% else %}
+    <div class="my-auto grid place-items-center py-6 text-center">
+      <span class="grid size-12 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic"><use href="#i-sprout"/></svg></span>
+      <p class="mt-3 text-sm font-bold">Belum ada rekomendasi</p>
+      <p class="mt-1 text-xs leading-5 text-ink-soft">Rekomendasi muncul setelah lahanmu punya hasil pemeriksaan tanah.</p>
+      <a href="{% url 'recommendations:daftar_rekomendasi' %}" class="btn btn-outline mt-4 !min-h-10">Buka rekomendasi</a>
+    </div>
+    {% endif %}
   </article>
 
   <article class="d-card p-5">
@@ -102,37 +120,52 @@
   </article>
 </section>
 
-{# Baris 3: grafik dan catatan #}
+{# Baris 3: hasil tanah terbaru dan catatan #}
 <section class="mt-4 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
   <article class="d-card p-5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 class="d-title">{{ chart.title }}</h2><p class="text-xs text-ink-soft">{{ order.land }} · sumber Open-Meteo (contoh)</p></div>
-      <div class="flex gap-1 rounded-full bg-paper p-1" role="tablist"><button type="button" class="tab is-on">Kelembapan</button><button type="button" class="tab">Suhu tanah</button><button type="button" class="tab">Hujan</button></div>
+    <div class="flex items-center justify-between"><h2 class="d-title">Hasil tanah terbaru</h2><a href="{% url 'soil_results:daftar_hasil' %}" class="d-btn-sm">Lihat semua</a></div>
+    {% if hasil_terbaru %}
+    <ul class="mt-3">
+      {% for h in hasil_terbaru %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <span class="kpi-icon shrink-0"><svg class="ic ic-sm"><use href="#i-doc"/></svg></span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold"><a href="{% url 'soil_results:detail_hasil' h.pk %}" class="hover:text-moss">{{ h.lahan.nama|default:"Lahan tanpa nama" }}</a></p>
+          <p class="truncate text-xs text-ink-soft">{{ h.tanggal_pemeriksaan|date:"j M Y" }}{% if h.ph is not None %} · pH {{ h.ph }}{% endif %}{% if h.tekstur %} · {{ h.tekstur }}{% endif %}</p>
+        </div>
+        <span class="chip {% if h.asal == 'wiji' %}chip-up{% else %}chip-sand{% endif %} whitespace-nowrap">{{ h.get_asal_display }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="mt-6 grid place-items-center pb-4 text-center">
+      <span class="grid size-12 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic"><use href="#i-doc"/></svg></span>
+      <p class="mt-3 text-sm font-bold">Belum ada hasil tanah</p>
+      <p class="mt-1 max-w-sm text-xs leading-5 text-ink-soft">Pesan pemeriksaan ke petugas, atau masukkan hasil pemeriksaan sendiri lewat halaman detail lahan.</p>
     </div>
-    <div class="mt-3 flex items-end gap-2"><p class="heading text-[28px] leading-none">{{ chart.current }}</p><span class="chip chip-down mb-0.5">{{ chart.change }}</span></div>
-    <div class="relative mt-2">
-      <svg id="chart" viewBox="0 0 640 220" class="block h-[220px] w-full" role="img" aria-label="{{ chart.title }}"></svg>
-      <div id="tip"></div>
-    </div>
-    {{ chart|json_script:"chart-data" }}
+    {% endif %}
   </article>
 
   <article class="d-card p-5">
-    <div class="flex items-center justify-between"><h2 class="d-title">Catatan dari Wiji</h2><a href="#" class="d-btn-sm">Lihat semua</a></div>
+    <h2 class="d-title">Catatan dari Wiji</h2>
+    {% if catatan %}
     <ul class="mt-3 space-y-3.5">
-      {% for note in notes %}
+      {% for note in catatan %}
       <li class="flex gap-3"><span class="kpi-icon shrink-0"><svg class="ic ic-sm {{ note.tone }}"><use href="#i-{{ note.icon }}"/></svg></span><p class="text-[13px] leading-5">{{ note.text }}</p></li>
       {% endfor %}
     </ul>
+    {% else %}
+    <p class="mt-4 text-sm text-ink-soft">Belum ada catatan. Mulai dengan menambahkan lahan.</p>
+    {% endif %}
   </article>
 </section>
 
-{# Riwayat terakhir #}
+{# Kejadian terbaru #}
+{% if aktivitas %}
 <section class="d-card mt-4 grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-5" aria-label="Riwayat terakhir">
-  {% for item in activity %}
-  <div class="flex items-center gap-3"><span class="kpi-icon"><svg class="ic ic-sm"><use href="#i-{{ item.icon }}"/></svg></span><div><p class="text-[13px] font-bold">{{ item.title }}</p><p class="text-[11px] text-ink-soft">{{ item.when }}</p></div></div>
+  {% for item in aktivitas %}
+  <div class="flex items-center gap-3"><span class="kpi-icon"><svg class="ic ic-sm"><use href="#i-{{ item.icon }}"/></svg></span><div class="min-w-0"><p class="truncate text-[13px] font-bold">{{ item.title }}</p><p class="text-[11px] text-ink-soft">{{ item.waktu|date:"j M, H.i" }}</p></div></div>
   {% endfor %}
 </section>
-
-<p class="mt-6 text-center text-[11px] text-ink-soft">Angka dan nama di halaman ini masih contoh sampai modul lahan, pemeriksaan, dan rekomendasi selesai.</p>
+{% endif %}
 {% endblock %}
