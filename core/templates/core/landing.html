@@ -4,289 +4,167 @@
 {# Tab browser cukup "Wiji" di beranda #}
 {% block full_title %}Wiji{% endblock %}
 
+{% block extra_head %}
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+{% endblock %}
+
+{# Navbar transparan di atas foto hero, jadi solid setelah lewat hero (diatur site.js) #}
+{% block navbar %}{% include 'partials/navbar.html' with overlay=True %}{% endblock %}
+{% block footer %}{% endblock %}
+
 {% block content %}
-<div class="mx-auto w-full max-w-[1200px] px-5 md:px-8">
+<div class="lp">
 
   {# Hero #}
-  <section class="hero panel panel-dark relative mt-7 flex items-center justify-center">
-    <img src="{% static 'img/hero-tanah.jpg' %}" alt="" class="absolute inset-0 h-full w-full object-cover">
-    <div class="hero-shade absolute inset-0"></div>
-
-    <div class="hero-text relative flex max-w-[860px] flex-col items-center px-6 py-8 text-center">
-      <p class="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-mint">Pemeliharaan dan pemulihan tanah</p>
-      <h1 class="heading text-balance text-[38px] leading-[1.05] text-white sm:text-5xl lg:text-[60px] lg:leading-[64px]">
-        Kenali tanahmu. <span class="heading-accent text-mint">Tanam yang tepat.</span>
-      </h1>
-      <p class="mt-4 max-w-[540px] text-base leading-[26px] text-on-dark-soft">
-        Catat lahan, periksa tanah, lalu dapatkan rekomendasi tanaman lengkap dengan alasan di balik setiap pilihan.
-      </p>
-      <a href="{% url 'accounts:register' %}" class="btn btn-leaf btn-lead btn-lead--white mt-7 !min-h-14 !text-base [text-shadow:none]" style="--r:22px">
-        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
-        Daftarkan lahan
-      </a>
-    </div>
-
-    <p class="absolute bottom-2.5 right-4 text-[10px] text-white/75">Foto: USDA, domain publik</p>
-  </section>
-
-  {# Sumber data #}
-  <section class="flex flex-col gap-2 py-5 md:flex-row md:items-center md:gap-12" aria-label="Sumber data">
-    <p class="w-[110px] shrink-0 text-[13px] font-bold leading-[18px]">Didukung data terbuka</p>
-    <ul class="heading flex flex-1 flex-wrap items-center justify-between gap-x-8 gap-y-3 text-base text-ink-soft md:text-lg">
-      <li>OpenStreetMap</li>
-      <li>Nominatim</li>
-      <li>Open-Meteo</li>
-      <li class="tracking-[0.04em]">NASA POWER</li>
-    </ul>
-  </section>
-
-  {# Cara kerja #}
-  <section id="cara-kerja" class="screen-sec scroll-mt-20">
-    <div class="reveal grid items-end gap-6 md:grid-cols-2 md:gap-12">
-      <h2 class="heading text-2xl md:text-[30px] md:leading-[36px]">
-        Satu tempat untuk mengenal dan <span class="heading-accent">merawat lahanmu</span>
-      </h2>
-      <p class="text-[15px] leading-6 text-ink-soft">
-        Wiji menyatukan pencatatan lahan, pemeriksaan tanah, data cuaca dan iklim, katalog tanaman, dan rencana tanam.
-        Kamu tidak hanya menerima daftar tanaman, tetapi juga alasan kenapa tanaman itu cocok.
-      </p>
-    </div>
-
-    <div class="mt-6 grid gap-3 md:grid-cols-12">
-      <article style="--i:0" class="reveal panel panel-dark flex min-h-[184px] flex-col justify-between gap-6 p-5 md:col-span-5">
-        <div class="flex gap-3">
-          <span class="grid size-10 place-items-center rounded-full bg-forest-soft"><img src="{% static 'icons/feature-1.svg' %}" alt="" class="size-5"></span>
-          <span class="grid size-10 place-items-center rounded-full bg-leaf"><img src="{% static 'icons/feature-2.svg' %}" alt="" class="size-5"></span>
-          <span class="grid size-10 place-items-center rounded-full bg-forest-soft"><img src="{% static 'icons/feature-3.svg' %}" alt="" class="size-5"></span>
-        </div>
-        <div>
-          <h3 class="heading text-xl leading-[26px]">Pemeriksaan tanah tanpa ribet</h3>
-          <p class="mt-1.5 text-[13px] leading-5 text-on-dark">
-            Masukkan hasil yang sudah kamu punya, atau pesan pemeriksaan. Status pesanan terlihat jelas dari diajukan sampai selesai.
-          </p>
-        </div>
-      </article>
-
-      <article style="--i:1" id="dua-jalur" class="reveal panel panel-leaf relative min-h-[184px] scroll-mt-24 md:col-span-7">
-        <img src="{% static 'img/tunas-muda.jpg' %}" alt="" class="absolute inset-y-0 right-0 h-full w-2/3 object-cover opacity-60">
-        <div class="absolute inset-0 bg-gradient-to-r from-leaf from-35% via-leaf/75 to-leaf/15"></div>
-        <div class="relative flex h-full max-w-[340px] flex-col justify-end gap-1.5 p-5 pt-20">
-          <p class="eyebrow !text-moss-deep">Fokus utama</p>
-          <h3 class="heading text-xl leading-[26px]">Jalur Pemeliharaan</h3>
-          <p class="text-sm leading-[22px] text-[color:var(--color-ink-on-leaf)]">
-            Menahan erosi, menjaga kelembapan, menambah bahan organik, dan memperbaiki unsur hara.
-          </p>
-        </div>
-        <p class="absolute bottom-2.5 right-4 text-[9px] text-[color:var(--color-ink-on-leaf)]/80">Foto: Ksheera Piraati, CC BY 4.0</p>
-      </article>
-
-      <article style="--i:2" class="reveal panel panel-dark flex min-h-[184px] flex-col justify-between gap-5 p-5 md:col-span-6 md:flex-row">
-        <div class="flex flex-col justify-between gap-6 md:max-w-[280px]">
-          <p class="eyebrow !text-mint">Rekomendasi transparan</p>
-          <div>
-            <h3 class="heading text-xl leading-[26px]">Skor yang bisa dijelaskan</h3>
-            <p class="mt-1.5 text-[13px] leading-5 text-on-dark">
-              Skor 0–100 dari pH, tekstur, iklim, dan tujuanmu, lengkap dengan alasan dan catatan risiko.
-            </p>
-          </div>
-        </div>
-        {# Contoh skor, cuma ilustrasi #}
-        <div class="flex size-[104px] shrink-0 flex-col items-center justify-center self-center rounded-full border-[3px] border-moss md:self-start" aria-hidden="true">
-          <span class="heading text-[28px] leading-none">86</span>
-          <span class="mt-0.5 text-[10px] text-on-dark">skor kecocokan</span>
-        </div>
-      </article>
-
-      <article style="--i:3" class="reveal panel panel-sand flex min-h-[184px] flex-col justify-between gap-5 p-5 md:col-span-6">
-        <ul class="flex flex-wrap gap-2">
-          <li class="badge badge-chip">Kontaminan terbatas</li>
-          <li class="badge badge-chip">Bersumber jelas</li>
-          <li class="badge badge-chip">Risiko tinggi ke ahli</li>
-        </ul>
-        <div>
-          <p class="eyebrow !text-clay-deep">Dengan hati-hati</p>
-          <h3 class="heading mt-2 text-xl leading-[26px]">Jalur Pemulihan</h3>
-          <p class="mt-1.5 text-[13px] leading-5 text-clay-ink">
-            Beberapa pasangan tanaman dan kontaminan yang punya sumber. Kasus berisiko tinggi tidak diberi rekomendasi otomatis.
-          </p>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  {# Cara pakai: slider dengan tombol panah #}
-  <section id="langkah" class="steps band scroll-mt-20" style="--band-bg:linear-gradient(180deg,#F1F6EF 0%,#E4EEE2 45%,#D9E7D5 100%)" aria-label="Cara pakai Wiji">
-    <div class="steps__sticky">
-      <div class="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,430px)_1fr] lg:gap-14">
-
-        <div>
-          <p class="eyebrow">Cara pakai</p>
-          <h2 class="heading mt-3 text-2xl md:text-[32px] md:leading-[38px]">Empat langkah, <span class="heading-accent">dari lahan sampai rencana</span></h2>
-          <ol class="steps__list mt-6">
-            <li class="steps__item is-active"><button type="button" class="steps__btn"><span class="steps__num">01</span><span><strong>Daftarkan lahanmu</strong><span class="steps__desc">Cari lokasinya di peta, lalu isi luas dan penggunaannya.</span></span></button></li>
-            <li class="steps__item"><button type="button" class="steps__btn"><span class="steps__num">02</span><span><strong>Periksa tanahnya</strong><span class="steps__desc">Masukkan hasil yang sudah ada, atau pesan pemeriksaan dan pantau statusnya.</span></span></button></li>
-            <li class="steps__item"><button type="button" class="steps__btn"><span class="steps__num">03</span><span><strong>Lihat rekomendasi</strong><span class="steps__desc">Tanaman diurutkan dengan skor, lengkap dengan alasannya.</span></span></button></li>
-            <li class="steps__item"><button type="button" class="steps__btn"><span class="steps__num">04</span><span><strong>Simpan rencana tanam</strong><span class="steps__desc">Pilih satu tanaman dan simpan jadi rencana pengelolaan.</span></span></button></li>
-          </ol>
-        </div>
-
-        <div class="steps__stage panel panel-dark">
-          <div class="steps__track">
-
-            <div class="steps__slide">
-              <div class="mock">
-                <p class="mock__title">Lahan baru</p>
-                <div class="mock__field"><span>Nama lahan</span><b>Kebun Lereng Cibodas</b></div>
-                <div class="mock__field"><span>Cari lokasi</span><b>Cibodas, Cianjur</b></div>
-                <div class="mock__map"><i></i><em>-6,74 · 107,00</em></div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="mock__field"><span>Luas</span><b>1.200 m²</b></div>
-                  <div class="mock__field"><span>Penggunaan</span><b>Kebun sayur</b></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="steps__slide">
-              <div class="mock">
-                <p class="mock__title">Pemeriksaan tanah</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="mock__choice"><b>Punya hasil sendiri</b><span>Isi pH, tekstur, dan unsur hara</span></div>
-                  <div class="mock__choice is-on"><b>Pesan pemeriksaan</b><span>Pilih jenis dan jadwal</span></div>
-                </div>
-                <p class="mock__label">Status pesanan</p>
-                <div class="flex flex-wrap gap-1.5">
-                  <span class="badge badge-leaf">Diajukan</span><span class="badge badge-leaf">Dikonfirmasi</span><span class="badge badge-sky">Dijadwalkan</span>
-                  <span class="badge badge-paper">Sampel Diambil</span><span class="badge badge-paper">Diproses</span><span class="badge badge-paper">Selesai</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="steps__slide">
-              <div class="mock">
-                <p class="mock__title">Rekomendasi tanaman</p>
-                <div class="mock__row"><div><b>Akar wangi</b><span>Menahan erosi, cocok pH 6,2</span></div><em>86</em><i style="--w:86%"></i></div>
-                <div class="mock__row"><div><b>Kalopo</b><span>Penutup tanah, tahan lembap</span></div><em>79</em><i style="--w:79%"></i></div>
-                <div class="mock__row"><div><b>Gamal</b><span>Menambah nitrogen</span></div><em>71</em><i style="--w:71%"></i></div>
-              </div>
-            </div>
-
-            <div class="steps__slide">
-              <div class="mock">
-                <p class="mock__title">Rencana pengelolaan</p>
-                <div class="mock__field"><span>Tanaman terpilih</span><b>Akar wangi</b></div>
-                <ul class="mock__check">
-                  <li>Lahan: Kebun Lereng Cibodas</li>
-                  <li>Skor kecocokan 86, alasan tersimpan</li>
-                  <li>Versi aturan dicatat</li>
-                </ul>
-                <span class="badge badge-leaf self-start">Rencana disimpan</span>
-              </div>
-            </div>
-
-          </div>
-          <div class="steps__nav">
-            <button type="button" class="steps__arrow" data-dir="-1" aria-label="Langkah sebelumnya"><img src="{% static 'icons/arrow-chevron.svg' %}" alt="" class="rotate-180"></button>
-            <div class="steps__dots">
-              <button type="button" class="is-on" aria-label="Langkah 1"></button><button type="button" aria-label="Langkah 2"></button><button type="button" aria-label="Langkah 3"></button><button type="button" aria-label="Langkah 4"></button>
-            </div>
-            <button type="button" class="steps__arrow" data-dir="1" aria-label="Langkah berikutnya"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></button>
-          </div>
-        </div>
-
+  <section class="lp-hero">
+    <img src="{% static 'img/hero-tanah.jpg' %}" alt="">
+    <h1 class="lp-h">Kenali tanahmu. <em class="lp-it">Tanam yang tepat.</em></h1>
+    <div class="lp-hero__bottom">
+      <div class="lp-hero__left">
+        <p class="lp-hero__lead">Wiji membantu pemilik lahan memeriksa tanah dan memilih tanaman, lengkap dengan alasan di balik setiap pilihan.</p>
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard:home' %}" class="lp-btn lp-btn-sun">Buka dashboard</a>
+        {% else %}
+          <a href="{% url 'accounts:register' %}" class="lp-btn lp-btn-sun">Daftarkan lahan</a>
+        {% endif %}
+        <span class="lp-tag">Pemeliharaan dan pemulihan tanah</span>
       </div>
-    </div>
-  </section>
-
-  
-
-  {# Alur #}
-  <section id="alur" class="screen-sec band scroll-mt-20" style="--band-bg:linear-gradient(180deg,#FFFFFF 0%,#F8F1E8 100%)">
-    <div class="reveal mx-auto flex max-w-[560px] flex-col items-center gap-3 text-center">
-      <p class="eyebrow">Dari tanah sampai tanaman</p>
-      <h2 class="heading text-3xl md:text-[40px] md:leading-[44px]">
-        Satu alur.<br><span class="heading-accent">Setiap langkah terlihat.</span>
-      </h2>
-      <p class="text-[15px] leading-6 text-ink-soft">
-        Pemilik lahan, admin, dan petugas bekerja di alur yang sama. Setiap perubahan status tercatat di riwayat pesanan.
-      </p>
-    </div>
-
-    <div class="reveal panel panel-dark mt-7 grid overflow-hidden lg:grid-cols-[440px_1fr] lg:gap-8">
-      <div class="flex flex-col justify-center gap-3.5 p-6 md:p-8 lg:py-9 lg:pl-10 lg:pr-0">
-        <h3 class="heading text-2xl md:text-[30px] md:leading-[36px]">Untuk pemilik lahan</h3>
-        <p class="text-[15px] leading-6 text-on-dark">
-          Dari mendaftarkan lahan sampai menyimpan rencana tanam, semua ada di satu dashboard.
-        </p>
-        <ul class="flex flex-col gap-2 text-sm">
-          {% for item in owner_steps %}
-          <li class="flex items-center gap-3">
-            <img src="{% static 'icons/check.svg' %}" alt="" class="size-5">
-            <span>{{ item }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-        {# Dashboard belum ada, jadi tombol ini diarahin ke daftar #}
-        <a href="{% url 'accounts:register' %}" class="btn btn-white mt-1 self-start !min-h-11 !text-sm">
-          Lihat dashboard
-          <img src="{% static 'icons/arrow-chevron.svg' %}" alt="" class="size-4">
+      <div class="lp-hero__right">
+        <a href="#langkah" class="lp-peek">
+          <img src="{% static 'img/sawah-terasering.jpg' %}" alt="">
+          <span>▶ Lihat cara pakainya</span>
         </a>
-      </div>
-
-      {# Contoh tampilan dashboard, cuma ilustrasi #}
-      <div class="px-4 pb-0 pt-6 md:px-6 lg:pr-0 lg:pt-10" aria-hidden="true">
-        <div class="flex h-full flex-col gap-3 rounded-tl-xl border-l-[4px] border-t-[4px] border-forest-soft bg-white p-5 text-ink">
-          <p class="text-sm font-bold">Lahan dan pesanan</p>
-          <div class="grid grid-cols-3 gap-3">
-            <div class="rounded-xl bg-leaf p-2.5"><p class="text-xs text-moss-deep">Lahan</p><p class="heading text-[22px] leading-7">4</p></div>
-            <div class="rounded-xl bg-sand p-2.5"><p class="text-xs text-clay-deep">Pesanan aktif</p><p class="heading text-[22px] leading-7">1</p></div>
-            <div class="rounded-xl bg-paper p-2.5"><p class="text-xs text-ink-soft">Rencana</p><p class="heading text-[22px] leading-7">1</p></div>
-          </div>
-          {% for row in sample_orders %}
-          <div class="flex items-center justify-between gap-3 border-t border-line py-2.5">
-            <div>
-              <p class="text-sm font-bold">{{ row.land }}</p>
-              <p class="text-xs text-ink-soft">{{ row.note }}</p>
-            </div>
-            <span class="badge {{ row.badge }}">{{ row.status }}</span>
-          </div>
-          {% endfor %}
-        </div>
+        <div class="lp-hero__row"><span class="lp-tag">Foto: USDA, domain publik</span><span class="lp-tag">Gulir ↓</span></div>
       </div>
     </div>
   </section>
 
-  {# Katalog #}
-  <section id="katalog" class="screen-sec band scroll-mt-20" style="--band-bg:linear-gradient(180deg,#F8F1E8 0%,#F3E8DD 50%,#EBDCCB 100%)">
-    <div class="reveal flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <h2 class="heading text-2xl md:text-[30px] md:leading-[36px]">Dari katalog <span class="heading-accent">tanaman</span></h2>
-      {# Halaman katalog belum ada (Modul D) #}
-      <a href="#katalog" class="btn btn-outline self-start !min-h-10 !text-sm sm:self-auto">Lihat semua tanaman</a>
-    </div>
-
-    <ul class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {% for plant in featured_plants %}
-      <li class="reveal plant-card" style="--i:{{ forloop.counter0 }}">
-        <div class="plant-card__photo">[Foto tanaman]</div>
-        <div class="flex flex-col gap-0.5 px-4 pb-4 pt-3">
-          <h3 class="heading text-lg leading-normal">{{ plant.name }}</h3>
-          <p class="text-[13px] italic text-ink-soft">{{ plant.latin }}</p>
-          <p class="pt-2"><span class="badge badge-leaf !text-[11px] font-semibold">{{ plant.role }}</span></p>
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
-
-    <div class="reveal panel panel-leaf mt-8 flex flex-col items-start justify-between gap-4 px-6 py-7 md:min-h-[120px] md:flex-row md:items-center md:px-9">
-      <h2 class="heading text-2xl md:text-[28px] md:leading-[34px]">Siap merawat <span class="heading-accent">lahanmu?</span></h2>
-      <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lead !min-h-12 !text-[15px]" style="--r:18px">
-        <span class="btn-lead__icon"><img src="{% static 'icons/arrow-chevron.svg' %}" alt=""></span>
-        Daftar gratis
-      </a>
+  {# Kalimat besar #}
+  <section id="cara-kerja" class="lp-statement scroll-mt-20">
+    <div class="lp-wrap">
+      <span class="lp-tag reveal">Kenapa Wiji</span>
+      <p id="lp-statement">Wiji bukan sekadar daftar tanaman. Ini cara mengenal <span class="lp-pill" role="img" aria-label="Tanah dengan tunas"></span> tanahmu lebih dulu, lalu menanam dengan alasan yang jelas, dari data yang terbuka dan bisa dicek siapa saja.</p>
     </div>
   </section>
+
+  {# Kartu bukti #}
+  <section class="lp-proof" aria-label="Kenapa rekomendasi Wiji bisa dipercaya">
+    <div class="lp-proof__line"></div>
+    <span class="lp-tag">Setiap saran<br>ada alasannya</span>
+    <div class="lp-rail">
+      <article><img src="{% static 'img/tunas-muda.jpg' %}" alt=""><div><h3>Skor yang bisa dijelaskan</h3><p>Setiap tanaman punya skor kecocokan dan rincian kenapa nilainya segitu.</p></div></article>
+      <article><img src="{% static 'img/sawah-terasering.jpg' %}" alt=""><div><h3>Data terbuka</h3><p>Peta, cuaca, dan iklim dari sumber terbuka. Sumbernya selalu ditulis.</p></div></article>
+      <article><img src="{% static 'img/hero-tanah.jpg' %}" alt=""><div><h3>Hati-hati soal kontaminan</h3><p>Kalau risiko tinggi, Wiji menyarankan konsultasi ke ahli, bukan menebak.</p></div></article>
+      <article><img src="{% static 'img/tunas-muda.jpg' %}" alt=""><div><h3>Aturan tercatat</h3><p>Versi aturan penilaian disimpan di tiap rencana, jadi hasilnya bisa ditelusuri.</p></div></article>
+    </div>
+  </section>
+
+  {# Bagian gelap, kata berganti #}
+  <section class="lp-dark">
+    <div class="lp-wrap">
+      <h2 class="lp-h">Setiap rekomendasi itu</h2>
+      <div class="lp-words" id="lp-words">
+        <span>Terukur</span><span>Bersumber</span><span>Transparan</span><span>Hati-hati</span><span>Berkelanjutan</span>
+      </div>
+      <div class="lp-photo">
+        <img src="{% static 'img/sawah-terasering.jpg' %}" alt="Sawah terasering">
+        <span>● Lahan / Terasering</span>
+      </div>
+    </div>
+  </section>
+
+  {# Angka #}
+  <section class="lp-stats">
+    <img src="{% static 'img/tunas-muda.jpg' %}" alt="">
+    <div class="lp-wrap">
+      <div class="lp-stats__top">
+        <span class="lp-tag">Yang kami pegang</span>
+        <p>Angka yang tidak bisa dicek hanyalah cerita. Ini tiga hal yang kami jaga di setiap lahan.</p>
+      </div>
+      <ul>
+        <li class="reveal"><b data-count="4">4</b><span>Langkah dari daftar lahan sampai rencana tanam</span></li>
+        <li class="reveal" style="--i:1"><b data-count="2">2</b><span>Jalur: pemeliharaan dan pemulihan tanah</span></li>
+        <li class="reveal" style="--i:2"><b data-count="50" data-plus>50+</b><span>Tanaman di katalog, lengkap dengan sumbernya</span></li>
+      </ul>
+    </div>
+  </section>
+
+  {# Tiga peran #}
+  <section id="peran" class="lp-ways scroll-mt-20">
+    <div class="lp-wrap">
+      <div class="lp-ways__head">
+        <h2 class="lp-h reveal">Satu sistem. <span class="lp-it">Tiga cara masuk.</span></h2>
+        <p class="reveal">Pemilik lahan, petugas lapangan, dan admin bekerja di tempat yang sama, jadi status pesanan nggak perlu ditanyakan lewat chat.</p>
+      </div>
+      <div class="lp-cards">
+        <article class="lp-way reveal">
+          <div><span class="lp-way__no">01</span><h3>Pemilik lahan</h3><p>Daftarkan lahan, pesan pemeriksaan, dan simpan rencana tanam.</p></div>
+          <img src="{% static 'img/tunas-muda.jpg' %}" alt="">
+        </article>
+        <article class="lp-way lp-way--dark reveal" style="--i:1">
+          <div>
+            <span class="lp-way__no">02</span><h3>Petugas lapangan</h3>
+            <p>Lihat tugas hari ini, ambil sampel, lalu catat hasilnya langsung dari satu halaman.</p>
+            <div class="lp-chips"><span>Jadwal</span><span>Sampel tanah</span><span>Isi hasil</span></div>
+          </div>
+          <span class="lp-way__no">Akun dibuat admin</span>
+        </article>
+        <article class="lp-way reveal" style="--i:2">
+          <div><span class="lp-way__no">03</span><h3>Admin</h3><p>Konfirmasi pesanan, atur petugas, dan jaga katalog tanaman tetap rapi.</p></div>
+          <img src="{% static 'img/sawah-terasering.jpg' %}" alt="">
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {# Empat langkah #}
+  <section id="langkah" class="lp-langkah scroll-mt-20">
+    <div class="lp-wrap">
+      <div class="lp-langkah__head">
+        <h2 class="lp-h reveal">Empat langkah, <span class="lp-it">dari lahan sampai rencana.</span></h2>
+        <a href="{% if user.is_authenticated %}{% url 'dashboard:home' %}{% else %}{% url 'accounts:register' %}{% endif %}" class="lp-btn lp-btn-dark">Mulai sekarang</a>
+      </div>
+      <ol>
+        <li class="reveal"><span class="lp-langkah__n">01</span><h3>Daftarkan lahanmu</h3><p>Cari lokasinya di peta, isi luas dan penggunaan lahan.</p></li>
+        <li class="reveal"><span class="lp-langkah__n">02</span><h3>Periksa tanahnya</h3><p>Masukkan hasil yang sudah ada, atau pesan pemeriksaan dan pantau statusnya.</p></li>
+        <li class="reveal"><span class="lp-langkah__n">03</span><h3>Lihat rekomendasi</h3><p>Tanaman diurutkan dengan skor, lengkap dengan alasan dan peringatannya.</p></li>
+        <li class="reveal"><span class="lp-langkah__n">04</span><h3>Simpan rencana tanam</h3><p>Pilih satu tanaman dan simpan rencananya buat dikerjakan nanti.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  {# Tanya jawab #}
+  <section id="tanya" class="lp-faq scroll-mt-20">
+    <div class="lp-wrap">
+      <div><span class="lp-tag">Tanya jawab</span><h2 class="lp-h">Hal yang <span class="lp-it">sering ditanyakan.</span></h2></div>
+      <div>
+        <details open><summary>Apakah saya wajib memesan pemeriksaan?</summary><p>Nggak wajib. Kalau sudah punya hasil uji tanah, kamu bisa memasukkannya sendiri.</p></details>
+        <details><summary>Dari mana data cuaca dan petanya?</summary><p>Dari sumber terbuka seperti OpenStreetMap, Open-Meteo, dan NASA POWER. Sumbernya ditampilkan di tiap halaman.</p></details>
+        <details><summary>Apa yang terjadi kalau tanahku tercemar?</summary><p>Wiji menandai risiko tinggi dan menyarankan kamu berkonsultasi dengan ahli sebelum menanam tanaman pangan.</p></details>
+        <details><summary>Siapa yang bisa jadi petugas?</summary><p>Akun petugas dibuat oleh admin. Pendaftaran publik hanya untuk pemilik lahan.</p></details>
+      </div>
+    </div>
+  </section>
+
+  {# Penutup dan footer #}
+  <section class="lp-end">
+    <div class="lp-wrap">
+      <h2 class="lp-h">Siap merawat <em class="lp-it">lahanmu?</em></h2>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard:home' %}" class="lp-btn lp-btn-sun">Buka dashboard</a>
+      {% else %}
+        <a href="{% url 'accounts:register' %}" class="lp-btn lp-btn-sun">Daftarkan lahan</a>
+      {% endif %}
+      <div class="lp-end__foot">
+        <img src="{% static 'img/logo-wordmark.svg' %}" alt="Wiji">
+        <span>Kelompok D12 · PBP 2026</span>
+        <span>Data lokasi © OpenStreetMap · Cuaca Open-Meteo · Iklim NASA POWER · Foto tunas: Ksheera Piraati, CC BY 4.0</span>
+      </div>
+    </div>
+  </section>
+
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/steps.js' %}"></script>
-{% endblock %}
+{% block extra_js %}<script src="{% static 'js/landing.js' %}"></script>{% endblock %}
