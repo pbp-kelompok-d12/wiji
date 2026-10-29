@@ -162,5 +162,7 @@ class Lahan(models.Model):
         self.diarsipkan_pada = None
         self.save(update_fields=['diarsipkan', 'diarsipkan_pada', 'diperbarui_pada'])
 
+    def hasil_final(self):
+        return self.soil_results.filter(status_hasil="final")
 
 Land = Lahan
