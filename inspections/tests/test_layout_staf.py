@@ -25,14 +25,16 @@ class LayoutStafTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse('inspections:kelola_daftar'))
         self.assertNotContains(response, reverse('lands:tambah_lahan'))
-        self.assertNotContains(response, 'Satu lahan belum lengkap')
+        self.assertNotContains(response, 'lahan belum lengkap')
         self.assertNotContains(response, 'Pemilik Lahan</p>')
 
     def test_pemilik_tetap_melihatnya(self):
+        from lands.models import Lahan
+        Lahan.objects.create(owner=self.pesanan.pemilik, nama='Lahan draf')
         self.client.force_login(self.pesanan.pemilik)
         response = self.client.get(reverse('inspections:daftar_pesanan'))
         self.assertContains(response, reverse('lands:tambah_lahan'))
-        self.assertContains(response, 'Satu lahan belum lengkap')
+        self.assertContains(response, '1 lahan belum lengkap')
 
     def test_catatan_khusus_pemilik_nggak_muncul_di_halaman_admin(self):
         self.client.force_login(self.admin)
