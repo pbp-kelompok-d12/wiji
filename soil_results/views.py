@@ -55,6 +55,7 @@ def detail_hasil(request, hasil_id):
         HasilPemeriksaan.objects.select_related("lahan"),
         pk=hasil_id,
         lahan__owner=request.user,
+        status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
     )
 
     return render(
@@ -375,7 +376,8 @@ def unduh_dokumen(request, hasil_id):
     queryset = HasilPemeriksaan.objects.all()
 
     if not request.user.is_staff:
-        queryset = queryset.filter(lahan__owner=request.user)
+        queryset = queryset.filter(lahan__owner=request.user,
+                                   status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
 
     hasil = get_object_or_404(queryset, pk=hasil_id)
 
@@ -397,43 +399,14 @@ def unduh_dokumen(request, hasil_id):
     response["X-Content-Type-Options"] = "nosniff"
     return response
 
-
-@login_required
-@require_http_methods(["GET"])
-def daftar_hasil(request):
-    hasil_list = (
-        HasilPemeriksaan.objects
-        .filter(lahan__owner=request.user)
-        .select_related("lahan")
-    )
-
-    pencarian = request.GET.get("q", "").strip()
-    asal = request.GET.get("asal", "")
-
-    if pencarian:
-        hasil_list = hasil_list.filter(lahan__nama__icontains=pencarian)
-
-    if asal in HasilPemeriksaan.Asal.values:
-        hasil_list = hasil_list.filter(asal=asal)
-
-    return render(
-        request,
-        "soil_results/daftar_hasil.html",
-        {
-            "hasil_list": hasil_list,
-            "pencarian": pencarian,
-            "asal": asal,
-        },
-    )
-
-
 @login_required
 @require_http_methods(["GET"])
 @vary_on_headers("HX-Request")
 def daftar_hasil(request):
     hasil_list = (
         HasilPemeriksaan.objects
-        .filter(lahan__owner=request.user)
+        .filter(lahan__owner=request.user,
+                status_hasil=HasilPemeriksaan.StatusHasil.FINAL,    )
         .select_related("lahan")
     )
 
@@ -517,7 +490,9 @@ def api_daftar_hasil(request):
 
     hasil_list = (
         HasilPemeriksaan.objects
-        .filter(lahan__owner=request.user)
+        .filter(
+            lahan__owner=request.user,
+            status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
         .select_related("lahan")
         .prefetch_related(
             "nutrient_measurements",
@@ -551,7 +526,8 @@ def api_detail_hasil(request, hasil_id):
 
     hasil = (
         HasilPemeriksaan.objects
-        .filter(pk=hasil_id, lahan__owner=request.user)
+        .filter(pk=hasil_id, lahan__owner=request.user,
+                status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
         .select_related("lahan")
         .prefetch_related(
             "nutrient_measurements",

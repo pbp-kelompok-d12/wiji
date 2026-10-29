@@ -142,6 +142,36 @@ class AksesHasilTests(TestCase):
             HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
         )
 
+    def test_pemilik_tidak_bisa_melihat_draf_petugas(self):
+        self.hasil.asal = HasilPemeriksaan.Asal.WIJI
+        self.hasil.status_hasil = HasilPemeriksaan.StatusHasil.DRAF
+        self.hasil.save()
+
+        self.client.force_login(self.pemilik)
+
+        for nama_url in [
+            "soil_results:detail_hasil",
+            "soil_results:api_detail_hasil",
+        ]:
+            with self.subTest(url=nama_url):
+                response = self.client.get(
+                    reverse(nama_url, args=[self.hasil.pk])
+                )
+                self.assertEqual(response.status_code, 404)
+
+        response = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+        self.assertEqual(response.json()["results"], [])
+
+        response = self.client.get(
+            reverse("soil_results:daftar_hasil")
+        )
+        self.assertNotIn(
+            self.hasil.pk,
+            [hasil.pk for hasil in response.context["hasil_list"]],
+        )
+
 class ValidasiFormTests(TestCase):
     def data_hasil(self, **perubahan):
         data = {
