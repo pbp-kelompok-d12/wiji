@@ -63,3 +63,31 @@ class SeedPesananDemoTests(TestCase):
         jalankan()
         jalankan('--ulang')
         self.assertTrue(PesananPemeriksaan.objects.filter(pk=punya_dewi.pk).exists())
+
+
+class AkunDemoTests(TestCase):
+    def test_ada_akun_admin_demo_yang_bisa_masuk_ke_halaman_kelola(self):
+        jalankan()
+        admin = User.objects.get(username='admin.demo')
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.check_password('demo-wiji-123'))
+        self.client.force_login(admin)
+        self.assertEqual(self.client.get('/pemeriksaan/kelola/').status_code, 200)
+
+    def test_petugas_demo_punya_tugas_di_halaman_petugas(self):
+        jalankan()
+        petugas = User.objects.get(username='petugas.bima')
+        self.client.force_login(petugas)
+        response = self.client.get('/pemeriksaan/tugas/')
+        self.assertTrue(len(response.context['pesanan_list']) > 0)
+
+    def test_admin_dibuat_juga_kalau_data_demo_sudah_ada_dari_versi_lama(self):
+        jalankan()
+        User.objects.filter(username='admin.demo').delete()
+        self.assertIn('sudah ada', jalankan())
+        self.assertTrue(User.objects.filter(username='admin.demo', is_staff=True).exists())
+
+    def test_ulang_nggak_menggandakan_admin(self):
+        jalankan()
+        jalankan('--ulang')
+        self.assertEqual(User.objects.filter(username='admin.demo').count(), 1)

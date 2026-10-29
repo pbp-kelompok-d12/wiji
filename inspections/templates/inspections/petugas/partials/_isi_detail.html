@@ -1,0 +1,35 @@
+{# Isi halaman detail tugas. Dibungkus id supaya bisa diganti lewat HTMX setelah status berubah #}
+<div id="konten-pesanan">
+  {% if pesan_sukses %}<div class="alert alert-success mt-5" role="status">{{ pesan_sukses }}</div>{% endif %}
+  {% if pesan_error %}<div class="alert alert-error mt-5" role="alert">{{ pesan_error }}</div>{% endif %}
+
+  <header class="mt-4 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">Tugas {{ pesanan.kode }}</p>
+      <h1 class="heading mt-1 flex flex-wrap items-center gap-3 text-[28px] leading-[34px]">
+        {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }}
+        {% include 'inspections/partials/_status.html' %}
+      </h1>
+      <p class="mt-1 text-sm text-ink-soft">
+        Pemeriksaan {{ pesanan.jenis.nama }}{% if pesanan.tanggal_final %} · {{ pesanan.tanggal_final|date:"D, j M Y" }}, {{ pesanan.get_sesi_final_display }}{% endif %}
+      </p>
+    </div>
+    {% if langkah_berikut %}
+    {# Tanpa JavaScript tombol ini tetap jalan sebagai form biasa #}
+    <form method="post" action="{% url 'inspections:tugas_lanjut' pesanan.pk %}"
+          hx-post="{% url 'inspections:tugas_lanjut' pesanan.pk %}" hx-target="#konten-pesanan" hx-swap="outerHTML">
+      {% csrf_token %}
+      <input type="hidden" name="ke" value="{{ langkah_berikut.ke }}">
+      <button type="submit" class="btn btn-primary !min-h-10">{{ langkah_berikut.label }}</button>
+    </form>
+    {% endif %}
+  </header>
+
+  {% if pesanan.status == 'dikonfirmasi' %}
+  <div class="alert alert-info mt-5">Menunggu admin menetapkan jadwal. Tombol langkah berikutnya muncul setelah pesanan dijadwalkan.</div>
+  {% elif pesanan.status == 'diproses' %}
+  <div class="alert alert-info mt-5">Sampel sudah diproses. Hasil pemeriksaan diisi dan difinalkan lewat modul hasil pemeriksaan, lalu pesanan jadi Selesai.</div>
+  {% endif %}
+
+  {% include 'inspections/partials/_rincian_riwayat.html' %}
+</div>

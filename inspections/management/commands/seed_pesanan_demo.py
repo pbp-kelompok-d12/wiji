@@ -1,4 +1,4 @@
-"""Isi data demo buat modul pemesanan: petugas sintetis, satu pemilik demo dengan lahan, dan 8 pesanan.
+"""Isi data demo buat modul pemesanan: satu admin, petugas sintetis, satu pemilik demo dengan lahan, dan 8 pesanan.
 
 Delapan pesanan itu mencakup ketujuh status (plus satu pesanan yang pernah dijadwal ulang),
 lengkap dengan riwayatnya, lewat fungsi yang sama dengan aplikasi aslinya.
@@ -21,6 +21,7 @@ Status = PesananPemeriksaan.Status
 
 PASSWORD_DEMO = 'demo-wiji-123'
 PEMILIK = {'username': 'pemilik.demo', 'first_name': 'Sari Rahayu'}
+ADMIN = {'username': 'admin.demo', 'first_name': 'Admin Wiji'}
 PETUGAS = [
     {'username': 'petugas.bima', 'first_name': 'Bima Pratama'},
     {'username': 'petugas.laras', 'first_name': 'Laras Wulandari'},
@@ -54,6 +55,8 @@ class Command(BaseCommand):
         if opsi['ulang']:
             self._hapus_demo()
 
+        # Akun admin dibuat dulu dan selalu dicek, jadi data demo lama pun dapat akun admin-nya
+        self._akun(ADMIN, role=User.Role.OWNER, is_staff=True)
         pemilik, baru = self._akun(PEMILIK, role=User.Role.OWNER)
         if not baru and PesananPemeriksaan.objects.filter(lahan__owner=pemilik).exists():
             self.stdout.write('Data demo sudah ada. Pakai --ulang kalau mau dibuat ulang.')
@@ -69,12 +72,15 @@ class Command(BaseCommand):
             self._pesanan(lahan, JenisPemeriksaan.objects.get(slug=slug), tujuan, petugas[i % len(petugas)], pemilik)
 
         self.stdout.write(self.style.SUCCESS(
-            f'Selesai: {len(LAHAN_DAN_PESANAN)} pesanan demo. Masuk sebagai {PEMILIK["username"]} / {PASSWORD_DEMO}.'
+            f'Selesai: {len(LAHAN_DAN_PESANAN)} pesanan demo. Password semua akun demo: {PASSWORD_DEMO}\n'
+            f'  pemilik : {PEMILIK["username"]}\n'
+            f'  admin   : {ADMIN["username"]}\n'
+            f'  petugas : {", ".join(p["username"] for p in PETUGAS)}'
         ))
 
-    def _akun(self, data, role):
+    def _akun(self, data, role, **tambahan):
         user, baru = User.objects.get_or_create(
-            username=data['username'], defaults={'first_name': data['first_name'], 'role': role},
+            username=data['username'], defaults={'first_name': data['first_name'], 'role': role, **tambahan},
         )
         if baru:
             user.set_password(PASSWORD_DEMO)
