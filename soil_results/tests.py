@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from lands.models import Lahan
+from lands.models import Lahan, ManagementGoal
 from .models import HasilPemeriksaan
 
 from datetime import timedelta
@@ -15,6 +15,9 @@ from django.test import override_settings
 from django.utils import timezone
 
 from .forms import HasilMandiriForm, DokumenLaboratoriumForm
+
+from core.models import Tanaman
+from recommendations.models import RecommendationSnapshot, ManagementPlan
 
 
 class AksesHasilTests(TestCase):
@@ -292,3 +295,113 @@ class DokumenPrivatTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
         self.assertIn("next=", response.url)
+
+
+class PenguncianRencanaTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.pemilik = User.objects.create_user(
+            username="pemilik_rencana",
+            role="owner",
+        )
+        self.client.force_login(self.pemilik)
+
+        self.lahan = Lahan.objects.create(
+            owner=self.pemilik,
+            nama="Lahan integrasi",
+        )
+        self.hasil = HasilPemeriksaan.objects.create(
+            lahan=self.lahan,
+            dibuat_oleh=self.pemilik,
+            tanggal_pemeriksaan=date(2026, 1, 1),
+            sumber="Lab awal",
+            asal=HasilPemeriksaan.Asal.MANDIRI,
+        )
+        tanaman = Tanaman.objects.create(
+            nama="Tanaman uji",
+            fungsi="Pengujian",
+            deskripsi="Data sintetis",
+            kondisi_pertumbuhan="Data pengujian",
+        )
+        tujuan = ManagementGoal.objects.create(
+            nama="Tujuan uji",
+            slug="tujuan-uji",
+        )
+        self.rekomendasi = RecommendationSnapshot.objects.create(
+            lahan=self.lahan,
+            hasil_pemeriksaan=self.hasil,
+            tanaman=tanaman,
+            tujuan=tujuan,
+            skor=80,
+            kelengkapan_data=100,
+        )
+
+    def buat_rencana(self):
+        return ManagementPlan.objects.create(
+            pemilik=self.pemilik,
+            lahan=self.lahan,
+            rekomendasi=self.rekomendasi,
+        )
+
+    def test_snapshot_saja_belum_dianggap_rencana(self):
+        self.assertFalse(self.hasil.dipakai_dalam_rencana())
+
+    def test_hasil_dengan_rencana_terdeteksi(self):
+        self.buat_rencana()
+        self.assertTrue(self.hasil.dipakai_dalam_rencana())
+
+    def test_edit_hasil_dengan_rencana_ditolak(self):
+        self.buat_rencana()
+
+        response = self.client.post(
+            reverse(
+                "soil_results:ubah_hasil_mandiri",
+                args=[self.hasil.pk],
+            ),
+            {
+                "sumber": "Sumber baru",
+                "tanggal_pemeriksaan": "2026-01-01",
+                "ph": "6.5",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.hasil.refresh_from_db()
+        self.assertEqual(self.hasil.sumber, "Lab awal")
+
+    def test_hapus_hasil_dengan_rencana_ditolak(self):
+        self.buat_rencana()
+
+        response = self.client.post(
+            reverse(
+                "soil_results:hapus_hasil_mandiri",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.assertTrue(
+            HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
+        )
+
+    def test_hapus_hasil_dengan_snapshot_tidak_error_server(self):
+        response = self.client.post(
+            reverse(
+                "soil_results:hapus_hasil_mandiri",
+                args=[self.hasil.pk],
+            )
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("soil_results:detail_hasil", args=[self.hasil.pk]),
+        )
+        self.assertTrue(
+            HasilPemeriksaan.objects.filter(pk=self.hasil.pk).exists()
+        )
