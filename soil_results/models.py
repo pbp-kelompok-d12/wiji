@@ -96,6 +96,11 @@ class HasilPemeriksaan(models.Model):
                     "Tanggal pemeriksaan tidak boleh di masa depan."
             })
 
+    def dipakai_dalam_rencana(self):
+        return self.recommendation_snapshots.filter(
+            management_plan__isnull=False,
+        ).exists()
+
 
 class NutrientMeasurement(models.Model):
     class Satuan(models.TextChoices):

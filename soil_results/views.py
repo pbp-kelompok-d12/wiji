@@ -10,6 +10,7 @@ from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriu
 from .models import HasilPemeriksaan, NutrientMeasurement
 import uuid
 from django.http import FileResponse, Http404, JsonResponse
+from django.db.models.deletion import ProtectedError
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -78,8 +79,16 @@ def ubah_hasil_mandiri(request, hasil_id):
         asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
-    # TODO integrasi Modul E
-    # Blokir perubahan jika hasil sudah dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         form = HasilMandiriForm(request.POST, instance=hasil)
@@ -121,12 +130,32 @@ def hapus_hasil_mandiri(request, hasil_id):
         asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
-    # TODO integrasi Modul E:
-    # Blokir penghapusan jika hasil sudah dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         lahan_url = hasil.lahan.get_absolute_url()
-        hasil.delete()
+
+        try:
+            hasil.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                "Hasil tidak dapat dihapus karena sudah digunakan "
+                "dalam rekomendasi atau data terkait.",
+            )
+            return redirect(
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
+            )
 
         messages.success(request, "Hasil mandiri berhasil dihapus.")
         return redirect(lahan_url)
@@ -153,8 +182,16 @@ def tambah_unsur_hara(request, hasil_id):
         asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
-    # TODO integrasi Modul E:
-    # Blokir perubahan jika hasil sudah dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         form = NutrientMeasurementForm(request.POST)
@@ -195,8 +232,16 @@ def ubah_unsur_hara(request, pengukuran_id):
     )
     hasil = pengukuran.hasil
 
-    # TODO integrasi Modul E:
-    # Blokir perubahan jika hasil sudah dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         form = NutrientMeasurementForm(
@@ -241,8 +286,16 @@ def hapus_unsur_hara(request, pengukuran_id):
     )
     hasil = pengukuran.hasil
 
-    # TODO integrasi Modul E:
-    # Blokir perubahan jika hasil sudah dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         pengukuran.delete()
@@ -273,7 +326,16 @@ def unggah_dokumen(request, hasil_id):
         asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
-    # TODO Modul E: blokir perubahan jika hasil dipakai dalam rencana.
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat diubah atau dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
 
     if request.method == "POST":
         form = DokumenLaboratoriumForm(request.POST, request.FILES)
