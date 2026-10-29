@@ -14,6 +14,34 @@ from django.db.models.deletion import ProtectedError
 from django.db import transaction
 from inspections.models import PesananPemeriksaan
 from .forms import HasilPetugasForm
+from django.db.models import Q
+from .permissions import (
+    boleh_mengelola_hasil,
+    pastikan_boleh_mengelola,
+)
+
+def hasil_yang_bisa_dibaca(user):
+    queryset = HasilPemeriksaan.objects.select_related(
+        "lahan",
+        "pesanan",
+    )
+
+    if user.is_staff:
+        return queryset
+
+    akses = Q(
+        lahan__owner=user,
+        status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
+    )
+
+    if user.is_officer:
+        akses |= Q(
+            asal=HasilPemeriksaan.Asal.WIJI,
+            pesanan__petugas=user,
+        )
+
+    return queryset.filter(akses)
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -55,10 +83,8 @@ def tambah_hasil_mandiri(request, lahan_id):
 @require_http_methods(["GET"])
 def detail_hasil(request, hasil_id):
     hasil = get_object_or_404(
-        HasilPemeriksaan.objects.select_related("lahan"),
+        hasil_yang_bisa_dibaca(request.user),
         pk=hasil_id,
-        lahan__owner=request.user,
-        status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
     )
 
     return render(
@@ -67,6 +93,10 @@ def detail_hasil(request, hasil_id):
         {
             "hasil": hasil, 
             "terkunci": hasil.dipakai_dalam_rencana(),
+            "boleh_kelola": boleh_mengelola_hasil(
+                request.user,
+                hasil,
+            ),
         },
     )
 
@@ -176,17 +206,9 @@ def hapus_hasil_mandiri(request, hasil_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def tambah_unsur_hara(request, hasil_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat menambahkan pengukuran."
-        )
-
     hasil = get_object_or_404(
-        HasilPemeriksaan.objects.select_related("lahan"),
+        hasil_yang_bisa_dibaca(request.user),
         pk=hasil_id,
-        lahan__owner=request.user,
-        lahan__diarsipkan=False,
-        asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
     if hasil.dipakai_dalam_rencana():
@@ -199,6 +221,8 @@ def tambah_unsur_hara(request, hasil_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+    
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         form = NutrientMeasurementForm(request.POST)
@@ -225,17 +249,10 @@ def tambah_unsur_hara(request, hasil_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def ubah_unsur_hara(request, pengukuran_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat mengubah pengukuran."
-        )
-
     pengukuran = get_object_or_404(
-        NutrientMeasurement.objects.select_related("hasil__lahan"),
+        NutrientMeasurement.objects.select_related("hasil__lahan", "hasil__pesanan"),
         pk=pengukuran_id,
-        hasil__lahan__owner=request.user,
-        hasil__lahan__diarsipkan=False,
-        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+        hasil__in=hasil_yang_bisa_dibaca(request.user),
     )
     hasil = pengukuran.hasil
 
@@ -249,6 +266,8 @@ def ubah_unsur_hara(request, pengukuran_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         form = NutrientMeasurementForm(
@@ -279,17 +298,10 @@ def ubah_unsur_hara(request, pengukuran_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def hapus_unsur_hara(request, pengukuran_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat menghapus pengukuran."
-        )
-
     pengukuran = get_object_or_404(
-        NutrientMeasurement.objects.select_related("hasil__lahan"),
+        NutrientMeasurement.objects.select_related("hasil__lahan", "hasil__pesanan",),
         pk=pengukuran_id,
-        hasil__lahan__owner=request.user,
-        hasil__lahan__diarsipkan=False,
-        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+        hasil__in=hasil_yang_bisa_dibaca(request.user),
     )
     hasil = pengukuran.hasil
 
@@ -303,6 +315,8 @@ def hapus_unsur_hara(request, pengukuran_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         pengukuran.delete()
@@ -322,15 +336,9 @@ def hapus_unsur_hara(request, pengukuran_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def unggah_dokumen(request, hasil_id):
-    if not request.user.is_owner:
-        raise PermissionDenied("Hanya pemilik yang dapat mengunggah dokumen.")
-
     hasil = get_object_or_404(
-        HasilPemeriksaan,
+        hasil_yang_bisa_dibaca(request.user),
         pk=hasil_id,
-        lahan__owner=request.user,
-        lahan__diarsipkan=False,
-        asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
     if hasil.dipakai_dalam_rencana():
@@ -343,6 +351,8 @@ def unggah_dokumen(request, hasil_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         form = DokumenLaboratoriumForm(request.POST, request.FILES)
@@ -376,13 +386,10 @@ def unggah_dokumen(request, hasil_id):
 @login_required
 @require_http_methods(["GET"])
 def unduh_dokumen(request, hasil_id):
-    queryset = HasilPemeriksaan.objects.all()
-
-    if not request.user.is_staff:
-        queryset = queryset.filter(lahan__owner=request.user,
-                                   status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
-
-    hasil = get_object_or_404(queryset, pk=hasil_id)
+    hasil = get_object_or_404(
+        hasil_yang_bisa_dibaca(request.user),
+        pk=hasil_id,
+    )
 
     if not hasil.dokumen_laboratorium:
         raise Http404("Dokumen belum tersedia.")
@@ -553,17 +560,9 @@ def api_detail_hasil(request, hasil_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def tambah_kontaminan(request, hasil_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat menambahkan temuan."
-        )
-
     hasil = get_object_or_404(
-        HasilPemeriksaan.objects.select_related("lahan"),
+        hasil_yang_bisa_dibaca(request.user),
         pk=hasil_id,
-        lahan__owner=request.user,
-        lahan__diarsipkan=False,
-        asal=HasilPemeriksaan.Asal.MANDIRI,
     )
 
     if hasil.dipakai_dalam_rencana():
@@ -576,6 +575,8 @@ def tambah_kontaminan(request, hasil_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         form = ContaminantFindingForm(
@@ -603,17 +604,14 @@ def tambah_kontaminan(request, hasil_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def ubah_kontaminan(request, temuan_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat mengubah temuan."
-        )
-
     temuan = get_object_or_404(
-        ContaminantFinding.objects.select_related("hasil__lahan"),
+        ContaminantFinding.objects.select_related(
+            "hasil__lahan",
+            "hasil__pesanan",
+            "kontaminan",
+        ),
         pk=temuan_id,
-        hasil__lahan__owner=request.user,
-        hasil__lahan__diarsipkan=False,
-        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+        hasil__in=hasil_yang_bisa_dibaca(request.user),
     )
     hasil = temuan.hasil
 
@@ -627,6 +625,8 @@ def ubah_kontaminan(request, temuan_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         form = ContaminantFindingForm(
@@ -662,20 +662,14 @@ def ubah_kontaminan(request, temuan_id):
 @login_required
 @require_http_methods(["GET", "POST"])
 def hapus_kontaminan(request, temuan_id):
-    if not request.user.is_owner:
-        raise PermissionDenied(
-            "Hanya pemilik lahan yang dapat menghapus temuan."
-        )
-
     temuan = get_object_or_404(
         ContaminantFinding.objects.select_related(
             "hasil__lahan",
+            "hasil__pesanan",
             "kontaminan",
         ),
         pk=temuan_id,
-        hasil__lahan__owner=request.user,
-        hasil__lahan__diarsipkan=False,
-        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+        hasil__in=hasil_yang_bisa_dibaca(request.user),
     )
     hasil = temuan.hasil
 
@@ -689,6 +683,8 @@ def hapus_kontaminan(request, temuan_id):
             "soil_results:detail_hasil",
             hasil_id=hasil.pk,
         )
+
+    pastikan_boleh_mengelola(request.user, hasil)
 
     if request.method == "POST":
         temuan.delete()
@@ -753,8 +749,8 @@ def isi_hasil_petugas(request, pesanan_id):
                 "Draf berhasil disimpan. Hasil belum ditampilkan kepada pemilik.",
             )
             return redirect(
-                "soil_results:isi_hasil_petugas",
-                pesanan_id=pesanan.pk,
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
             )
     else:
         form = HasilPetugasForm(instance=hasil)
