@@ -1,10 +1,18 @@
 {% extends 'app_base.html' %}
 
-{% block title %}Tambah temuan kontaminan{% endblock %}
+{% block title %}
+  {% if is_edit %}Ubah temuan kontaminan{% else %}Tambah temuan kontaminan{% endif %}
+{% endblock %}
 
 {% block app_content %}
 <div class="mx-auto max-w-2xl">
-  <h1 class="heading text-[28px]">Tambah temuan kontaminan</h1>
+  <h1 class="heading text-[28px]">
+    {% if is_edit %}
+      Ubah temuan kontaminan
+    {% else %}
+      Tambah temuan kontaminan
+    {% endif %}
+  </h1>
   <p class="mt-2 text-sm text-ink-soft">
     {{ hasil.lahan.nama }} ·
     {{ hasil.tanggal_pemeriksaan|date:"d M Y" }}

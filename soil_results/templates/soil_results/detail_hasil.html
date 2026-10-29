@@ -192,6 +192,13 @@
               {{ temuan.catatan|linebreaksbr }}
             </div>
           {% endif %}
+
+          {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
+            <a href="{% url 'soil_results:ubah_kontaminan' temuan.pk %}"
+              class="mt-2 inline-block text-sm font-semibold underline">
+              Ubah temuan
+            </a>
+          {% endif %}
         </li>
       {% empty %}
         <li class="text-sm text-ink-soft">

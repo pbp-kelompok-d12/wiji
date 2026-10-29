@@ -69,5 +69,10 @@ urlpatterns = [
         views.tambah_kontaminan,
         name="tambah_kontaminan",
     ),
+        path(
+        "kontaminan/<int:temuan_id>/ubah/",
+        views.ubah_kontaminan,
+        name="ubah_kontaminan",
+    ),
 
 ]

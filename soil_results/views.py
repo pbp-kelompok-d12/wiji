@@ -7,7 +7,7 @@ from django.views.decorators.vary import vary_on_headers
 
 from lands.models import Lahan
 from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm, ContaminantFindingForm
-from .models import HasilPemeriksaan, NutrientMeasurement
+from .models import HasilPemeriksaan, NutrientMeasurement, ContaminantFinding
 import uuid
 from django.http import FileResponse, Http404, JsonResponse
 from django.db.models.deletion import ProtectedError
@@ -596,4 +596,63 @@ def tambah_kontaminan(request, hasil_id):
         request,
         "soil_results/form_kontaminan.html",
         {"form": form, "hasil": hasil},
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def ubah_kontaminan(request, temuan_id):
+    if not request.user.is_owner:
+        raise PermissionDenied(
+            "Hanya pemilik lahan yang dapat mengubah temuan."
+        )
+
+    temuan = get_object_or_404(
+        ContaminantFinding.objects.select_related("hasil__lahan"),
+        pk=temuan_id,
+        hasil__lahan__owner=request.user,
+        hasil__lahan__diarsipkan=False,
+        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+    hasil = temuan.hasil
+
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana "
+            "sehingga temuan tidak dapat diubah.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    if request.method == "POST":
+        form = ContaminantFindingForm(
+            request.POST,
+            hasil=hasil,
+            instance=temuan,
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Temuan kontaminan diperbarui.")
+            return redirect(
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
+            )
+    else:
+        form = ContaminantFindingForm(
+            hasil=hasil,
+            instance=temuan,
+        )
+
+    return render(
+        request,
+        "soil_results/form_kontaminan.html",
+        {
+            "form": form,
+            "hasil": hasil,
+            "is_edit": True,
+        },
     )
