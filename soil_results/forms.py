@@ -1,5 +1,5 @@
 from django import forms
-from .models import HasilPemeriksaan, NutrientMeasurement
+from .models import HasilPemeriksaan, NutrientMeasurement, ContaminantFinding
 
 
 class HasilMandiriForm(forms.ModelForm):
@@ -83,3 +83,49 @@ class DokumenLaboratoriumForm(forms.Form):
             raise forms.ValidationError("Isi file tidak dikenali sebagai PDF.")
 
         return dokumen
+
+
+class ContaminantFindingForm(forms.ModelForm):
+    class Meta:
+        model = ContaminantFinding
+        fields = [
+            "kontaminan",
+            "status",
+            "nilai",
+            "satuan",
+            "batas_deteksi",
+            "metode",
+            "catatan",
+        ]
+        widgets = {
+            "catatan": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, hasil, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.hasil = hasil
+
+        for field in self.fields.values():
+            field.widget.attrs["class"] = (
+                "w-full rounded-xl border border-line "
+                "bg-white px-3 py-2"
+            )
+
+    def clean_kontaminan(self):
+        kontaminan = self.cleaned_data["kontaminan"]
+
+        duplikat = ContaminantFinding.objects.filter(
+            hasil=self.instance.hasil,
+            kontaminan=kontaminan,
+        )
+
+        if self.instance.pk:
+            duplikat = duplikat.exclude(pk=self.instance.pk)
+
+        if duplikat.exists():
+            raise forms.ValidationError(
+                "Kontaminan ini sudah dicatat pada hasil tersebut. "
+                "Ubah temuan yang sudah ada."
+            )
+
+        return kontaminan

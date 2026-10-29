@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
 from lands.models import Lahan
-from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm
+from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm, ContaminantFindingForm
 from .models import HasilPemeriksaan, NutrientMeasurement
 import uuid
 from django.http import FileResponse, Http404, JsonResponse
@@ -547,3 +547,53 @@ def api_detail_hasil(request, hasil_id):
     response = JsonResponse(hasil_ke_dict(hasil))
     response["Cache-Control"] = "private, no-store"
     return response
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def tambah_kontaminan(request, hasil_id):
+    if not request.user.is_owner:
+        raise PermissionDenied(
+            "Hanya pemilik lahan yang dapat menambahkan temuan."
+        )
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan.objects.select_related("lahan"),
+        pk=hasil_id,
+        lahan__owner=request.user,
+        lahan__diarsipkan=False,
+        asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana "
+            "sehingga temuan tidak dapat ditambahkan.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    if request.method == "POST":
+        form = ContaminantFindingForm(
+            request.POST,
+            hasil=hasil,
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Temuan kontaminan ditambahkan.")
+            return redirect(
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
+            )
+    else:
+        form = ContaminantFindingForm(hasil=hasil)
+
+    return render(
+        request,
+        "soil_results/form_kontaminan.html",
+        {"form": form, "hasil": hasil},
+    )

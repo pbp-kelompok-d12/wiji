@@ -64,5 +64,10 @@ urlpatterns = [
         views.api_detail_hasil,
         name="api_detail_hasil",
     ),
+        path(
+        "<int:hasil_id>/kontaminan/tambah/",
+        views.tambah_kontaminan,
+        name="tambah_kontaminan",
+    ),
 
 ]
