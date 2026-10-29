@@ -488,6 +488,22 @@ def hasil_ke_dict(hasil):
             }
             for item in hasil.nutrient_measurements.all()
         ],
+                "temuan_kontaminan": [
+            {
+                "id": temuan.pk,
+                "kontaminan": {
+                    "id": temuan.kontaminan_id,
+                    "nama": temuan.kontaminan.nama,
+                },
+                "status": temuan.status,
+                "nilai": temuan.nilai,
+                "satuan": temuan.satuan,
+                "batas_deteksi": temuan.batas_deteksi,
+                "metode": temuan.metode,
+                "catatan": temuan.catatan,
+            }
+            for temuan in hasil.contaminant_findings.all()
+        ],
     }
 
 
@@ -503,7 +519,10 @@ def api_daftar_hasil(request):
         HasilPemeriksaan.objects
         .filter(lahan__owner=request.user)
         .select_related("lahan")
-        .prefetch_related("nutrient_measurements")
+        .prefetch_related(
+            "nutrient_measurements",
+            "contaminant_findings__kontaminan",
+        )
     )
 
     pencarian = request.GET.get("q", "").strip()
@@ -534,7 +553,10 @@ def api_detail_hasil(request, hasil_id):
         HasilPemeriksaan.objects
         .filter(pk=hasil_id, lahan__owner=request.user)
         .select_related("lahan")
-        .prefetch_related("nutrient_measurements")
+        .prefetch_related(
+            "nutrient_measurements",
+            "contaminant_findings__kontaminan",
+        )
         .first()
     )
 
