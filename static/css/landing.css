@@ -55,10 +55,11 @@
 
 .lp-hero { position: relative; min-height: 100svh; display: grid; grid-template-rows: 1fr auto; overflow: hidden; background: var(--color-forest); color: #fff; }
 .lp-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.lp-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 18, 13, 0.55), rgba(10, 18, 13, 0.25) 40%, rgba(10, 18, 13, 0.85)); }
+/* Foto digelapkan lebih kuat di tengah, tempat judul berada, biar tulisannya nggak nyaru sama foto */
+.lp-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 18, 13, 0.6), rgba(10, 18, 13, 0.52) 40%, rgba(10, 18, 13, 0.88)); }
 .lp-hero > * { position: relative; z-index: 1; }
-.lp-hero h1 { align-self: center; padding: 7.5rem 1.5rem 2.5rem; text-align: center; font-size: clamp(2.75rem, 9vw, 7.75rem); letter-spacing: 0; text-wrap: balance; }
-.lp-hero h1 em { color: var(--lp-sun); }
+.lp-hero h1 { align-self: center; padding: 7.5rem 1.5rem 2.5rem; text-align: center; font-size: clamp(2.75rem, 9vw, 7.75rem); letter-spacing: 0; text-wrap: balance; text-shadow: 0 2px 28px rgba(8, 14, 10, 0.55); }
+.lp-hero h1 em { color: #f2c07a; }
 .lp-hero .lp-tag { color: rgba(255, 255, 255, 0.78); }
 .lp-hero__bottom { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(255, 255, 255, 0.25); }
 .lp-hero__left { display: flex; flex-direction: column; justify-content: space-between; gap: 2.5rem; padding: 2.25rem 2rem 1.75rem; border-right: 1px solid rgba(255, 255, 255, 0.25); }
