@@ -25,6 +25,11 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', f'localhost,127.0.0.1,{PWS_HOST
 # Perlu buat form (login, daftar) lewat HTTPS, kalau nggak kena error CSRF
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', f'https://{PWS_HOST}')
 
+# Bawaan Django-nya "same-origin": browser nggak ngirim Referer ke situs lain. Server peta OpenStreetMap
+# nolak (403) permintaan tanpa Referer, jadi peta lahan jadi kotak "Access blocked".
+# Nilai ini cuma ngirim alamat situsnya (bukan alamat halaman lengkap) ke situs lain.
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
