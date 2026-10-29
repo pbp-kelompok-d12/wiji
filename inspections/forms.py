@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from accounts.forms import INPUT_CLASS, InvalidFieldMixin
+from accounts.models import User
 from lands.models import Lahan
 
 from .models import JenisPemeriksaan, PesananPemeriksaan
@@ -143,3 +144,60 @@ class UbahUsulanForm(InvalidFieldMixin, forms.Form):
 
     def clean_tanggal(self):
         return _validasi_tanggal(self)
+
+
+def petugas_aktif():
+    """Petugas pemeriksa yang masih aktif, buat pilihan di form admin."""
+    return User.objects.filter(role=User.Role.OFFICER, is_active=True).order_by('first_name', 'username')
+
+
+class _PilihPetugasField(forms.ModelChoiceField):
+    def label_from_instance(self, user):
+        return user.display_name
+
+
+class TugaskanForm(InvalidFieldMixin, forms.Form):
+    petugas = _PilihPetugasField(
+        queryset=User.objects.none(),
+        label='Petugas',
+        empty_label='Pilih petugas',
+        widget=forms.Select(attrs={'class': INPUT_CLASS}),
+        error_messages={'required': 'Pilih petugas yang bertugas.', 'invalid_choice': 'Petugas ini nggak tersedia.'},
+    )
+    catatan = forms.CharField(
+        label='Catatan (boleh kosong)', required=False,
+        widget=forms.Textarea(attrs={'class': INPUT_CLASS + ' !h-auto py-3', 'rows': 2}),
+    )
+
+    def __init__(self, *args, pesanan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        daftar = petugas_aktif()
+        # Waktu ganti petugas, petugas yang sekarang nggak perlu muncul lagi
+        if pesanan is not None and pesanan.petugas_id:
+            daftar = daftar.exclude(pk=pesanan.petugas_id)
+        self.fields['petugas'].queryset = daftar
+
+
+class JadwalFinalForm(InvalidFieldMixin, forms.Form):
+    tanggal = forms.DateField(
+        label='Tanggal pemeriksaan',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': INPUT_CLASS}, format='%Y-%m-%d'),
+        error_messages={'required': 'Isi tanggal pemeriksaan.', 'invalid': 'Format tanggal belum benar.'},
+    )
+    sesi = forms.ChoiceField(
+        label='Sesi',
+        choices=PesananPemeriksaan.Sesi.choices,
+        widget=forms.RadioSelect,
+        error_messages={'required': 'Pilih sesi pagi atau siang.'},
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tanggal'].widget.attrs['min'] = timezone.localdate().isoformat()
+
+    def clean_tanggal(self):
+        tanggal = self.cleaned_data['tanggal']
+        # Jadwal final cuma dilarang di masa lalu. Hari ini masih boleh
+        if tanggal < timezone.localdate():
+            raise forms.ValidationError('Tanggal pemeriksaan nggak boleh di masa lalu.')
+        return tanggal

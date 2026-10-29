@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from lands.views import owner_required
 
+from .aksi import jalankan_aksi
 from .forms import BatalkanForm, JadwalUlangForm, PesananForm, UbahUsulanForm, lahan_bisa_dipesan
 from .models import PesananPemeriksaan
 from .pemesanan import (
@@ -73,46 +74,14 @@ def detail_pesanan(request, pk):
     return render(request, 'inspections/detail_pesanan.html', _konteks_detail(pesanan))
 
 
-def _jalankan_aksi(request, pk, *, form_class, jalankan, judul, deskripsi, label_kirim,
-                   pesan_sukses, awal=None, bahaya=False):
-    """Kerangka bareng buat aksi pemilik (ubah usulan, batalkan, jadwal ulang).
-
-    Dari halaman detail, formnya muncul sebagai modal lewat HTMX. Kalau JavaScript mati,
-    alamat yang sama tetap jalan sebagai halaman biasa.
-    """
+def _jalankan_aksi(request, pk, **kwargs):
+    """Aksi pemilik. Kerangka form dan HTMX-nya ada di aksi.py."""
     pesanan = get_object_or_404(_pesanan_pemilik(request), pk=pk)
-    lewat_htmx = request.headers.get('HX-Request') == 'true'
-    data = request.POST if request.method == 'POST' else None
-    form = form_class(data, initial=awal(pesanan) if awal else None)
-
-    if request.method == 'POST' and form.is_valid():
-        try:
-            jalankan(pesanan, request.user, form.cleaned_data)
-        except ValidationError as e:
-            form.add_error(None, e)
-        else:
-            pesanan = get_object_or_404(_pesanan_pemilik(request), pk=pk)
-            if lewat_htmx:
-                # Isi detail diganti, modalnya ditutup lewat elemen "oob"
-                return render(request, 'inspections/partials/_hasil_aksi.html', {
-                    **_konteks_detail(pesanan), 'pesan_sukses': pesan_sukses,
-                })
-            messages.success(request, pesan_sukses)
-            return redirect('inspections:detail_pesanan', pk=pesanan.pk)
-
-    konteks = {
-        'form': form, 'pesanan': pesanan, 'judul': judul, 'deskripsi': deskripsi,
-        'label_kirim': label_kirim, 'bahaya': bahaya, 'aksi_url': request.path,
-        'active_nav': 'pesanan',
-    }
-    if lewat_htmx:
-        respons = render(request, 'inspections/partials/_modal_aksi.html', konteks)
-        if request.method == 'POST':
-            # Gagal validasi: tampilkan lagi di modal, bukan di tempat isi detail
-            respons['HX-Retarget'] = '#modal-slot'
-            respons['HX-Reswap'] = 'innerHTML'
-        return respons
-    return render(request, 'inspections/form_aksi.html', konteks)
+    return jalankan_aksi(
+        request, pesanan, segarkan=lambda: get_object_or_404(_pesanan_pemilik(request), pk=pk),
+        konteks_detail=_konteks_detail, templat_isi='inspections/partials/_isi_detail.html',
+        nama_url_detail='inspections:detail_pesanan', active_nav='pesanan', **kwargs,
+    )
 
 
 @owner_required
