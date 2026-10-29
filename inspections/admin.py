@@ -26,6 +26,7 @@ class PesananPemeriksaanAdmin(admin.ModelAdmin):
     list_display = ('kode', 'lahan', 'jenis', 'status', 'petugas', 'tanggal_usulan')
     list_filter = ('status', 'jenis')
     search_fields = ('lahan__nama', 'lahan__owner__username')
-    # Status nggak boleh diubah langsung dari admin, harus lewat fungsi transisi
-    readonly_fields = ('status',)
+    # Status, petugas, dan jadwal final nggak boleh diubah langsung dari admin, supaya
+    # nggak lolos dari riwayat. Semuanya lewat halaman kelola atau fungsi transisi.
+    readonly_fields = ('status', 'petugas', 'tanggal_final', 'sesi_final')
     inlines = [RiwayatInline]
