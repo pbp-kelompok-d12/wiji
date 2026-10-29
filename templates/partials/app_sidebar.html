@@ -26,7 +26,7 @@
     {% else %}
     <p class="side-label">Utama</p>
     <a href="{% url 'dashboard:home' %}" class="side-link {% if active_nav == 'dashboard' %}is-active{% endif %}"><svg class="ic"><use href="#i-home"/></svg>Dashboard</a>
-    <a href="{% url 'lands:daftar_lahan' %}" class="side-link {% if active_nav == 'lahan' %}is-active{% endif %}"><svg class="ic"><use href="#i-pin"/></svg>Lahan <span class="side-count">4</span></a>
+    <a href="{% url 'lands:daftar_lahan' %}" class="side-link {% if active_nav == 'lahan' %}is-active{% endif %}"><svg class="ic"><use href="#i-pin"/></svg>Lahan{% if sidebar_lahan.aktif %} <span class="side-count">{{ sidebar_lahan.aktif }}</span>{% endif %}</a>
     <a href="{% url 'inspections:daftar_pesanan' %}" class="side-link {% if active_nav == 'pesanan' %}is-active{% endif %}"><svg class="ic"><use href="#i-flask"/></svg>Pemeriksaan</a>
     <a href="{% url 'soil_results:daftar_hasil' %}"
       class="side-link {% if request.resolver_match.app_name == 'soil_results' %}is-active{% endif %}">
@@ -56,11 +56,11 @@
     {% endif %}
   </nav>
 
-  {% if user.is_owner and not user.is_staff %}
+  {% if sidebar_lahan.draf %}
   <div class="mb-3 rounded-2xl border border-line bg-white p-3">
-    <div class="flex items-center gap-2 text-[13px] font-bold"><svg class="ic ic-sm text-moss"><use href="#i-pin"/></svg>Satu lahan belum lengkap</div>
-    <p class="mt-1 text-xs leading-[18px] text-ink-soft">Tambahkan koordinat supaya lahannya bisa dipesankan pemeriksaan.</p>
-    <a href="#" class="mt-2.5 flex h-9 items-center justify-between rounded-xl bg-paper px-3 text-xs font-bold transition hover:bg-leaf">Lengkapi lahan <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
+    <div class="flex items-center gap-2 text-[13px] font-bold"><svg class="ic ic-sm text-moss"><use href="#i-pin"/></svg>{{ sidebar_lahan.draf }} lahan belum lengkap</div>
+    <p class="mt-1 text-xs leading-[18px] text-ink-soft">Lengkapi datanya (termasuk koordinat) supaya lahannya bisa dipesankan pemeriksaan.</p>
+    <a href="{% url 'lands:ubah_lahan' sidebar_lahan.draf_pertama.pk %}" class="mt-2.5 flex h-9 items-center justify-between rounded-xl bg-paper px-3 text-xs font-bold transition hover:bg-leaf">Lengkapi lahan <svg class="ic ic-sm"><use href="#i-arrow"/></svg></a>
   </div>
   {% endif %}
 
