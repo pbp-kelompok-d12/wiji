@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import api, views, views_admin
+from . import api, views, views_admin, views_petugas
 
 app_name = 'inspections'
 
@@ -18,6 +18,11 @@ urlpatterns = [
     path('kelola/<int:pk>/jadwalkan/', views_admin.kelola_jadwalkan, name='kelola_jadwalkan'),
     path('kelola/<int:pk>/ganti-petugas/', views_admin.kelola_ganti_petugas, name='kelola_ganti_petugas'),
     path('kelola/<int:pk>/batalkan/', views_admin.kelola_batalkan, name='kelola_batalkan'),
+
+    # Halaman petugas
+    path('tugas/', views_petugas.tugas_daftar, name='tugas_daftar'),
+    path('tugas/<int:pk>/', views_petugas.tugas_detail, name='tugas_detail'),
+    path('tugas/<int:pk>/lanjut/', views_petugas.tugas_lanjut, name='tugas_lanjut'),
 
     path('', views.daftar_pesanan, name='daftar_pesanan'),
     path('pesan/', views.pesan_pemeriksaan, name='pesan_pemeriksaan'),

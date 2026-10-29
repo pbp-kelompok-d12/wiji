@@ -16,6 +16,13 @@
     <a href="{% url 'core:daftar_tanaman' %}" class="side-link"><svg class="ic"><use href="#i-book"/></svg>Katalog tanaman</a>
     <p class="side-label">Akun</p>
     <a href="{% url 'admin:index' %}" class="side-link"><svg class="ic"><use href="#i-shield"/></svg>Halaman admin</a>
+    {% elif user.is_officer %}
+    {# Menu petugas: tugas yang ditugaskan ke dia #}
+    <p class="side-label">Utama</p>
+    <a href="{% url 'dashboard:home' %}" class="side-link {% if active_nav == 'dashboard' %}is-active{% endif %}"><svg class="ic"><use href="#i-home"/></svg>Dashboard</a>
+    <a href="{% url 'inspections:tugas_daftar' %}" class="side-link {% if active_nav == 'tugas' %}is-active{% endif %}"><svg class="ic"><use href="#i-flask"/></svg>Tugas saya</a>
+    <p class="side-label">Referensi</p>
+    <a href="{% url 'core:daftar_tanaman' %}" class="side-link"><svg class="ic"><use href="#i-book"/></svg>Katalog tanaman</a>
     {% else %}
     <p class="side-label">Utama</p>
     <a href="{% url 'dashboard:home' %}" class="side-link {% if active_nav == 'dashboard' %}is-active{% endif %}"><svg class="ic"><use href="#i-home"/></svg>Dashboard</a>

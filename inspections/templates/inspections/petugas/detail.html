@@ -1,0 +1,12 @@
+{% extends 'app_base.html' %}
+
+{% block title %}{{ pesanan.kode }}{% endblock %}
+{% block crumb %}Tugas saya / {{ pesanan.kode }}{% endblock %}
+
+{% block app_content %}
+<a href="{% url 'inspections:tugas_daftar' %}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+  <svg class="ic ic-sm"><use href="#i-back"/></svg>Tugas saya
+</a>
+
+{% include 'inspections/petugas/partials/_isi_detail.html' %}
+{% endblock %}

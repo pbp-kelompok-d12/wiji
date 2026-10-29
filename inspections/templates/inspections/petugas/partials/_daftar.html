@@ -1,0 +1,39 @@
+{# Filter dan daftar tugas petugas. Dikirim utuh lewat HTMX pas filter diganti #}
+<nav class="flex flex-wrap gap-2" aria-label="Filter status tugas">
+  {% for f in filter_list %}
+  <a href="{% url 'inspections:tugas_daftar' %}?status={{ f.kunci }}"
+     class="tab rounded-full border border-line {% if f.kunci == filter_aktif %}is-on{% endif %}"
+     hx-get="{% url 'inspections:tugas_daftar' %}?status={{ f.kunci }}" hx-target="#daftar-tugas" hx-swap="innerHTML" hx-push-url="true">
+    {{ f.label }} <span class="ml-1 opacity-70">{{ f.jumlah }}</span>
+  </a>
+  {% endfor %}
+</nav>
+
+<div class="mt-4">
+  {% if pesanan_list %}
+  <div class="d-card divide-y divide-line px-5 py-1">
+    {% for pesanan in pesanan_list %}
+    <article class="row-hover -mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-4">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'inspections:tugas_detail' pesanan.pk %}" class="text-sm font-bold hover:text-moss">{{ pesanan.kode }}</a>
+          {% include 'inspections/partials/_status.html' %}
+        </div>
+        <p class="mt-0.5 truncate text-[13px] text-ink-soft">{{ pesanan.lahan.nama|default:"Lahan tanpa nama" }} · {{ pesanan.jenis.nama }}</p>
+        <p class="mt-0.5 text-xs text-ink-soft">
+          {% if pesanan.tanggal_final %}Jadwal {{ pesanan.tanggal_final|date:"D, j M Y" }} · {{ pesanan.get_sesi_final_display }}{% else %}Jadwal belum ditetapkan admin{% endif %}
+          {% if pesanan.lahan.alamat %} · {{ pesanan.lahan.alamat }}{% endif %}
+        </p>
+      </div>
+      <a href="{% url 'inspections:tugas_detail' pesanan.pk %}" class="d-btn-sm">{% if pesanan.status == 'dijadwalkan' or pesanan.status == 'sampel_diambil' %}Kerjakan{% else %}Lihat{% endif %}</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="d-card grid place-items-center px-6 py-14 text-center">
+    <span class="grid size-14 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic size-6"><use href="#i-flask"/></svg></span>
+    <h2 class="mt-4 text-lg font-bold">{% if filter_aktif == 'semua' %}Belum ada tugas{% else %}Nggak ada tugas di filter ini{% endif %}</h2>
+    <p class="mt-1 max-w-sm text-sm text-ink-soft">{% if filter_aktif == 'semua' %}Tugas muncul di sini setelah admin menugaskan pesanan ke kamu.{% else %}Coba pilih filter lain.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
