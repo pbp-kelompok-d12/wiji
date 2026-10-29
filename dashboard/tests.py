@@ -18,19 +18,31 @@ class DashboardAccessTests(TestCase):
         self.assertContains(response, 'Selamat datang, ')
         self.assertContains(response, 'Sari!')
 
-    def test_officer_sees_pending_page(self):
-        officer = User.objects.create_user('budi', 'budi@contoh.id', 'tanah12345', role=User.Role.OFFICER)
+    def test_officer_sees_officer_dashboard(self):
+        officer = User.objects.create_user('budi', 'budi@contoh.id', 'tanah12345', role=User.Role.OFFICER, first_name='Budi Santoso')
         self.client.force_login(officer)
         response = self.client.get(reverse('dashboard:home'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'dashboard/pending.html')
+        self.assertTemplateUsed(response, 'dashboard/petugas.html')
+        self.assertContains(response, 'Halo, ')
+        self.assertContains(response, 'Budi!')
         self.assertNotContains(response, 'Lahan saya')
 
-    def test_staff_gets_admin_link_on_pending_page(self):
+    def test_staff_sees_admin_dashboard_even_though_role_is_owner(self):
+        # Akun dari createsuperuser perannya owner, tapi tetap harus dapat dashboard admin
+        admin = User.objects.create_user('admin', 'a@contoh.id', 'tanah12345', is_staff=True)
+        self.assertTrue(admin.is_owner)
+        self.client.force_login(admin)
+        response = self.client.get(reverse('dashboard:home'))
+        self.assertTemplateUsed(response, 'dashboard/admin.html')
+        self.assertTemplateNotUsed(response, 'dashboard/owner.html')
+        self.assertContains(response, reverse('inspections:kelola_daftar'))
+
+    def test_staff_with_officer_role_sees_admin_dashboard(self):
         admin = User.objects.create_user('admin', 'a@contoh.id', 'tanah12345', role=User.Role.OFFICER, is_staff=True)
         self.client.force_login(admin)
         response = self.client.get(reverse('dashboard:home'))
-        self.assertContains(response, reverse('admin:index'))
+        self.assertTemplateUsed(response, 'dashboard/admin.html')
 
 
 class DashboardContentTests(TestCase):

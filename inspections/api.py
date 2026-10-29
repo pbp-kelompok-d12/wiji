@@ -11,9 +11,12 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 
-from .forms import BatalkanForm, JadwalUlangForm, PesananForm
+from .akses import adalah_admin, adalah_petugas
+from .forms import BatalkanForm, JadwalFinalForm, JadwalUlangForm, PesananForm, TugaskanForm
 from .models import PesananPemeriksaan
 from .pemesanan import ajukan_jadwal_ulang, batalkan_pesanan, buat_pesanan
+from .services import jadwalkan_pesanan, konfirmasi_pesanan, ubah_status
+from .views_petugas import LANGKAH_BERIKUTNYA, tugas_petugas
 
 
 def api_pemilik(view):
@@ -152,3 +155,60 @@ def api_jadwal_ulang(request, pk):
         request, pk, JadwalUlangForm,
         lambda p, user, d: ajukan_jadwal_ulang(p, user, d['tanggal'], d['sesi'], d['alasan']),
     )
+
+
+# Transisi yang boleh dilakukan admin lewat API: status tujuan -> (form, fungsi). Langkah petugas
+# (sampel diambil, diproses) cuma buat petugas yang ditugaskan, dan Selesai cuma lewat modul hasil pemeriksaan.
+TRANSISI_ADMIN = {
+    'dikonfirmasi': (TugaskanForm, lambda p, user, d: konfirmasi_pesanan(p, d['petugas'], user, d['catatan'])),
+    'dijadwalkan': (JadwalFinalForm, lambda p, user, d: jadwalkan_pesanan(p, d['tanggal'], d['sesi'], user)),
+    'dibatalkan': (BatalkanForm, lambda p, user, d: batalkan_pesanan(p, user, d['alasan'])),
+}
+
+
+def _galat_ke(pesan):
+    return JsonResponse({'errors': {'ke': [pesan]}}, status=400)
+
+
+@require_POST
+def api_transition(request, pk):
+    """Majukan status pesanan. Body: {"ke": "<status tujuan>", ...isian sesuai tujuan}.
+
+    - Petugas: cuma buat tugasnya sendiri, ke = sampel_diambil lalu diproses.
+    - Admin: ke = dikonfirmasi (petugas, catatan), dijadwalkan (tanggal, sesi), atau dibatalkan (alasan).
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'detail': 'Masuk dulu.'}, status=401)
+    admin = adalah_admin(request.user)
+    if not (admin or adalah_petugas(request.user)):
+        return JsonResponse({'detail': 'Cuma admin dan petugas yang bisa mengubah status.'}, status=403)
+
+    daftar = PesananPemeriksaan.objects.select_related('lahan', 'jenis', 'petugas')
+    pesanan = get_object_or_404(daftar if admin else tugas_petugas(request.user), pk=pk)
+
+    data, galat = _baca_data(request)
+    if galat:
+        return galat
+    ke = str(data.get('ke', '')).strip()
+
+    if admin:
+        if ke not in TRANSISI_ADMIN:
+            return _galat_ke('Tujuan nggak dikenal. Pilih: dikonfirmasi, dijadwalkan, atau dibatalkan.')
+        form_class, jalankan = TRANSISI_ADMIN[ke]
+        form_kwargs = {'pesanan': pesanan} if form_class is TugaskanForm else {}
+        form = form_class(data, **form_kwargs)
+        if not form.is_valid():
+            return _error_form(form)
+        langkah = lambda: jalankan(pesanan, request.user, form.cleaned_data)
+    else:
+        berikut = LANGKAH_BERIKUTNYA.get(pesanan.status)
+        if berikut is None or ke != berikut[0].value:
+            return _galat_ke('Langkah ini nggak bisa dilakukan dari status sekarang.')
+        langkah = lambda: ubah_status(pesanan, berikut[0], oleh=request.user)
+
+    try:
+        langkah()
+    except ValidationError as e:
+        return _error_aturan(e)
+    pesanan = get_object_or_404(daftar, pk=pk)
+    return JsonResponse(_serialisasi(pesanan, dengan_riwayat=True))

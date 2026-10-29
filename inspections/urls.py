@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/pesanan/<int:pk>/', api.api_detail_pesanan, name='api_detail_pesanan'),
     path('api/pesanan/<int:pk>/batalkan/', api.api_batalkan, name='api_batalkan'),
     path('api/pesanan/<int:pk>/jadwal-ulang/', api.api_jadwal_ulang, name='api_jadwal_ulang'),
+    path('api/pesanan/<int:pk>/transition/', api.api_transition, name='api_transition'),
 
     # Halaman admin (didaftarkan sebelum pola <int:pk> milik pemilik)
     path('kelola/', views_admin.kelola_daftar, name='kelola_daftar'),
