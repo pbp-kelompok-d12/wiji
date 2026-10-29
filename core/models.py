@@ -20,5 +20,32 @@ class Tanaman(models.Model):
     
     dibuat_pada = models.DateTimeField(auto_now_add=True)
 
+    #Relasi ke Modul A (lahan)
+    tujuan_pengelolaan = models.ManyToManyField('lands.ManagementGoal', blank=True, related_name='tanaman_didukung')
+
     def __str__(self):
         return self.nama
+
+class ContaminantType(models.Model):
+    nama = models.CharField(max_length=100, unique=True)
+    deskripsi = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.nama
+
+class PlantReference(models.Model):
+    tanaman = models.ForeignKey(Tanaman, on_delete=models.CASCADE, related_name='referensi')
+    sumber_literatur = models.CharField(max_length=255)
+    tautan = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Referensi untuk {self.tanaman.nama}"
+
+class PlantContaminantCapability(models.Model):
+    tanaman = models.ForeignKey(Tanaman, on_delete=models.CASCADE, related_name='kemampuan_kontaminan')
+    kontaminan = models.ForeignKey(ContaminantType, on_delete=models.CASCADE)
+    tingkat_efektivitas = models.CharField(max_length=50, blank=True)
+    catatan_khusus = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.tanaman.nama} menangani {self.kontaminan.nama}"
