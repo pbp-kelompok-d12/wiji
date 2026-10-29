@@ -19,7 +19,19 @@
     {{ hasil.get_asal_display }}
   </span>
 
-  {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+  {% if terkunci %}
+    <div role="status"
+        class="mt-4 rounded-xl border border-line bg-paper p-4">
+      <p class="font-semibold">Hasil digunakan dalam rencana pengelolaan</p>
+      <p class="mt-1 text-sm text-ink-soft">
+        Data, pengukuran unsur hara, dan dokumen tidak dapat diubah
+        karena hasil ini sudah menjadi dasar rencana pengelolaan.
+        Kamu tetap bisa melihat hasil dan mengunduh dokumennya.
+      </p>
+    </div>
+  {% endif %}
+
+  {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
     <div class="mt-4 flex flex-wrap gap-3">
         <a href="{% url 'soil_results:ubah_hasil_mandiri' hasil.pk %}"
         class="btn btn-primary">
@@ -82,7 +94,7 @@
         <p class="mt-2 text-sm text-ink-soft">Belum ada dokumen.</p>
     {% endif %}
 
-    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
         <div class="mt-3">
           <a href="{% url 'soil_results:unggah_dokumen' hasil.pk %}"
             class="btn btn-ghost border border-line">
@@ -99,7 +111,7 @@
   <section class="d-card mt-5 p-5">
     <h2 class="heading text-xl">Pengukuran unsur hara</h2>
 
-    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
         <a href="{% url 'soil_results:tambah_unsur_hara' hasil.pk %}"
            class="btn btn-ghost mt-3 border border-line">
           Tambah pengukuran
@@ -119,7 +131,7 @@
             </p>
             {% endif %}
 
-            {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+            {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
             <div class="mt-2 flex flex-wrap gap-4">
                 <a href="{% url 'soil_results:ubah_unsur_hara' pengukuran.pk %}"
                   class="text-sm font-semibold underline">

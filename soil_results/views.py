@@ -60,7 +60,10 @@ def detail_hasil(request, hasil_id):
     return render(
         request,
         "soil_results/detail_hasil.html",
-        {"hasil": hasil},
+        {
+            "hasil": hasil, 
+            "terkunci": hasil.dipakai_dalam_rencana(),
+        },
     )
 
 @login_required
