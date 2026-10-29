@@ -74,5 +74,10 @@ urlpatterns = [
         views.ubah_kontaminan,
         name="ubah_kontaminan",
     ),
+        path(
+        "kontaminan/<int:temuan_id>/hapus/",
+        views.hapus_kontaminan,
+        name="hapus_kontaminan",
+    ),
 
 ]

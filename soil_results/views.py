@@ -656,3 +656,49 @@ def ubah_kontaminan(request, temuan_id):
             "is_edit": True,
         },
     )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def hapus_kontaminan(request, temuan_id):
+    if not request.user.is_owner:
+        raise PermissionDenied(
+            "Hanya pemilik lahan yang dapat menghapus temuan."
+        )
+
+    temuan = get_object_or_404(
+        ContaminantFinding.objects.select_related(
+            "hasil__lahan",
+            "kontaminan",
+        ),
+        pk=temuan_id,
+        hasil__lahan__owner=request.user,
+        hasil__lahan__diarsipkan=False,
+        hasil__asal=HasilPemeriksaan.Asal.MANDIRI,
+    )
+    hasil = temuan.hasil
+
+    if hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil sudah digunakan dalam rencana "
+            "sehingga temuan tidak dapat dihapus.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    if request.method == "POST":
+        temuan.delete()
+        messages.success(request, "Temuan kontaminan berhasil dihapus.")
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    return render(
+        request,
+        "soil_results/konfirmasi_hapus_kontaminan.html",
+        {"temuan": temuan, "hasil": hasil},
+    )

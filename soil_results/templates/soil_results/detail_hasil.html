@@ -194,10 +194,17 @@
           {% endif %}
 
           {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan and not terkunci %}
-            <a href="{% url 'soil_results:ubah_kontaminan' temuan.pk %}"
-              class="mt-2 inline-block text-sm font-semibold underline">
-              Ubah temuan
-            </a>
+            <div class="mt-2 flex flex-wrap gap-4">
+              <a href="{% url 'soil_results:ubah_kontaminan' temuan.pk %}"
+                class="text-sm font-semibold underline">
+                Ubah temuan
+              </a>
+
+              <a href="{% url 'soil_results:hapus_kontaminan' temuan.pk %}"
+                class="text-sm font-semibold underline">
+                Hapus temuan
+              </a>
+            </div>
           {% endif %}
         </li>
       {% empty %}
