@@ -459,7 +459,7 @@ class RecommendationScoringTests(TestCase):
         )
         self.environment_mock.assert_not_called()
 
-    def test_supported_contaminant_pair_is_recommended(self):
+    def test_detected_contaminant_requires_expert_review_even_for_supported_pair(self):
         contaminant = self.create_contaminant_finding()
         plant = self.create_plant()
 
@@ -483,10 +483,9 @@ class RecommendationScoringTests(TestCase):
             self.goal,
         )
 
-        self.assertIn(
-            plant,
-            [item.tanaman for item in result["rekomendasi"]],
-        )
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
+        self.environment_mock.assert_not_called()
 
 
     def test_unsupported_contaminant_pair_is_blocked(self):
@@ -588,6 +587,26 @@ class RecommendationScoringTests(TestCase):
         ]
 
         self.assertIn(plant, blocked_plants)
+
+    def test_structured_high_risk_finding_blocks_recommendations(self):
+        self.create_contaminant_finding()
+
+        finding = self.result.contaminant_findings.get()
+        finding.catatan = "Penilaian ahli: RISIKO TINGGI."
+        finding.save()
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
+        self.environment_mock.assert_not_called()
 
 class OpenMeteoEnvironmentTests(TestCase):
     def setUp(self):
@@ -1211,11 +1230,44 @@ class ManagementPlanViewTests(TestCase):
                 "jumlah_bibit": "50",
             },
         )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ManagementPlan.objects.count(), 0)
+        self.assertEqual(RecommendationSnapshot.objects.count(), 0)
+    def test_structured_high_risk_finding_cannot_create_plan(self):
+        contaminant = ContaminantType.objects.create(
+            nama="Timbal",
+            deskripsi="Kontaminan logam berat.",
+        )
+
+        ContaminantFinding.objects.create(
+            hasil=self.result,
+            kontaminan=contaminant,
+            status=ContaminantFinding.Status.TERDETEKSI,
+            nilai=Decimal("380"),
+            satuan=ContaminantFinding.Satuan.MG_KG,
+            catatan="Penilaian ahli: RISIKO TINGGI.",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(self.plant.pk),
+                "luas_tanam_m2": "100",
+                "jumlah_bibit": "50",
+            },
+        )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ManagementPlan.objects.count(), 0)
         self.assertEqual(RecommendationSnapshot.objects.count(), 0)
-
 
 class HasilLahanAPITests(TestCase):
     def setUp(self):

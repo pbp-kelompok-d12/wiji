@@ -36,6 +36,11 @@ HIGH_RISK_TERMS = (
     "toxic",
     "high risk",
 )
+SOIL_HIGH_RISK_MARKERS = (
+    "risiko tinggi",
+    "high risk",
+    "high-risk",
+)
 FOOD_CROP_TERMS = (
     "tanaman pangan",
     "tanaman konsumsi",
@@ -384,7 +389,49 @@ def assess_soil_risk(hasil_pemeriksaan):
         for temuan in temuan_terstruktur
         if temuan.status == "terdeteksi"
     ]
+    catatan_risiko = " ".join(
+        [
+            hasil_pemeriksaan.kontaminan or "",
+            hasil_pemeriksaan.catatan or "",
+            *(
+                temuan.catatan or ""
+                for temuan in temuan_terstruktur
+            ),
+        ]
+    ).casefold()
 
+    risiko_ditandai = any(
+        marker in catatan_risiko
+        for marker in SOIL_HIGH_RISK_MARKERS
+    )
+
+    if risiko_ditandai:
+        if temuan_terdeteksi:
+            ringkasan = "; ".join(
+                f"{temuan.kontaminan.nama}: "
+                f"{temuan.nilai} {temuan.satuan}"
+                for temuan in temuan_terdeteksi
+            )
+        else:
+            ringkasan = (
+                hasil_pemeriksaan.kontaminan
+                or hasil_pemeriksaan.catatan
+                or "Hasil pemeriksaan ditandai sebagai risiko tinggi."
+            )
+
+        return {
+            "risiko_tinggi": True,
+            "temuan": ringkasan,
+            "sumber": sumber,
+            "alasan": (
+                "Catatan pemeriksaan secara eksplisit menandai "
+                "kondisi berisiko tinggi. Skor rekomendasi dan "
+                "pembuatan rencana otomatis dihentikan sampai "
+                "ada penilaian pihak kompeten."
+            ),
+        }
+
+    # Kondisi 1: Ada kontaminan yang terdeteksi.
     # Kondisi 1: Ada kontaminan yang terdeteksi.
     if temuan_terdeteksi:
         ringkasan = "; ".join(
@@ -394,15 +441,14 @@ def assess_soil_risk(hasil_pemeriksaan):
         )
 
         return {
-            "risiko_tinggi": False,
+            "risiko_tinggi": True,
             "temuan": ringkasan,
             "sumber": sumber,
             "alasan": (
-                "Kontaminan terdeteksi. Rekomendasi hanya dapat "
-                "diberikan untuk tanaman yang memiliki kemampuan "
-                "tercatat menangani seluruh kontaminan dan didukung "
-                "referensi literatur. Hasil ini bukan bukti bahwa "
-                "tanah sudah aman."
+                "Kontaminan terdeteksi pada hasil pemeriksaan. "
+                "Penilaian pihak kompeten diperlukan sebelum "
+                "skor rekomendasi atau rencana pemulihan otomatis "
+                "dapat dibuat."
             ),
         }
 
