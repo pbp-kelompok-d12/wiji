@@ -39,7 +39,10 @@ from .services import finalkan_hasil_petugas
 from .forms import KoreksiHasilForm
 from .models import RiwayatKoreksiHasil
 from .services import koreksi_hasil_final
+from django.contrib.admin.sites import AdminSite
+from django.test import RequestFactory
 
+from .admin import HasilPemeriksaanAdmin, RiwayatKoreksiHasilAdmin
 
 class AksesHasilTests(TestCase):
     def setUp(self):
@@ -1618,3 +1621,41 @@ class FinalisasiPetugasTests(TestCase):
         self.hasil.refresh_from_db()
         self.assertEqual(str(self.hasil.ph), "7.00")
         self.assertEqual(self.hasil.riwayat_koreksi.count(), 1)
+
+
+class AdminHasilReadOnlyTests(TestCase):
+    def setUp(self):
+        self.admin_user = get_user_model().objects.create_superuser(
+            username="admin_readonly_test",
+            email="admin@example.com",
+            password="password-test-123",
+        )
+        self.request = RequestFactory().get("/admin/")
+        self.request.user = self.admin_user
+
+    def test_hasil_dan_riwayat_hanya_bisa_dilihat(self):
+        pasangan = [
+            (HasilPemeriksaan, HasilPemeriksaanAdmin),
+            (RiwayatKoreksiHasil, RiwayatKoreksiHasilAdmin),
+        ]
+
+        for model, admin_class in pasangan:
+            with self.subTest(model=model.__name__):
+                model_admin = admin_class(model, AdminSite())
+
+                self.assertTrue(
+                    model_admin.has_view_permission(self.request)
+                )
+                self.assertFalse(
+                    model_admin.has_add_permission(self.request)
+                )
+                self.assertFalse(
+                    model_admin.has_change_permission(self.request)
+                )
+                self.assertFalse(
+                    model_admin.has_delete_permission(self.request)
+                )
+                self.assertEqual(
+                    model_admin.get_actions(self.request),
+                    {},
+                )
