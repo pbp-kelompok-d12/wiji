@@ -27,6 +27,16 @@ from recommendations.services import (
     RecommendationInputError,
 )
 
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.http import Http404
+
+from inspections.models import (
+    JenisPemeriksaan,
+    PesananPemeriksaan,
+    RiwayatPesanan,
+)
+from .services import finalkan_hasil_petugas
+
 
 class AksesHasilTests(TestCase):
     def setUp(self):
@@ -1104,3 +1114,179 @@ class KontaminanTests(TestCase):
             data[0]["kontaminan"]["nama"],
             self.jenis.nama,
         )
+
+
+class FinalisasiPetugasTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+
+        self.pemilik = User.objects.create_user(
+            username="pemilik_finalisasi",
+            role="owner",
+        )
+        self.petugas = User.objects.create_user(
+            username="petugas_finalisasi",
+            role="officer",
+        )
+        self.petugas_lain = User.objects.create_user(
+            username="petugas_lain_finalisasi",
+            role="officer",
+        )
+        self.lahan = Lahan.objects.create(
+            owner=self.pemilik,
+            nama="Lahan finalisasi",
+        )
+        self.jenis = JenisPemeriksaan.objects.create(
+            nama="Dasar pengujian finalisasi",
+            slug="dasar-pengujian-finalisasi",
+            tingkat=1,
+        )
+        self.pesanan = PesananPemeriksaan.objects.create(
+            lahan=self.lahan,
+            jenis=self.jenis,
+            petugas=self.petugas,
+            status="diproses",
+            tanggal_usulan=timezone.localdate(),
+            sesi_usulan="pagi",
+        )
+        self.hasil = HasilPemeriksaan.objects.create(
+            lahan=self.lahan,
+            pesanan=self.pesanan,
+            dibuat_oleh=self.petugas,
+            asal="wiji",
+            status_hasil="draf",
+            sumber="Pemeriksaan Wiji",
+            tanggal_pemeriksaan=timezone.localdate(),
+            ph="6.00",
+            kelembapan="40.00",
+            tekstur="Lempung",
+            bahan_organik="3.00",
+        )
+
+    def finalkan(self):
+        return finalkan_hasil_petugas(
+            hasil_id=self.hasil.pk,
+            user=self.petugas,
+        )
+
+    def assert_tetap_draf(self):
+        self.hasil.refresh_from_db()
+        self.pesanan.refresh_from_db()
+
+        self.assertEqual(self.hasil.status_hasil, "draf")
+        self.assertIsNone(self.hasil.difinalkan_pada)
+        self.assertEqual(self.pesanan.status, "diproses")
+
+    def test_dasar_bisa_final_tanpa_unsur_hara_dan_kontaminan(self):
+        self.finalkan()
+
+        self.hasil.refresh_from_db()
+        self.pesanan.refresh_from_db()
+
+        self.assertEqual(self.hasil.status_hasil, "final")
+        self.assertIsNotNone(self.hasil.difinalkan_pada)
+        self.assertEqual(self.pesanan.status, "selesai")
+
+        self.assertTrue(
+            RiwayatPesanan.objects.filter(
+                pesanan=self.pesanan,
+                oleh=self.petugas,
+                status_sebelum="diproses",
+                status_sesudah="selesai",
+            ).exists()
+        )
+
+    def test_data_dasar_belum_lengkap_ditolak(self):
+        self.hasil.ph = None
+        self.hasil.save(update_fields=["ph"])
+
+        with self.assertRaises(ValidationError):
+            self.finalkan()
+
+        self.assert_tetap_draf()
+
+    def test_jenis_unsur_hara_memerlukan_pengukuran(self):
+        self.jenis.tingkat = 2
+        self.jenis.save(update_fields=["tingkat"])
+
+        with self.assertRaises(ValidationError):
+            self.finalkan()
+
+        self.assert_tetap_draf()
+
+        NutrientMeasurement.objects.create(
+            hasil=self.hasil,
+            nama_unsur="Nitrogen",
+            nilai="0.20",
+            satuan="%",
+        )
+
+        self.finalkan()
+        self.hasil.refresh_from_db()
+        self.assertEqual(self.hasil.status_hasil, "final")
+
+    def test_kontaminan_memerlukan_temuan_boleh_tidak_terdeteksi(self):
+        self.jenis.tingkat = 3
+        self.jenis.save(update_fields=["tingkat"])
+
+        NutrientMeasurement.objects.create(
+            hasil=self.hasil,
+            nama_unsur="Nitrogen",
+            nilai="0.20",
+            satuan="%",
+        )
+
+        with self.assertRaises(ValidationError):
+            self.finalkan()
+
+        self.assert_tetap_draf()
+
+        jenis_kontaminan = ContaminantType.objects.create(
+            nama="Kontaminan pengujian finalisasi",
+        )
+        ContaminantFinding.objects.create(
+            hasil=self.hasil,
+            kontaminan=jenis_kontaminan,
+            status="tidak_terdeteksi",
+            nilai=None,
+        )
+
+        self.finalkan()
+        self.hasil.refresh_from_db()
+        self.assertEqual(self.hasil.status_hasil, "final")
+
+    def test_petugas_lain_tidak_bisa_finalisasi(self):
+        with self.assertRaises(Http404):
+            finalkan_hasil_petugas(
+                hasil_id=self.hasil.pk,
+                user=self.petugas_lain,
+            )
+
+        self.assert_tetap_draf()
+
+    def test_hasil_final_tidak_bisa_difinalkan_ulang(self):
+        self.finalkan()
+
+        jumlah_riwayat = RiwayatPesanan.objects.filter(
+            pesanan=self.pesanan,
+        ).count()
+
+        with self.assertRaises(PermissionDenied):
+            self.finalkan()
+
+        self.assertEqual(
+            RiwayatPesanan.objects.filter(
+                pesanan=self.pesanan,
+            ).count(),
+            jumlah_riwayat,
+        )
+
+    def test_gagal_transisi_membatalkan_finalisasi(self):
+        with patch(
+            "soil_results.services.ubah_status",
+            side_effect=ValidationError("Transisi gagal."),
+        ):
+            with self.assertRaises(ValidationError):
+                self.finalkan()
+
+        self.assert_tetap_draf()
