@@ -20,6 +20,9 @@ from django.urls import reverse
 from .forms import ManagementPlanForm
 from .models import ManagementPlan, RecommendationSnapshot
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+
 
 def _first_by_pk(queryset, value):
     """
@@ -444,3 +447,46 @@ def hapus_rencana(request, pk):
             "rencana": rencana,
         },
     )
+
+@require_GET
+def api_hasil_lahan(request, lahan_id):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Silakan login terlebih dahulu."},
+            status=401,
+        )
+
+    if not request.user.is_owner:
+        return JsonResponse(
+            {"error": "Akses hanya untuk pemilik lahan."},
+            status=403,
+        )
+
+    lahan = get_object_or_404(
+        Lahan.objects.filter(
+            owner=request.user,
+            diarsipkan=False,
+        ),
+        pk=lahan_id,
+    )
+
+    hasil_list = HasilPemeriksaan.objects.filter(
+        lahan=lahan,
+    ).order_by("-tanggal_pemeriksaan", "-dibuat_pada")
+
+    response = JsonResponse({
+        "results": [
+            {
+                "id": hasil.pk,
+                "tanggal_pemeriksaan": (
+                    hasil.tanggal_pemeriksaan.isoformat()
+                ),
+                "asal": hasil.get_asal_display(),
+                "sumber": hasil.sumber,
+            }
+            for hasil in hasil_list
+        ],
+    })
+
+    response["Cache-Control"] = "private, no-store"
+    return response

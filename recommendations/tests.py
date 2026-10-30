@@ -1040,3 +1040,100 @@ class ManagementPlanViewTests(TestCase):
         self.assertEqual(ManagementPlan.objects.count(), 0)
         self.assertEqual(RecommendationSnapshot.objects.count(), 0)
 
+
+class HasilLahanAPITests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="api_owner",
+            password="test-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            username="api_other_owner",
+            password="test-password-123",
+        )
+
+        self.land = Lahan.objects.create(
+            owner=self.user,
+            nama="Lahan API",
+        )
+
+        self.result = HasilPemeriksaan.objects.create(
+            lahan=self.land,
+            dibuat_oleh=self.user,
+            tanggal_pemeriksaan=date(2026, 10, 20),
+            asal=HasilPemeriksaan.Asal.MANDIRI,
+            sumber="Laboratorium Uji",
+        )
+
+        self.url = reverse(
+            "recommendations:api_hasil_lahan",
+            kwargs={"lahan_id": self.land.pk},
+        )
+
+    def test_owner_can_get_json_results(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/json",
+        )
+        self.assertEqual(
+            response["Cache-Control"],
+            "private, no-store",
+        )
+        self.assertEqual(
+            response.json(),
+            {
+                "results": [
+                    {
+                        "id": self.result.pk,
+                        "tanggal_pemeriksaan": "2026-10-20",
+                        "asal": "Hasil Mandiri",
+                        "sumber": "Laboratorium Uji",
+                    }
+                ]
+            },
+        )
+
+    def test_unauthenticated_user_cannot_access_api(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_officer_cannot_access_owner_api(self):
+        officer = User.objects.create_user(
+            username="api_officer",
+            password="test-password-123",
+            role=User.Role.OFFICER,
+        )
+        self.client.force_login(officer)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_cannot_access_another_users_land(self):
+        other_land = Lahan.objects.create(
+            owner=self.other_user,
+            nama="Lahan Pengguna Lain",
+        )
+        self.client.force_login(self.user)
+
+        url = reverse(
+            "recommendations:api_hasil_lahan",
+            kwargs={"lahan_id": other_land.pk},
+        )
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_only_accepts_get_method(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, 405)
