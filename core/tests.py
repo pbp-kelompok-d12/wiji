@@ -247,3 +247,62 @@ class KatalogPublikTests(TestCase):
 
     def test_json_tidak_menerima_perubahan(self):
         self.assertEqual(self.client.post(reverse('core:api_tanaman')).status_code, 405)
+
+
+class SeedDemoTests(TestCase):
+    """Satu perintah isi data demo semua modul, aman dijalankan berulang."""
+
+    def jalankan(self, **opsi):
+        from io import StringIO
+        from django.core.management import call_command
+        call_command('seed_demo', stdout=StringIO(), **opsi)
+
+    def test_mengisi_semua_modul(self):
+        from inspections.models import PesananPemeriksaan
+        from recommendations.models import ManagementPlan
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        self.assertEqual(PesananPemeriksaan.objects.count(), 8)
+        self.assertEqual(HasilPemeriksaan.objects.count(), 4)
+        self.assertEqual(ManagementPlan.objects.count(), 2)
+        self.assertTrue(User.objects.filter(username='pemilik.demo').exists())
+
+    def test_pesanan_selesai_punya_hasil_final(self):
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        hasil = HasilPemeriksaan.objects.get(pesanan__status='selesai')
+        self.assertEqual(hasil.status_hasil, 'final')
+        self.assertEqual(hasil.asal, 'wiji')
+
+    def test_pesanan_diproses_punya_draf_buat_dilanjutkan(self):
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        self.assertEqual(HasilPemeriksaan.objects.get(pesanan__status='diproses').status_hasil, 'draf')
+
+    def test_lahan_bertimbal_tinggi_menghentikan_rekomendasi_otomatis(self):
+        from recommendations.services import assess_soil_risk
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        hasil = HasilPemeriksaan.objects.get(lahan__nama='Kebun Kopi Sukamakmur')
+        self.assertTrue(assess_soil_risk(hasil)['risiko_tinggi'])
+
+    def test_rencana_memakai_tanaman_dari_katalog(self):
+        from recommendations.models import ManagementPlan
+        self.jalankan()
+        for rencana in ManagementPlan.objects.select_related('rekomendasi__tanaman'):
+            self.assertTrue(Tanaman.objects.filter(pk=rencana.rekomendasi.tanaman_id).exists())
+            self.assertEqual(rencana.pemilik.username, 'pemilik.demo')
+
+    def test_dijalankan_berulang_tidak_menggandakan_data(self):
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        self.jalankan()
+        self.assertEqual(HasilPemeriksaan.objects.count(), 4)
+
+    def test_ulang_membuat_data_dari_awal(self):
+        from recommendations.models import ManagementPlan
+        from soil_results.models import HasilPemeriksaan
+        self.jalankan()
+        self.jalankan(ulang=True)
+        self.assertEqual(HasilPemeriksaan.objects.count(), 4)
+        self.assertEqual(ManagementPlan.objects.count(), 2)
