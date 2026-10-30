@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
 from lands.models import Lahan
-from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm, ContaminantFindingForm
+from .forms import HasilMandiriForm, NutrientMeasurementForm, DokumenLaboratoriumForm, ContaminantFindingForm, KoreksiHasilForm
 from .models import HasilPemeriksaan, NutrientMeasurement, ContaminantFinding
 import uuid
 from django.http import FileResponse, Http404, JsonResponse
@@ -19,7 +19,7 @@ from .permissions import (
     boleh_mengelola_hasil,
     pastikan_boleh_mengelola,
 )
-from .services import finalkan_hasil_petugas
+from .services import finalkan_hasil_petugas, koreksi_hasil_final
 
 def hasil_yang_bisa_dibaca(user):
     queryset = HasilPemeriksaan.objects.select_related(
@@ -801,4 +801,62 @@ def finalisasi_hasil(request, hasil_id):
         request,
         "soil_results/konfirmasi_finalisasi.html",
         {"hasil": hasil},
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def koreksi_hasil(request, hasil_id):
+    if not request.user.is_staff:
+        raise PermissionDenied(
+            "Hanya admin yang dapat mengoreksi hasil final."
+        )
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan.objects.select_related("lahan"),
+        pk=hasil_id,
+        asal=HasilPemeriksaan.Asal.WIJI,
+        status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
+    )
+
+    if hasil.lahan.diarsipkan or hasil.dipakai_dalam_rencana():
+        messages.error(
+            request,
+            "Hasil tidak dapat dikoreksi karena lahan diarsipkan "
+            "atau hasil sudah digunakan dalam rencana pengelolaan.",
+        )
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    form = KoreksiHasilForm(
+        request.POST if request.method == "POST" else None,
+        instance=hasil,
+    )
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            koreksi_hasil_final(
+                hasil_id=hasil.pk,
+                user=request.user,
+                data=request.POST,
+            )
+        except ValidationError as exc:
+            for pesan in exc.messages:
+                form.add_error(None, pesan)
+        else:
+            messages.success(
+                request,
+                "Koreksi berhasil disimpan beserta riwayatnya.",
+            )
+            return redirect(
+                "soil_results:detail_hasil",
+                hasil_id=hasil.pk,
+            )
+
+    return render(
+        request,
+        "soil_results/form_koreksi.html",
+        {"form": form, "hasil": hasil},
     )

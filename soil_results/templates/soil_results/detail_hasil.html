@@ -24,6 +24,16 @@
   <h1 class="heading mt-4 text-[28px]">
     Detail hasil pemeriksaan
   </h1>
+
+  {% if request.user.is_staff and hasil.asal == "wiji" and hasil.status_hasil == "final" and not hasil.lahan.diarsipkan and not terkunci %}
+    <div class="mt-4">
+      <a href="{% url 'soil_results:koreksi_hasil' hasil.pk %}"
+         class="btn btn-outline">
+        Koreksi data dasar
+      </a>
+    </div>
+  {% endif %}
+
   <p class="mt-2 text-sm text-ink-soft">
     {{ hasil.lahan.nama|default:"Lahan tanpa nama" }}
   </p>
@@ -248,4 +258,57 @@
   </section>
 
 </div>
+
+{% with riwayat_list=hasil.riwayat_koreksi.all %}
+  {% if riwayat_list %}
+    <section class="d-card mt-5 p-5">
+      <h2 class="heading text-xl">Riwayat koreksi</h2>
+
+      {% for riwayat in riwayat_list %}
+        <article class="mt-4 border-t border-line pt-4">
+          <p class="font-semibold">
+            {{ riwayat.dikoreksi_oleh.display_name }}
+            · {{ riwayat.dibuat_pada|date:"d M Y H:i" }}
+          </p>
+
+          <p class="mt-2 whitespace-pre-line">
+            {{ riwayat.alasan }}
+          </p>
+
+          <details class="mt-3">
+            <summary class="cursor-pointer font-semibold underline">
+              Lihat data sebelum dan sesudah koreksi
+            </summary>
+
+            <div class="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <h3 class="font-semibold">Sebelum</h3>
+                <dl class="mt-2 space-y-2">
+                  {% for nama, nilai in riwayat.data_sebelum.items %}
+                    <div>
+                      <dt class="text-sm text-ink-soft">{{ nama }}</dt>
+                      <dd class="whitespace-pre-line break-words">{{ nilai|default_if_none:"—" }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+
+              <div>
+                <h3 class="font-semibold">Sesudah</h3>
+                <dl class="mt-2 space-y-2">
+                  {% for nama, nilai in riwayat.data_sesudah.items %}
+                    <div>
+                      <dt class="text-sm text-ink-soft">{{ nama }}</dt>
+                      <dd class="whitespace-pre-line break-words">{{ nilai|default_if_none:"—" }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+            </div>
+          </details>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endwith %}
 {% endblock %}

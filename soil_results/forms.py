@@ -152,3 +152,28 @@ class HasilPetugasForm(HasilMandiriForm):
                 "w-full rounded-xl border border-line "
                 "bg-white px-3 py-2"
             )
+
+
+class KoreksiHasilForm(HasilPetugasForm):
+    alasan = forms.CharField(
+        label="Alasan koreksi",
+        min_length=10,
+        max_length=2000,
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "class": "w-full rounded-xl border border-line p-3",
+        }),
+        help_text="Jelaskan kesalahan data dan alasan perbaikannya.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for nama in [
+            "tanggal_pemeriksaan",
+            "ph",
+            "kelembapan",
+            "tekstur",
+            "bahan_organik",
+        ]:
+            self.fields[nama].required = True

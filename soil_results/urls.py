@@ -89,5 +89,10 @@ urlpatterns = [
         views.finalisasi_hasil,
         name="finalisasi_hasil",
     ),
+        path(
+        "<int:hasil_id>/koreksi/",
+        views.koreksi_hasil,
+        name="koreksi_hasil",
+    ),
 
 ]

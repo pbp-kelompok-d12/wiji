@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -6,7 +6,8 @@ from django.utils import timezone
 from inspections.models import PesananPemeriksaan
 from inspections.services import ubah_status
 
-from .models import HasilPemeriksaan
+from .models import HasilPemeriksaan, RiwayatKoreksiHasil
+from .forms import KoreksiHasilForm
 from .permissions import pastikan_boleh_mengelola
 
 
@@ -92,6 +93,91 @@ def finalkan_hasil_petugas(*, hasil_id, user):
         PesananPemeriksaan.Status.SELESAI,
         oleh=user,
         catatan="Hasil pemeriksaan telah difinalkan oleh petugas.",
+    )
+
+    return hasil
+
+FIELD_KOREKSI_DASAR = (
+    "tanggal_pemeriksaan",
+    "ph",
+    "kelembapan",
+    "tekstur",
+    "bahan_organik",
+    "catatan",
+)
+
+
+def snapshot_data_dasar(hasil):
+    # Tanggal dan Decimal diubah menjadi teks agar bisa disimpan ke JSON.
+    return {
+        nama: (
+            str(getattr(hasil, nama))
+            if getattr(hasil, nama) is not None
+            else None
+        )
+        for nama in FIELD_KOREKSI_DASAR
+    }
+
+
+@transaction.atomic
+def koreksi_hasil_final(*, hasil_id, user, data):
+    if not user.is_authenticated or not user.is_active or not user.is_staff:
+        raise PermissionDenied(
+            "Hanya admin aktif yang dapat mengoreksi hasil final."
+        )
+
+    hasil = get_object_or_404(
+        HasilPemeriksaan.objects.select_for_update(),
+        pk=hasil_id,
+        asal=HasilPemeriksaan.Asal.WIJI,
+        status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
+    )
+
+    if hasil.lahan.diarsipkan:
+        raise ValidationError(
+            "Hasil pada lahan yang diarsipkan tidak dapat dikoreksi."
+        )
+
+    if hasil.dipakai_dalam_rencana():
+        raise ValidationError(
+            "Hasil sudah digunakan dalam rencana pengelolaan "
+            "sehingga tidak dapat dikoreksi."
+        )
+
+    sebelum = snapshot_data_dasar(hasil)
+
+    form = KoreksiHasilForm(data, instance=hasil)
+
+    if not form.is_valid():
+        pesan = [
+            f"{nama}: {error}"
+            for nama, errors in form.errors.items()
+            for error in errors
+        ]
+        raise ValidationError(pesan)
+
+    hasil = form.save(commit=False)
+    sesudah = snapshot_data_dasar(hasil)
+
+    if sebelum == sesudah:
+        raise ValidationError(
+            "Tidak ada perubahan data yang perlu disimpan."
+        )
+
+    hasil.full_clean()
+    hasil.save(
+        update_fields=[
+            *FIELD_KOREKSI_DASAR,
+            "diperbarui_pada",
+        ]
+    )
+
+    RiwayatKoreksiHasil.objects.create(
+        hasil=hasil,
+        dikoreksi_oleh=user,
+        alasan=form.cleaned_data["alasan"],
+        data_sebelum=sebelum,
+        data_sesudah=sesudah,
     )
 
     return hasil
