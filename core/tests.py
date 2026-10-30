@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from core.models import Tanaman
 
 
 class LandingTests(TestCase):
@@ -141,3 +142,108 @@ class KatalogAwalTests(TestCase):
         sebelum = (Tanaman.objects.count(), PlantReference.objects.count())
         call_command('seed_tanaman', stdout=__import__('io').StringIO())
         self.assertEqual((Tanaman.objects.count(), PlantReference.objects.count()), sebelum)
+
+
+class KatalogPublikTests(TestCase):
+    """Katalog dibaca publik, dikelola staf, dan bisa dicari, diarsipkan, serta dibaca lewat JSON."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.staf = User.objects.create_user('staf.katalog', password='katalog-12345', is_staff=True)
+        cls.pemilik = User.objects.create_user('pemilik.katalog', password='katalog-12345')
+        cls.aktif = Tanaman.objects.get(nama='Kangkung darat')
+        cls.fito = Tanaman.objects.get(nama='Akar wangi')
+
+    def test_pengunjung_bisa_baca_daftar_dan_detail(self):
+        self.assertEqual(self.client.get(reverse('core:daftar_tanaman')).status_code, 200)
+        r = self.client.get(reverse('core:detail_tanaman', args=[self.fito.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Truong')
+
+    def test_pengunjung_dan_pemilik_tidak_bisa_mengelola(self):
+        urls = [reverse('core:tambah_tanaman'), reverse('core:ubah_tanaman', args=[self.aktif.pk]),
+                reverse('core:hapus_tanaman', args=[self.aktif.pk])]
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(self.pemilik)
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertEqual(self.client.post(reverse('core:arsip_tanaman', args=[self.aktif.pk])).status_code, 302)
+        self.aktif.refresh_from_db()
+        self.assertFalse(self.aktif.diarsipkan)
+
+    def test_pencarian_menyaring_nama(self):
+        r = self.client.get(reverse('core:daftar_tanaman'), {'q': 'kangkung'})
+        self.assertContains(r, 'Kangkung')
+        self.assertNotContains(r, 'Akar wangi')
+
+    def test_filter_tujuan_dan_jenis(self):
+        r = self.client.get(reverse('core:daftar_tanaman'), {'jenis': 'fitoremediasi'})
+        self.assertContains(r, 'Akar wangi')
+        self.assertNotContains(r, 'Kangkung')
+        r = self.client.get(reverse('core:daftar_tanaman'), {'tujuan': 'pemulihan-tanah-tercemar'})
+        self.assertContains(r, 'Akar wangi')
+        self.assertNotContains(r, 'Kangkung')
+
+    def test_htmx_hanya_membalas_daftar_kartu(self):
+        r = self.client.get(reverse('core:daftar_tanaman'), {'q': 'kangkung'}, headers={'HX-Request': 'true'})
+        self.assertContains(r, 'Kangkung')
+        self.assertNotContains(r, '<html')
+
+    def test_arsip_menyembunyikan_dari_publik_tapi_tidak_dari_staf(self):
+        self.client.force_login(self.staf)
+        self.client.post(reverse('core:arsip_tanaman', args=[self.aktif.pk]))
+        self.aktif.refresh_from_db()
+        self.assertTrue(self.aktif.diarsipkan)
+        self.assertEqual(self.client.get(reverse('core:detail_tanaman', args=[self.aktif.pk])).status_code, 200)
+        self.assertContains(self.client.get(reverse('core:daftar_tanaman'), {'arsip': '1'}), 'Kangkung')
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('core:detail_tanaman', args=[self.aktif.pk])).status_code, 404)
+        self.assertNotContains(self.client.get(reverse('core:daftar_tanaman')), 'Kangkung')
+        self.assertEqual(self.client.get(reverse('core:api_detail_tanaman', args=[self.aktif.pk])).status_code, 404)
+        self.client.force_login(self.staf)
+        self.client.post(reverse('core:pulihkan_tanaman', args=[self.aktif.pk]))
+        self.aktif.refresh_from_db()
+        self.assertFalse(self.aktif.diarsipkan)
+
+    def test_pengunjung_tidak_bisa_lihat_arsip_lewat_parameter(self):
+        self.aktif.diarsipkan = True
+        self.aktif.save()
+        self.assertNotContains(self.client.get(reverse('core:daftar_tanaman'), {'arsip': '1'}), 'Kangkung')
+
+    def test_arsip_hanya_lewat_post(self):
+        self.client.force_login(self.staf)
+        self.assertEqual(self.client.get(reverse('core:arsip_tanaman', args=[self.aktif.pk])).status_code, 405)
+
+    def test_staf_bisa_tambah_ubah_dan_hapus_yang_belum_dipakai(self):
+        self.client.force_login(self.staf)
+        data = {'nama': 'Tanaman uji', 'fungsi': 'Uji', 'deskripsi': 'Deskripsi uji', 'kondisi_pertumbuhan': 'pH 6'}
+        self.assertEqual(self.client.post(reverse('core:tambah_tanaman'), data).status_code, 302)
+        baru = Tanaman.objects.get(nama='Tanaman uji')
+        data['nama'] = 'Tanaman uji ubah'
+        self.client.post(reverse('core:ubah_tanaman', args=[baru.pk]), data)
+        baru.refresh_from_db()
+        self.assertEqual(baru.nama, 'Tanaman uji ubah')
+        self.client.post(reverse('core:hapus_tanaman', args=[baru.pk]))
+        self.assertFalse(Tanaman.objects.filter(pk=baru.pk).exists())
+
+    def test_tanaman_yang_sudah_dipakai_rekomendasi_tidak_bisa_dihapus(self):
+        from unittest import mock
+        self.client.force_login(self.staf)
+        with mock.patch.object(Tanaman, 'sudah_dipakai', new_callable=mock.PropertyMock, return_value=True):
+            r = self.client.post(reverse('core:hapus_tanaman', args=[self.aktif.pk]))
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Tanaman.objects.filter(pk=self.aktif.pk).exists())
+
+    def test_json_daftar_dan_detail_bisa_dibaca_publik(self):
+        r = self.client.get(reverse('core:api_tanaman'), {'q': 'akar wangi'})
+        self.assertEqual(r.status_code, 200)
+        hasil = r.json()['hasil']
+        self.assertEqual([t['nama'] for t in hasil], ['Akar wangi'])
+        detail = self.client.get(reverse('core:api_detail_tanaman', args=[self.fito.pk])).json()
+        self.assertTrue(detail['referensi'])
+        self.assertTrue(detail['kemampuan_kontaminan'])
+        self.assertIn('pemulihan-tanah-tercemar', detail['tujuan'])
+
+    def test_json_tidak_menerima_perubahan(self):
+        self.assertEqual(self.client.post(reverse('core:api_tanaman')).status_code, 405)
