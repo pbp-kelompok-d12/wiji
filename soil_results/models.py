@@ -76,6 +76,27 @@ class HasilPemeriksaan(models.Model):
         help_text="Kadar bahan organik dalam persen (0–100).",
     )
 
+    class StatusHasil(models.TextChoices):
+        DRAF = "draf", "Draf"
+        FINAL = "final", "Final"
+
+    pesanan = models.OneToOneField(
+        "inspections.PesananPemeriksaan",
+        on_delete=models.PROTECT,
+        related_name="hasil_pemeriksaan",
+        null=True,
+        blank=True,
+    )
+    status_hasil = models.CharField(
+        max_length=10,
+        choices=StatusHasil.choices,
+        default=StatusHasil.FINAL,
+    )
+    difinalkan_pada = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    
     class Meta:
         ordering = ["-tanggal_pemeriksaan", "-dibuat_pada"]
         verbose_name = "Hasil pemeriksaan"
@@ -87,6 +108,19 @@ class HasilPemeriksaan(models.Model):
     def clean(self):
         super().clean()
 
+        if self.pesanan_id:
+            if self.asal != self.Asal.WIJI:
+                raise ValidationError({
+                    "pesanan":
+                        "Hanya hasil Wiji yang dapat terhubung ke pesanan."
+                })
+
+            if self.lahan_id != self.pesanan.lahan_id:
+                raise ValidationError({
+                    "lahan":
+                        "Lahan hasil pemeriksaan harus sama dengan lahan pesanan."
+                })
+
         if (
             self.tanggal_pemeriksaan
             and self.tanggal_pemeriksaan > timezone.localdate()
@@ -95,6 +129,11 @@ class HasilPemeriksaan(models.Model):
                 "tanggal_pemeriksaan":
                     "Tanggal pemeriksaan tidak boleh di masa depan."
             })
+
+    def dipakai_dalam_rencana(self):
+        return self.recommendation_snapshots.filter(
+            management_plan__isnull=False,
+        ).exists()
 
 
 class NutrientMeasurement(models.Model):
@@ -134,3 +173,119 @@ class NutrientMeasurement(models.Model):
 
     def __str__(self):
         return f"{self.nama_unsur}: {self.nilai} {self.satuan}"
+
+
+class ContaminantFinding(models.Model):
+    class Status(models.TextChoices):
+        TERDETEKSI = "terdeteksi", "Terdeteksi"
+        TIDAK_TERDETEKSI = "tidak_terdeteksi", "Tidak terdeteksi"
+
+    class Satuan(models.TextChoices):
+        MG_KG = "mg/kg", "mg/kg"
+        UG_KG = "ug/kg", "µg/kg"
+
+    hasil = models.ForeignKey(
+        HasilPemeriksaan,
+        on_delete=models.CASCADE,
+        related_name="contaminant_findings",
+    )
+    kontaminan = models.ForeignKey(
+        "core.ContaminantType",
+        on_delete=models.PROTECT,
+        related_name="soil_findings",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+    )
+    nilai = models.DecimalField(
+        max_digits=14,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    satuan = models.CharField(
+        max_length=10,
+        choices=Satuan.choices,
+        blank=True,
+    )
+    batas_deteksi = models.DecimalField(
+        max_digits=14,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Isi jika tercantum di laporan, dengan satuan yang sama.",
+    )
+    metode = models.CharField(max_length=200, blank=True)
+    catatan = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["kontaminan__nama", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hasil", "kontaminan"],
+                name="unique_contaminant_per_soil_result",
+            )
+        ]
+        verbose_name = "Temuan kontaminan"
+        verbose_name_plural = "Temuan kontaminan"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.status == self.Status.TERDETEKSI:
+            if self.nilai is None:
+                errors["nilai"] = (
+                    "Isi nilai pengukuran untuk kontaminan terdeteksi."
+                )
+            if not self.satuan:
+                errors["satuan"] = "Pilih satuan pengukuran."
+
+        elif self.status == self.Status.TIDAK_TERDETEKSI:
+            if self.nilai is not None:
+                errors["nilai"] = (
+                    "Kosongkan nilai jika kontaminan tidak terdeteksi. "
+                    "Gunakan kolom batas deteksi jika tersedia."
+                )
+
+        if self.batas_deteksi is not None and not self.satuan:
+            errors["satuan"] = (
+                "Pilih satuan untuk batas deteksi."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.kontaminan} — {self.get_status_display()}"
+
+
+class RiwayatKoreksiHasil(models.Model):
+    hasil = models.ForeignKey(
+        HasilPemeriksaan,
+        on_delete=models.PROTECT,
+        related_name="riwayat_koreksi",
+    )
+    dikoreksi_oleh = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="koreksi_hasil_pemeriksaan",
+    )
+    alasan = models.TextField()
+    data_sebelum = models.JSONField()
+    data_sesudah = models.JSONField()
+    dibuat_pada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-dibuat_pada", "-pk"]
+        verbose_name = "Riwayat koreksi hasil"
+        verbose_name_plural = "Riwayat koreksi hasil"
+
+    def __str__(self):
+        return (
+            f"Koreksi hasil #{self.hasil_id} "
+            f"oleh {self.dikoreksi_oleh}"
+        )

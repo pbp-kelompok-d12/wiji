@@ -124,7 +124,10 @@ def _soil_data_status(hasil_pemeriksaan):
         "unsur_hara": has_nutrients or bool(
             hasil_pemeriksaan.unsur_hara.strip()
         ),
-        "kontaminan": bool(hasil_pemeriksaan.kontaminan.strip()),
+        "kontaminan": (
+            hasil_pemeriksaan.contaminant_findings.exists()
+            or bool(hasil_pemeriksaan.kontaminan.strip())
+        ),
     }
 
     jumlah_terisi = sum(values.values())
@@ -169,6 +172,31 @@ def _build_input_snapshot(lahan, hasil_pemeriksaan):
         "unsur_hara": hasil_pemeriksaan.unsur_hara,
         "pengukuran_unsur_hara": nutrients,
         "kontaminan": hasil_pemeriksaan.kontaminan,
+        "temuan_kontaminan": [
+            {
+                "kontaminan_id": temuan.kontaminan_id,
+                "nama": temuan.kontaminan.nama,
+                "status": temuan.status,
+                "nilai": (
+                    str(temuan.nilai)
+                    if temuan.nilai is not None
+                    else None
+                ),
+                "satuan": temuan.satuan,
+                "batas_deteksi": (
+                    str(temuan.batas_deteksi)
+                    if temuan.batas_deteksi is not None
+                    else None
+                ),
+                "metode": temuan.metode,
+                "catatan": temuan.catatan,
+            }
+            for temuan in (
+                hasil_pemeriksaan.contaminant_findings
+                .select_related("kontaminan")
+                .all()
+            )
+        ],
     }
 
 
@@ -222,6 +250,33 @@ def assess_soil_risk(hasil_pemeriksaan):
     Karena nilai dan batas aman disimpan sebagai teks bebas,
     fungsi ini tidak mengklaim bahwa suatu angka melampaui batas resmi.
     """
+    temuan_terdeteksi = list(
+        hasil_pemeriksaan.contaminant_findings
+        .filter(status="terdeteksi")
+        .select_related("kontaminan")
+    )
+
+    if temuan_terdeteksi:
+        ringkasan = "; ".join(
+            f"{temuan.kontaminan.nama}: "
+            f"{temuan.nilai} {temuan.satuan}"
+            for temuan in temuan_terdeteksi
+        )
+
+        return {
+            "risiko_tinggi": True,
+            "temuan": ringkasan,
+            "sumber": (
+                hasil_pemeriksaan.sumber
+                or hasil_pemeriksaan.get_asal_display()
+            ),
+            "alasan": (
+                "Hasil pemeriksaan mencatat kontaminan terdeteksi. "
+                "Nilai dan satuannya perlu ditinjau bersama batas "
+                "acuan yang sesuai sebelum rekomendasi otomatis "
+                "diberikan."
+            ),
+        }
     raw = (hasil_pemeriksaan.kontaminan or "").strip()
     normalized = " ".join(raw.casefold().split()).strip(" .,:;")
 
@@ -269,6 +324,11 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     Jika hasil pemeriksaan mencatat kontaminan yang belum terverifikasi,
     rekomendasi otomatis dihentikan dan hasil diarahkan ke penilaian ahli.
     """
+    if hasil_pemeriksaan.status_hasil != "final":
+        raise RecommendationInputError(
+            "Rekomendasi hanya dapat dibuat dari hasil pemeriksaan final."
+        )
+    
     if hasil_pemeriksaan.lahan_id != lahan.pk:
         raise RecommendationInputError(
             "Hasil pemeriksaan bukan milik lahan yang dipilih."

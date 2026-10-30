@@ -4,14 +4,36 @@
 
 {% block app_content %}
 <div class="mx-auto max-w-2xl">
-  <a href="{{ hasil.lahan.get_absolute_url }}"
-     class="text-sm underline">
-    ← Kembali ke lahan
-  </a>
+  {% if request.user.is_officer and hasil.pesanan_id %}
+    <a href="{% url 'inspections:tugas_detail' hasil.pesanan_id %}"
+       class="text-sm underline">
+      ← Kembali ke tugas
+    </a>
+  {% elif request.user.is_staff and hasil.pesanan_id %}
+    <a href="{% url 'inspections:kelola_detail' hasil.pesanan_id %}"
+       class="text-sm underline">
+      ← Kembali ke pesanan
+    </a>
+  {% else %}
+    <a href="{{ hasil.lahan.get_absolute_url }}"
+       class="text-sm underline">
+      ← Kembali ke lahan
+    </a>
+  {% endif %}
 
   <h1 class="heading mt-4 text-[28px]">
     Detail hasil pemeriksaan
   </h1>
+
+  {% if request.user.is_staff and hasil.asal == "wiji" and hasil.status_hasil == "final" and not hasil.lahan.diarsipkan and not terkunci %}
+    <div class="mt-4">
+      <a href="{% url 'soil_results:koreksi_hasil' hasil.pk %}"
+         class="btn btn-outline">
+        Koreksi data dasar
+      </a>
+    </div>
+  {% endif %}
+
   <p class="mt-2 text-sm text-ink-soft">
     {{ hasil.lahan.nama|default:"Lahan tanpa nama" }}
   </p>
@@ -19,7 +41,19 @@
     {{ hasil.get_asal_display }}
   </span>
 
-  {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+  {% if terkunci %}
+    <div role="status"
+        class="mt-4 rounded-xl border border-line bg-paper p-4">
+      <p class="font-semibold">Hasil digunakan dalam rencana pengelolaan</p>
+      <p class="mt-1 text-sm text-ink-soft">
+        Data, pengukuran unsur hara, dan dokumen tidak dapat diubah
+        karena hasil ini sudah menjadi dasar rencana pengelolaan.
+        Kamu tetap bisa melihat hasil dan mengunduh dokumennya.
+      </p>
+    </div>
+  {% endif %}
+
+  {% if boleh_kelola and hasil.asal == "mandiri" %}
     <div class="mt-4 flex flex-wrap gap-3">
         <a href="{% url 'soil_results:ubah_hasil_mandiri' hasil.pk %}"
         class="btn btn-primary">
@@ -30,6 +64,26 @@
         class="btn btn-ghost border border-line">
         Hapus hasil
         </a>
+    </div>
+  {% endif %}
+
+  {% if boleh_kelola and hasil.asal == "wiji" %}
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href="{% url 'soil_results:isi_hasil_petugas' hasil.pesanan_id %}"
+        class="btn btn-primary">
+        Ubah data dasar draf
+      </a>
+
+      <a href="{% url 'soil_results:finalisasi_hasil' hasil.pk %}"
+        class="btn btn-ghost border border-line">
+        Finalisasi hasil
+      </a>
+    </div>
+  {% endif %}
+
+  {% if hasil.status_hasil == "draf" %}
+    <div class="mt-4 rounded-xl border border-line bg-paper p-4">
+      Draf hasil petugas. Belum ditampilkan kepada pemilik lahan.
     </div>
   {% endif %}
 
@@ -82,7 +136,7 @@
         <p class="mt-2 text-sm text-ink-soft">Belum ada dokumen.</p>
     {% endif %}
 
-    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    {% if boleh_kelola %}
         <div class="mt-3">
           <a href="{% url 'soil_results:unggah_dokumen' hasil.pk %}"
             class="btn btn-ghost border border-line">
@@ -99,7 +153,7 @@
   <section class="d-card mt-5 p-5">
     <h2 class="heading text-xl">Pengukuran unsur hara</h2>
 
-    {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+    {% if boleh_kelola %}
         <a href="{% url 'soil_results:tambah_unsur_hara' hasil.pk %}"
            class="btn btn-ghost mt-3 border border-line">
           Tambah pengukuran
@@ -119,7 +173,7 @@
             </p>
             {% endif %}
 
-            {% if request.user.is_owner and hasil.asal == "mandiri" and not hasil.lahan.diarsipkan %}
+            {% if boleh_kelola %}
             <div class="mt-2 flex flex-wrap gap-4">
                 <a href="{% url 'soil_results:ubah_unsur_hara' pengukuran.pk %}"
                   class="text-sm font-semibold underline">
@@ -142,5 +196,119 @@
     </ul>
   </section>
 
+  <section class="d-card mt-5 p-5">
+    <h2 class="heading text-xl">Temuan kontaminan</h2>
+
+    {% if boleh_kelola %}
+      <a href="{% url 'soil_results:tambah_kontaminan' hasil.pk %}"
+        class="btn btn-ghost mt-3 border border-line">
+        Tambah temuan
+      </a>
+    {% endif %}
+
+    <ul class="mt-4 space-y-3">
+      {% for temuan in hasil.contaminant_findings.all %}
+        <li class="border-b border-line pb-3">
+          <p class="font-semibold">{{ temuan.kontaminan.nama }}</p>
+          <p>{{ temuan.get_status_display }}</p>
+
+          {% if temuan.nilai is not None %}
+            <p>
+              Nilai: {{ temuan.nilai }} {{ temuan.get_satuan_display }}
+            </p>
+          {% endif %}
+
+          {% if temuan.batas_deteksi is not None %}
+            <p class="text-sm text-ink-soft">
+              Batas deteksi: {{ temuan.batas_deteksi }}
+              {{ temuan.get_satuan_display }}
+            </p>
+          {% endif %}
+
+          {% if temuan.metode %}
+            <p class="text-sm text-ink-soft">Metode: {{ temuan.metode }}</p>
+          {% endif %}
+
+          {% if temuan.catatan %}
+            <div class="text-sm text-ink-soft">
+              {{ temuan.catatan|linebreaksbr }}
+            </div>
+          {% endif %}
+
+          {% if boleh_kelola %}
+            <div class="mt-2 flex flex-wrap gap-4">
+              <a href="{% url 'soil_results:ubah_kontaminan' temuan.pk %}"
+                class="text-sm font-semibold underline">
+                Ubah temuan
+              </a>
+
+              <a href="{% url 'soil_results:hapus_kontaminan' temuan.pk %}"
+                class="text-sm font-semibold underline">
+                Hapus temuan
+              </a>
+            </div>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="text-sm text-ink-soft">
+          Belum ada temuan yang dicatat. Ini tidak berarti tanah bebas kontaminan.
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
 </div>
+
+{% with riwayat_list=hasil.riwayat_koreksi.all %}
+  {% if riwayat_list %}
+    <section class="d-card mt-5 p-5">
+      <h2 class="heading text-xl">Riwayat koreksi</h2>
+
+      {% for riwayat in riwayat_list %}
+        <article class="mt-4 border-t border-line pt-4">
+          <p class="font-semibold">
+            {{ riwayat.dikoreksi_oleh.display_name }}
+            · {{ riwayat.dibuat_pada|date:"d M Y H:i" }}
+          </p>
+
+          <p class="mt-2 whitespace-pre-line">
+            {{ riwayat.alasan }}
+          </p>
+
+          <details class="mt-3">
+            <summary class="cursor-pointer font-semibold underline">
+              Lihat data sebelum dan sesudah koreksi
+            </summary>
+
+            <div class="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <h3 class="font-semibold">Sebelum</h3>
+                <dl class="mt-2 space-y-2">
+                  {% for nama, nilai in riwayat.data_sebelum.items %}
+                    <div>
+                      <dt class="text-sm text-ink-soft">{{ nama }}</dt>
+                      <dd class="whitespace-pre-line break-words">{{ nilai|default_if_none:"—" }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+
+              <div>
+                <h3 class="font-semibold">Sesudah</h3>
+                <dl class="mt-2 space-y-2">
+                  {% for nama, nilai in riwayat.data_sesudah.items %}
+                    <div>
+                      <dt class="text-sm text-ink-soft">{{ nama }}</dt>
+                      <dd class="whitespace-pre-line break-words">{{ nilai|default_if_none:"—" }}</dd>
+                    </div>
+                  {% endfor %}
+                </dl>
+              </div>
+            </div>
+          </details>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endwith %}
 {% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Hapus temuan kontaminan{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="heading text-[28px]">Hapus temuan kontaminan</h1>
+
+  <div class="d-card mt-5 p-5">
+    <p>
+      Hapus temuan
+      <strong>{{ temuan.kontaminan.nama }}</strong>
+      pada lahan
+      <strong>{{ hasil.lahan.nama|default:"Lahan tanpa nama" }}</strong>?
+    </p>
+
+    <p class="mt-2 text-sm text-ink-soft">
+      Hasil pemeriksaan utama dan temuan lainnya tetap tersimpan.
+      Temuan yang dihapus tidak dapat dikembalikan.
+    </p>
+
+    <form method="post" class="mt-5 flex flex-wrap gap-3">
+      {% csrf_token %}
+
+      <button type="submit" class="btn btn-primary">
+        Ya, hapus temuan
+      </button>
+
+      <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
+         class="btn btn-ghost">
+        Batal
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

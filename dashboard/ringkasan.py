@@ -85,7 +85,7 @@ def _kpi_rencana(rencana_qs):
 
 
 def _kartu_lahan(lahan):
-    hasil = lahan.soil_results.order_by('-tanggal_pemeriksaan', '-dibuat_pada').first()
+    hasil = lahan.hasil_final().order_by('-tanggal_pemeriksaan', '-dibuat_pada').first()
     if lahan.adalah_draf:
         status, kind, siap = 'Perlu dilengkapi', 'sand', False
     elif lahan.punya_pesanan_aktif():
@@ -144,7 +144,7 @@ def _aktivitas(pemilik, batas=5):
         kejadian.append({'icon': 'cal', 'title': f'{r.pesanan.kode}: {judul}', 'waktu': r.dibuat_pada})
     for l in Lahan.objects.filter(owner=pemilik, diarsipkan=False).order_by('-dibuat_pada')[:batas]:
         kejadian.append({'icon': 'pin', 'title': f'Lahan ditambahkan: {l.nama or "tanpa nama"}', 'waktu': l.dibuat_pada})
-    for h in HasilPemeriksaan.objects.filter(lahan__owner=pemilik).select_related('lahan').order_by('-dibuat_pada')[:batas]:
+    for h in HasilPemeriksaan.objects.filter(lahan__owner=pemilik, status_hasil=HasilPemeriksaan.StatusHasil.FINAL,).select_related('lahan').order_by('-dibuat_pada')[:batas]:
         kejadian.append({'icon': 'doc', 'title': f'Hasil tanah dicatat: {h.lahan.nama or "lahan"}', 'waktu': h.dibuat_pada})
     for p in ManagementPlan.objects.filter(pemilik=pemilik).order_by('-dibuat_pada')[:batas]:
         kejadian.append({'icon': 'check', 'title': 'Rencana disimpan', 'waktu': p.dibuat_pada})
@@ -154,7 +154,7 @@ def _aktivitas(pemilik, batas=5):
 def ringkasan_pemilik(pemilik):
     """Semua bahan dashboard pemilik dari data asli."""
     lahan_list = list(Lahan.objects.filter(owner=pemilik, diarsipkan=False).order_by('-dibuat_pada'))
-    hasil_qs = HasilPemeriksaan.objects.filter(lahan__owner=pemilik)
+    hasil_qs = HasilPemeriksaan.objects.filter(lahan__owner=pemilik, status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
     rencana_qs = ManagementPlan.objects.filter(pemilik=pemilik).order_by('-dibuat_pada')
     aktif = pesanan_aktif(pemilik)
     rekomendasi = _rekomendasi_terbaik(pemilik)

@@ -18,7 +18,7 @@
         {% if not lahan.diarsipkan and not lahan.adalah_draf and lahan.punya_pesanan_aktif %}
         <span class="chip chip-up">Pesanan aktif</span>
         {% endif %}
-        {% if not lahan.diarsipkan and lahan.soil_results.exists %}
+        {% if not lahan.diarsipkan and lahan.hasil_final.exists %}
         <span class="chip chip-up">Hasil tersedia</span>
         {% endif %}
       </div>
