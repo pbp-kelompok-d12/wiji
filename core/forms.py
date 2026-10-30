@@ -7,7 +7,8 @@ class TanamanForm(forms.ModelForm):
         fields = [
             'nama', 'nama_latin', 'fungsi', 'deskripsi', 
             'kondisi_pertumbuhan', 'kontaminan_ditangani', 
-            'tersedia_di_indonesia', 'risiko_penggunaan', 'sumber_penelitian'
+            'tersedia_di_indonesia', 'risiko_penggunaan', 'sumber_penelitian',
+            'tujuan_pengelolaan',
         ]
         widgets = {
             'nama': forms.TextInput(attrs={'class': 'w-full rounded-xl border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-forest'}),
@@ -18,5 +19,6 @@ class TanamanForm(forms.ModelForm):
             'kontaminan_ditangani': forms.Textarea(attrs={'class': 'w-full rounded-xl border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-forest', 'rows': 2}),
             'risiko_penggunaan': forms.Textarea(attrs={'class': 'w-full rounded-xl border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-forest', 'rows': 2}),
             'sumber_penelitian': forms.TextInput(attrs={'class': 'w-full rounded-xl border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-forest'}),
+            'tujuan_pengelolaan': forms.CheckboxSelectMultiple(),
             'tersedia_di_indonesia': forms.CheckboxInput(attrs={'class': 'size-4 rounded border-line text-forest focus:ring-forest'}),
         }
