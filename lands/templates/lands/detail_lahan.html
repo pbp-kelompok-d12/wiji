@@ -31,7 +31,7 @@
         <svg class="ic ic-sm"><use href="#i-check"/></svg>Pulihkan
       </button>
     </form>
-    {% elif not lahan.adalah_draf and lahan.dapat_diarsipkan %}
+    {% elif not lahan.adalah_draf and dapat_diarsipkan %}
     <a href="{% url 'lands:arsip_lahan' lahan.pk %}" class="btn btn-ghost !min-h-10 gap-2 border border-line">
       <svg class="ic ic-sm"><use href="#i-doc"/></svg>Arsipkan
     </a>
@@ -54,7 +54,7 @@
   <section class="d-card overflow-hidden p-2">
     {% if lahan.punya_koordinat %}
     <div class="relative">
-      <div id="peta-detail" class="h-[246px] w-full rounded-2xl" data-lat="{{ lahan.latitude|unlocalize }}" data-lng="{{ lahan.longitude|unlocalize }}"></div>
+      <div id="peta-detail" class="relative z-0 isolate h-[246px] w-full rounded-2xl" data-lat="{{ lahan.latitude|unlocalize }}" data-lng="{{ lahan.longitude|unlocalize }}"></div>
       {% if lahan.luas_m2 %}
       <span class="absolute left-3 top-3 z-[1000] rounded-full bg-white px-3 py-1.5 text-xs font-bold shadow-sm">
         {{ lahan.luas_m2|floatformat:"0" }} m²{% if lahan.penggunaan %} · {{ lahan.get_penggunaan_display|lower }}{% endif %}
@@ -76,7 +76,7 @@
 
   <section class="d-card p-5">
     <p class="eyebrow">Pesanan aktif</p>
-    {% if lahan.punya_pesanan_aktif %}
+    {% if punya_pesanan_aktif %}
     <p class="mt-2 text-sm font-semibold">Lahan ini memiliki pesanan yang sedang berjalan.</p>
     <p class="mt-1 text-xs leading-5 text-ink-soft"><a href="{% url 'inspections:daftar_pesanan' %}" class="link">Lihat pesanan</a> buat memantau statusnya.</p>
     {% else %}
@@ -114,36 +114,89 @@
   </section>
 
   <section class="d-card p-5">
-    <h2 class="d-title">Data lingkungan · Open-Meteo · NASA POWER</h2>
-    <div class="mt-3 grid grid-cols-3 gap-2">
+    <h2 class="d-title">Data lingkungan · Open-Meteo</h2>
+    {% if data_lingkungan.status == "available" %}
+    <p class="mt-1 text-sm text-ink-soft">{{ data_lingkungan.weather_description }}</p>
+    <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
       <div class="rounded-xl bg-paper p-3">
         <p class="text-xs text-ink-soft">Suhu</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[°C]</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.temperature_2m|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.temperature_2m }}</p>
       </div>
       <div class="rounded-xl bg-paper p-3">
-        <p class="text-xs text-ink-soft">Hujan 30 hr</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[mm]</p>
+        <p class="text-xs text-ink-soft">Kelembapan</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.relative_humidity_2m|floatformat:0 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.relative_humidity_2m }}</p>
       </div>
       <div class="rounded-xl bg-paper p-3">
-        <p class="text-xs text-ink-soft">Tahunan</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[mm]</p>
+        <p class="text-xs text-ink-soft">Hujan saat ini</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.precipitation|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.precipitation }}</p>
+      </div>
+      <div class="rounded-xl bg-paper p-3">
+        <p class="text-xs text-ink-soft">Angin</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.wind_speed_10m|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.wind_speed_10m }}</p>
       </div>
     </div>
-    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">Data lingkungan belum tersedia. Informasi ini nantinya menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.</p>
+    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+      Diambil {{ data_lingkungan.current.time }} ({{ data_lingkungan.timezone }}) dari Open-Meteo.
+      Data ini pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+    </p>
+    {% else %}
+    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+      {{ data_lingkungan.message }}
+      Informasi ini nantinya menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+    </p>
+    {% endif %}
   </section>
 </div>
+
+<section class="d-card mt-4 p-5">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="d-title">Iklim historis · NASA POWER</h2>
+      <p class="mt-1 text-xs text-ink-soft">Total curah hujan dari data harian NASA POWER.</p>
+    </div>
+    {% if iklim_historis.status == "available" %}
+    <span class="chip chip-up">Data tersedia</span>
+    {% endif %}
+  </div>
+
+  {% if iklim_historis.status == "available" %}
+  <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div class="rounded-xl bg-paper p-3">
+      <p class="text-xs text-ink-soft">Hujan 30 hari</p>
+      <p class="mt-1 text-lg font-bold">{{ iklim_historis.rainfall_30d|floatformat:1 }}</p>
+      <p class="text-xs font-semibold">{{ iklim_historis.units.rainfall_30d }}</p>
+    </div>
+    <div class="rounded-xl bg-paper p-3">
+      <p class="text-xs text-ink-soft">Hujan 12 bulan</p>
+      <p class="mt-1 text-lg font-bold">{{ iklim_historis.rainfall_annual|floatformat:1 }}</p>
+      <p class="text-xs font-semibold">{{ iklim_historis.units.rainfall_annual }}</p>
+    </div>
+  </div>
+  <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+    Periode {{ iklim_historis.period.start }}–{{ iklim_historis.period.end }}
+    · data terakhir {{ iklim_historis.latest_data_date }}
+    · sumber NASA POWER (PRECTOTCORR).
+  </p>
+  {% else %}
+  <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+    {{ iklim_historis.message }}
+    Data curah hujan historis menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+  </p>
+  {% endif %}
+</section>
 
 <section class="d-card mt-4 p-5">
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
       <p class="eyebrow">Hasil tanah</p>
-      {% if lahan.hasil_final.exists %}
+      {% if hasil_final %}
       <p class="mt-1 text-sm font-bold">Hasil pemeriksaan tersedia</p>
       <ul class="mt-3 space-y-2">
-        {% for hasil in lahan.hasil_final %}
+        {% for hasil in hasil_final %}
           <li>
             <a href="{% url 'soil_results:detail_hasil' hasil.pk %}"
               class="text-sm font-semibold underline">
@@ -160,15 +213,22 @@
       {% endif %}
     </div>
     <div class="flex flex-wrap gap-2">
-      {% if request.user.is_owner and not lahan.diarsipkan and not lahan.adalah_draf and not lahan.punya_pesanan_aktif %}
+      {% if request.user.is_owner and not lahan.diarsipkan and not lahan.adalah_draf and not punya_pesanan_aktif %}
       <a href="{% url 'inspections:pesan_pemeriksaan' %}?lahan={{ lahan.pk }}" class="btn btn-ghost !min-h-10 border border-line">
         Pesan pemeriksaan
       </a>
       {% else %}
-      <button type="button" class="btn btn-ghost !min-h-10 border border-line" disabled
-              title="{% if lahan.punya_pesanan_aktif %}Lahan ini masih punya pesanan yang berjalan{% elif lahan.diarsipkan %}Lahan diarsipkan{% else %}Lengkapi data lahan dulu{% endif %}">
-        Pesan pemeriksaan
-      </button>
+      <p class="text-xs leading-5 text-ink-soft" role="status">
+        {% if not request.user.is_owner %}
+        Hanya pemilik lahan yang dapat memesan pemeriksaan.
+        {% elif punya_pesanan_aktif %}
+        Lahan ini masih memiliki pesanan yang berjalan.
+        {% elif lahan.diarsipkan %}
+        Pulihkan lahan terlebih dahulu untuk memesan pemeriksaan.
+        {% else %}
+        Lengkapi data wajib lahan terlebih dahulu untuk memesan pemeriksaan.
+        {% endif %}
+      </p>
       {% endif %}
       {% if request.user.is_owner and not lahan.diarsipkan %}
         <a href="{% url 'soil_results:tambah_hasil_mandiri' lahan.pk %}"

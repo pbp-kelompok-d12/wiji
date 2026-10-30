@@ -8,10 +8,12 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from . import forms
 from . import models
+from .environment import fetch_environmental_data
+from .nasa_power import fetch_climate_data
 from .services import nominatim
 
 LahanForm = forms.LahanForm
@@ -118,9 +120,15 @@ def detail_lahan(request, pk):
         _lahan_owner(request).prefetch_related('tujuan'),
         pk=pk,
     )
+    punya_pesanan_aktif = lahan.punya_pesanan_aktif()
     return render(request, 'lands/detail_lahan.html', {
         'active_nav': 'lahan',
         'lahan': lahan,
+        'hasil_final': list(lahan.hasil_final()),
+        'punya_pesanan_aktif': punya_pesanan_aktif,
+        'dapat_diarsipkan': not lahan.diarsipkan and not punya_pesanan_aktif,
+        'data_lingkungan': fetch_environmental_data(lahan),
+        'iklim_historis': fetch_climate_data(lahan),
     })
 
 
@@ -153,6 +161,7 @@ def ubah_lahan(request, pk):
 
 
 @owner_required
+@require_http_methods(['GET', 'POST'])
 def arsip_lahan(request, pk):
     lahan = get_object_or_404(_lahan_owner(request), pk=pk)
     if lahan.diarsipkan:
@@ -188,6 +197,7 @@ def arsip_lahan(request, pk):
 
 
 @owner_required
+@require_POST
 def pulihkan_lahan(request, pk):
     lahan = get_object_or_404(_lahan_owner(request), pk=pk)
     if request.method == 'POST':
