@@ -231,6 +231,8 @@ class ManagementPlanTests(TestCase):
 
 class RecommendationScoringTests(TestCase):
     def setUp(self):
+        # Katalog awal dari migrasi dikosongkan supaya hitungan tes ini nggak ikut berubah
+        Tanaman.objects.all().delete()
         self.user = User.objects.create_user(
             username="scoring_user",
             password="test-password-123",
