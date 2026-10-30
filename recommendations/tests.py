@@ -7,7 +7,15 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
-from core.models import Tanaman
+from core.models import (
+    Tanaman,
+    ContaminantType,
+    PlantReference,
+    PlantContaminantCapability,
+)
+
+from soil_results.models import ContaminantFinding
+
 from lands.models import Lahan, ManagementGoal
 from soil_results.models import HasilPemeriksaan
 
@@ -49,6 +57,8 @@ class RecommendationSnapshotTests(TestCase):
             dibuat_oleh=self.user,
             tanggal_pemeriksaan=date(2026, 10, 20),
             ph=Decimal("6.50"),
+            kelembapan =Decimal("45.00"),
+            kontaminan="Tidak Terdeteksi",
         )
         self.plant = Tanaman.objects.create(
             nama="Tanaman Uji",
@@ -239,6 +249,7 @@ class RecommendationScoringTests(TestCase):
             tanggal_pemeriksaan=date(2026, 10, 20),
             ph=Decimal("6.50"),
             kelembapan=Decimal("45.00"),
+            kontaminan="Tidak terdeteksi",
         )
         self.environmental_data = {
             "status": "available",
@@ -274,6 +285,22 @@ class RecommendationScoringTests(TestCase):
         data.update(overrides)
         return Tanaman.objects.create(**data)
 
+    def create_contaminant_finding(self):
+        contaminant = ContaminantType.objects.create(
+            nama="Timbal",
+            deskripsi="Kontaminan logam berat.",
+        )
+
+        ContaminantFinding.objects.create(
+            hasil=self.result,
+            kontaminan=contaminant,
+            status=ContaminantFinding.Status.TERDETEKSI,
+            nilai=Decimal("380"),
+            satuan=ContaminantFinding.Satuan.MG_KG,
+        )
+
+        return contaminant
+
     def test_matching_plant_is_scored(self):
         plant = self.create_plant()
 
@@ -290,7 +317,7 @@ class RecommendationScoringTests(TestCase):
         self.assertGreaterEqual(candidate.skor, 0)
         self.assertLessEqual(candidate.skor, 100)
         self.assertTrue(candidate.alasan)
-        self.assertEqual(candidate.kelengkapan_data, 33)
+        self.assertEqual(candidate.kelengkapan_data, 50)
         self.assertEqual(candidate.versi_aturan, "v1")
         self.assertEqual(result["data_lingkungan"]["status"],"available",)
         self.assertEqual(candidate.data_lingkungan["current"]["temperature_2m"],30.1,)
@@ -412,6 +439,173 @@ class RecommendationScoringTests(TestCase):
             result["temuan_risiko"]["temuan"],
             self.result.kontaminan,
         )
+        self.environment_mock.assert_not_called()
+
+    def test_missing_contaminant_data_blocks_recommendations(self):
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
+        self.assertEqual(
+            result["temuan_risiko"]["temuan"],
+            "Data kontaminan belum tersedia.",
+        )
+        self.environment_mock.assert_not_called()
+
+    def test_detected_contaminant_requires_expert_review_even_for_supported_pair(self):
+        contaminant = self.create_contaminant_finding()
+        plant = self.create_plant()
+
+        PlantContaminantCapability.objects.create(
+            tanaman=plant,
+            kontaminan=contaminant,
+            tingkat_efektivitas="Didukung penelitian",
+        )
+        PlantReference.objects.create(
+            tanaman=plant,
+            sumber_literatur="Penelitian tentang fitoremediasi timbal",
+            tautan="https://example.com/research",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
+        self.environment_mock.assert_not_called()
+
+
+    def test_unsupported_contaminant_pair_is_blocked(self):
+        self.create_contaminant_finding()
+        plant = self.create_plant()
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+
+
+    def test_contaminant_pair_without_reference_is_blocked(self):
+        contaminant = self.create_contaminant_finding()
+        plant = self.create_plant()
+
+        PlantContaminantCapability.objects.create(
+            tanaman=plant,
+            kontaminan=contaminant,
+            tingkat_efektivitas="Didukung penelitian",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+    def test_contaminant_pair_with_unrelated_reference_is_blocked(self):
+        contaminant = self.create_contaminant_finding()
+        plant = self.create_plant()
+
+        PlantContaminantCapability.objects.create(
+            tanaman=plant,
+            kontaminan=contaminant,
+            tingkat_efektivitas="Didukung penelitian",
+        )
+
+        PlantReference.objects.create(
+            tanaman=plant,
+            sumber_literatur="Penelitian tentang fitoremediasi arsenik",
+            tautan="https://example.com/arsenic-research",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+    def test_food_crop_without_consumption_safety_is_blocked(self):
+        plant = self.create_plant(
+            nama="Bayam",
+            fungsi=(
+                "Tanaman pangan untuk sayuran dan "
+                "menambah bahan organik"
+            ),
+            deskripsi="Tanaman sayuran yang dapat dikonsumsi.",
+            risiko_penggunaan="",
+        )
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+
+        blocked_plants = [
+            item["tanaman"]
+            for item in result["diblokir"]
+        ]
+
+        self.assertIn(plant, blocked_plants)
+
+    def test_structured_high_risk_finding_blocks_recommendations(self):
+        self.create_contaminant_finding()
+
+        finding = self.result.contaminant_findings.get()
+        finding.catatan = "Penilaian ahli: RISIKO TINGGI."
+        finding.save()
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertTrue(result["risiko_tinggi"])
+        self.assertEqual(result["rekomendasi"], [])
         self.environment_mock.assert_not_called()
 
 class OpenMeteoEnvironmentTests(TestCase):
@@ -652,6 +846,7 @@ class ManagementPlanViewTests(TestCase):
             tanggal_pemeriksaan=date(2026, 10, 20),
             ph=Decimal("6.50"),
             kelembapan=Decimal("45.00"),
+            kontaminan="Tidak terdeteksi",
         )
         self.plant = Tanaman.objects.create(
             nama="Tanaman Rencana",
@@ -1035,11 +1230,44 @@ class ManagementPlanViewTests(TestCase):
                 "jumlah_bibit": "50",
             },
         )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ManagementPlan.objects.count(), 0)
+        self.assertEqual(RecommendationSnapshot.objects.count(), 0)
+    def test_structured_high_risk_finding_cannot_create_plan(self):
+        contaminant = ContaminantType.objects.create(
+            nama="Timbal",
+            deskripsi="Kontaminan logam berat.",
+        )
+
+        ContaminantFinding.objects.create(
+            hasil=self.result,
+            kontaminan=contaminant,
+            status=ContaminantFinding.Status.TERDETEKSI,
+            nilai=Decimal("380"),
+            satuan=ContaminantFinding.Satuan.MG_KG,
+            catatan="Penilaian ahli: RISIKO TINGGI.",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("recommendations:buat_rencana"),
+            {
+                "lahan": str(self.land.pk),
+                "hasil": str(self.result.pk),
+                "tujuan": str(self.goal.pk),
+                "tanaman": str(self.plant.pk),
+                "luas_tanam_m2": "100",
+                "jumlah_bibit": "50",
+            },
+        )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ManagementPlan.objects.count(), 0)
         self.assertEqual(RecommendationSnapshot.objects.count(), 0)
-
 
 class HasilLahanAPITests(TestCase):
     def setUp(self):
