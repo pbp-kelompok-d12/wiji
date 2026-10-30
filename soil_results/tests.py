@@ -1290,3 +1290,167 @@ class FinalisasiPetugasTests(TestCase):
                 self.finalkan()
 
         self.assert_tetap_draf()
+
+    def test_pemilik_tidak_melihat_draf_di_api(self):
+        self.client.force_login(self.pemilik)
+
+        daftar = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+        self.assertEqual(daftar.status_code, 200)
+        ids = [item["id"] for item in daftar.json()["results"]]
+        self.assertNotIn(self.hasil.pk, ids)
+
+        detail = self.client.get(
+            reverse(
+                "soil_results:api_detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+        self.assertEqual(detail.status_code, 404)
+
+    def test_petugas_ditugaskan_bisa_membaca_draf_di_api(self):
+        self.client.force_login(self.petugas)
+
+        response = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+        self.assertEqual(response.status_code, 200)
+
+        item = next(
+            item
+            for item in response.json()["results"]
+            if item["id"] == self.hasil.pk
+        )
+        self.assertEqual(item["status_hasil"], "draf")
+        self.assertEqual(item["pesanan_id"], self.pesanan.pk)
+        self.assertIsNone(item["difinalkan_pada"])
+
+        detail = self.client.get(
+            reverse(
+                "soil_results:api_detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+        self.assertEqual(detail.status_code, 200)
+
+    def test_petugas_lain_tidak_bisa_membaca_draf_di_api(self):
+        self.client.force_login(self.petugas_lain)
+
+        daftar = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+        self.assertEqual(daftar.status_code, 200)
+        ids = [item["id"] for item in daftar.json()["results"]]
+        self.assertNotIn(self.hasil.pk, ids)
+
+        detail = self.client.get(
+            reverse(
+                "soil_results:api_detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+        self.assertEqual(detail.status_code, 404)
+
+    def test_pemilik_bisa_membaca_hasil_setelah_finalisasi(self):
+        self.finalkan()
+        self.client.force_login(self.pemilik)
+
+        response = self.client.get(
+            reverse("soil_results:api_daftar_hasil")
+        )
+        self.assertEqual(response.status_code, 200)
+
+        item = next(
+            item
+            for item in response.json()["results"]
+            if item["id"] == self.hasil.pk
+        )
+        self.assertEqual(item["status_hasil"], "final")
+        self.assertIsNotNone(item["difinalkan_pada"])
+
+        detail = self.client.get(
+            reverse(
+                "soil_results:api_detail_hasil",
+                args=[self.hasil.pk],
+            )
+        )
+        self.assertEqual(detail.status_code, 200)
+
+    def test_temuan_terdeteksi_memicu_penilaian_ahli(self):
+        from recommendations.services import assess_soil_risk
+
+        kontaminan = ContaminantType.objects.create(
+            nama="Kontaminan uji integrasi",
+        )
+        ContaminantFinding.objects.create(
+            hasil=self.hasil,
+            kontaminan=kontaminan,
+            status="terdeteksi",
+            nilai="1.25",
+            satuan="mg/kg",
+        )
+
+        # Kolom teks lama kosong; temuan terstruktur tetap harus dibaca.
+        self.assertEqual(self.hasil.kontaminan, "")
+
+        risiko = assess_soil_risk(self.hasil)
+
+        self.assertTrue(risiko["risiko_tinggi"])
+        self.assertIn(kontaminan.nama, risiko["temuan"])
+        self.assertTrue(risiko["alasan"])
+
+    def test_temuan_tidak_terdeteksi_tidak_memicu_blokir(self):
+        from recommendations.services import assess_soil_risk
+
+        kontaminan = ContaminantType.objects.create(
+            nama="Kontaminan tidak terdeteksi",
+        )
+        ContaminantFinding.objects.create(
+            hasil=self.hasil,
+            kontaminan=kontaminan,
+            status="tidak_terdeteksi",
+            nilai=None,
+        )
+
+        risiko = assess_soil_risk(self.hasil)
+
+        self.assertFalse(risiko["risiko_tinggi"])
+
+    def test_snapshot_menyimpan_salinan_temuan_kontaminan(self):
+        from recommendations.services import (
+            _build_input_snapshot,
+            _soil_data_status,
+        )
+
+        kontaminan = ContaminantType.objects.create(
+            nama="Kontaminan snapshot",
+        )
+        temuan = ContaminantFinding.objects.create(
+            hasil=self.hasil,
+            kontaminan=kontaminan,
+            status="terdeteksi",
+            nilai="1.25",
+            satuan="mg/kg",
+        )
+
+        status, _, _ = _soil_data_status(self.hasil)
+        self.assertTrue(status["kontaminan"])
+
+        snapshot = _build_input_snapshot(self.lahan, self.hasil)
+        data = snapshot["temuan_kontaminan"][0]
+
+        self.assertEqual(data["kontaminan_id"], kontaminan.pk)
+        self.assertEqual(data["status"], "terdeteksi")
+        self.assertEqual(data["satuan"], "mg/kg")
+
+        nilai_awal = data["nilai"]
+
+        temuan.nilai = "9.00"
+        temuan.save(update_fields=["nilai"])
+
+        # Salinan yang sudah dibuat tidak ikut berubah.
+        self.assertEqual(
+            snapshot["temuan_kontaminan"][0]["nilai"],
+            nilai_awal,
+        )
