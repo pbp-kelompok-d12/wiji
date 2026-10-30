@@ -454,6 +454,13 @@ def hasil_ke_dict(hasil):
             "nama": hasil.lahan.nama,
         },
         "asal": hasil.asal,
+        "status_hasil": hasil.status_hasil,
+        "pesanan_id": hasil.pesanan_id,
+        "difinalkan_pada": (
+            hasil.difinalkan_pada.isoformat()
+            if hasil.difinalkan_pada
+            else None
+        ),
         "sumber": hasil.sumber,
         "tanggal_pemeriksaan": hasil.tanggal_pemeriksaan.isoformat(),
         "ph": hasil.ph,
@@ -500,11 +507,7 @@ def api_daftar_hasil(request):
         )
 
     hasil_list = (
-        HasilPemeriksaan.objects
-        .filter(
-            lahan__owner=request.user,
-            status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
-        .select_related("lahan")
+        hasil_yang_bisa_dibaca(request.user)
         .prefetch_related(
             "nutrient_measurements",
             "contaminant_findings__kontaminan",
@@ -536,10 +539,8 @@ def api_detail_hasil(request, hasil_id):
         )
 
     hasil = (
-        HasilPemeriksaan.objects
-        .filter(pk=hasil_id, lahan__owner=request.user,
-                status_hasil=HasilPemeriksaan.StatusHasil.FINAL,)
-        .select_related("lahan")
+        hasil_yang_bisa_dibaca(request.user)
+        .filter(pk=hasil_id)
         .prefetch_related(
             "nutrient_measurements",
             "contaminant_findings__kontaminan",
