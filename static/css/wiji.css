@@ -202,6 +202,7 @@ body {
   outline: none;
   background: #fff;
   border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px rgba(47, 107, 63, 0.28);
 }
 .field-input.is-invalid {
   background: #fff;
