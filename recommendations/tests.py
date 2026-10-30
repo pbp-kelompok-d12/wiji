@@ -1367,3 +1367,36 @@ class HasilLahanAPITests(TestCase):
         response = self.client.post(self.url)
 
         self.assertEqual(response.status_code, 405)
+
+class FoodCropRuleTests(TestCase):
+    """Aturan tanaman pangan mencocokkan kata utuh, jadi tanaman non-pangan nggak ikut terblokir."""
+
+    def tanaman(self, nama, fungsi='', deskripsi='-', risiko='', sumber=''):
+        return Tanaman(nama=nama, fungsi=fungsi, deskripsi=deskripsi, risiko_penggunaan=risiko, sumber_penelitian=sumber)
+
+    def terblokir(self, tanaman):
+        from .services import _is_food_crop_without_clear_consumption_safety
+        return _is_food_crop_without_clear_consumption_safety(tanaman)
+
+    def test_kata_potongan_tidak_dianggap_pangan(self):
+        # "sawi" ada di "sawit", "buah" ada di "berbuah"
+        self.assertFalse(self.terblokir(self.tanaman('Centrosema', 'Penutup tanah di bawah kebun sawit')))
+        self.assertFalse(self.terblokir(self.tanaman('Pohon pelindung', 'Pohon berbuah kecil buat satwa liar')))
+
+    def test_kacang_penutup_tanah_bukan_tanaman_pangan(self):
+        self.assertFalse(self.terblokir(self.tanaman('Kudzu tropis', 'Kacang penutup tanah, mencegah erosi')))
+
+    def test_kacang_yang_dimakan_tetap_dianggap_pangan(self):
+        self.assertTrue(self.terblokir(self.tanaman('Kacang tanah', 'Kacang yang polongnya terbentuk di dalam tanah')))
+        self.assertTrue(self.terblokir(self.tanaman('Tanaman X', 'Pangan keluarga: sayuran daun')))
+
+    def test_pangan_tetap_diblokir_sampai_keamanan_konsumsi_terverifikasi(self):
+        sayur = self.tanaman('Bayam', 'Pangan keluarga: sayuran daun')
+        self.assertTrue(self.terblokir(sayur))
+        sayur.risiko_penggunaan = 'Keamanan konsumsi terverifikasi untuk tanah bebas kontaminan.'
+        self.assertTrue(self.terblokir(sayur))  # tanpa sumber penelitian tetap diblokir
+        sayur.sumber_penelitian = 'Kementan (2020)'
+        self.assertFalse(self.terblokir(sayur))
+
+    def test_penanda_bukan_pangan_eksplisit_membebaskan(self):
+        self.assertFalse(self.terblokir(self.tanaman('Akar wangi', 'Pencegah erosi', 'Bukan tanaman pangan, hanya penahan tanah.')))

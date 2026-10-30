@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,7 +57,12 @@ FOOD_CROP_TERMS = (
     "singkong",
     "kentang",
     "kedelai",
-    "kacang",
+    "kacang tanah",
+    "kacang panjang",
+    "kacang hijau",
+    "kacang merah",
+    "kacang polong",
+    "buncis",
     "bayam",
     "kangkung",
     "sawi",
@@ -286,6 +292,11 @@ def _goal_matches_plant(tujuan, tanaman):
 def _is_high_risk(tanaman):
     risk_text = (tanaman.risiko_penggunaan or "").casefold()
     return any(term in risk_text for term in HIGH_RISK_TERMS)
+def _contains_word(term, text):
+    """Cocokkan kata utuh, supaya "sawi" tidak ikut cocok dengan "sawit" atau "buah" dengan "berbuah"."""
+    return re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text) is not None
+
+
 def _is_food_crop_without_clear_consumption_safety(tanaman):
     plant_text = " ".join([
         tanaman.nama or "",
@@ -296,11 +307,11 @@ def _is_food_crop_without_clear_consumption_safety(tanaman):
 
     risk_text = (tanaman.risiko_penggunaan or "").casefold()
 
-    if any(term in plant_text for term in NON_FOOD_TERMS):
+    if any(_contains_word(term, plant_text) for term in NON_FOOD_TERMS):
         return False
 
     is_food_crop = any(
-        term in plant_text
+        _contains_word(term, plant_text)
         for term in FOOD_CROP_TERMS
     )
 
