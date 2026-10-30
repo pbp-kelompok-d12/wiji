@@ -36,6 +36,9 @@ from inspections.models import (
     RiwayatPesanan,
 )
 from .services import finalkan_hasil_petugas
+from .forms import KoreksiHasilForm
+from .models import RiwayatKoreksiHasil
+from .services import koreksi_hasil_final
 
 
 class AksesHasilTests(TestCase):
@@ -1454,3 +1457,164 @@ class FinalisasiPetugasTests(TestCase):
             snapshot["temuan_kontaminan"][0]["nilai"],
             nilai_awal,
         )
+
+    def siapkan_koreksi_admin(self):
+        self.finalkan()
+
+        self.admin_koreksi = get_user_model().objects.create_user(
+            username="admin_koreksi",
+            is_staff=True,
+        )
+        self.data_koreksi = {
+            "tanggal_pemeriksaan": timezone.localdate().isoformat(),
+            "ph": "7.00",
+            "kelembapan": "40.00",
+            "tekstur": "Lempung",
+            "bahan_organik": "3.00",
+            "catatan": "Data diperbaiki.",
+            "alasan": "Memperbaiki kesalahan pengetikan nilai pH.",
+        }
+
+    def test_koreksi_admin_menyimpan_data_dan_riwayat(self):
+        self.siapkan_koreksi_admin()
+
+        koreksi_hasil_final(
+            hasil_id=self.hasil.pk,
+            user=self.admin_koreksi,
+            data=self.data_koreksi,
+        )
+
+        self.hasil.refresh_from_db()
+        self.pesanan.refresh_from_db()
+
+        self.assertEqual(str(self.hasil.ph), "7.00")
+        self.assertEqual(self.hasil.status_hasil, "final")
+        self.assertEqual(self.pesanan.status, "selesai")
+
+        riwayat = RiwayatKoreksiHasil.objects.get(
+            hasil=self.hasil,
+        )
+        self.assertEqual(riwayat.dikoreksi_oleh, self.admin_koreksi)
+        self.assertEqual(riwayat.data_sebelum["ph"], "6.00")
+        self.assertEqual(riwayat.data_sesudah["ph"], "7.00")
+        self.assertEqual(
+            riwayat.alasan,
+            self.data_koreksi["alasan"],
+        )
+
+    def test_petugas_tidak_boleh_mengoreksi_hasil_final(self):
+        self.siapkan_koreksi_admin()
+
+        with self.assertRaises(PermissionDenied):
+            koreksi_hasil_final(
+                hasil_id=self.hasil.pk,
+                user=self.petugas,
+                data=self.data_koreksi,
+            )
+
+        self.hasil.refresh_from_db()
+        self.assertEqual(str(self.hasil.ph), "6.00")
+        self.assertFalse(self.hasil.riwayat_koreksi.exists())
+
+    def test_form_koreksi_mewajibkan_alasan(self):
+        self.siapkan_koreksi_admin()
+        self.data_koreksi["alasan"] = ""
+
+        form = KoreksiHasilForm(
+            data=self.data_koreksi,
+            instance=self.hasil,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("alasan", form.errors)
+
+    def test_koreksi_tanpa_perubahan_ditolak(self):
+        self.siapkan_koreksi_admin()
+        self.data_koreksi["ph"] = "6.00"
+        self.data_koreksi["catatan"] = ""
+
+        with self.assertRaises(ValidationError):
+            koreksi_hasil_final(
+                hasil_id=self.hasil.pk,
+                user=self.admin_koreksi,
+                data=self.data_koreksi,
+            )
+
+        self.assertFalse(self.hasil.riwayat_koreksi.exists())
+
+    def test_koreksi_hasil_yang_dipakai_rencana_ditolak(self):
+        self.siapkan_koreksi_admin()
+
+        with patch.object(
+            HasilPemeriksaan,
+            "dipakai_dalam_rencana",
+            return_value=True,
+        ):
+            with self.assertRaises(ValidationError):
+                koreksi_hasil_final(
+                    hasil_id=self.hasil.pk,
+                    user=self.admin_koreksi,
+                    data=self.data_koreksi,
+                )
+
+        self.hasil.refresh_from_db()
+        self.assertEqual(str(self.hasil.ph), "6.00")
+        self.assertFalse(self.hasil.riwayat_koreksi.exists())
+
+    def test_gagal_mencatat_riwayat_membatalkan_koreksi(self):
+        self.siapkan_koreksi_admin()
+
+        with patch(
+            "soil_results.services.RiwayatKoreksiHasil.objects.create",
+            side_effect=RuntimeError("Pencatatan gagal."),
+        ):
+            with self.assertRaises(RuntimeError):
+                koreksi_hasil_final(
+                    hasil_id=self.hasil.pk,
+                    user=self.admin_koreksi,
+                    data=self.data_koreksi,
+                )
+
+        self.hasil.refresh_from_db()
+        self.assertEqual(str(self.hasil.ph), "6.00")
+        self.assertFalse(self.hasil.riwayat_koreksi.exists())
+
+    def test_url_koreksi_menolak_petugas(self):
+        self.siapkan_koreksi_admin()
+        self.client.force_login(self.petugas)
+
+        url = reverse(
+            "soil_results:koreksi_hasil",
+            args=[self.hasil.pk],
+        )
+
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(
+            self.client.post(url, self.data_koreksi).status_code,
+            403,
+        )
+        self.assertFalse(self.hasil.riwayat_koreksi.exists())
+
+    def test_admin_bisa_koreksi_melalui_halaman(self):
+        self.siapkan_koreksi_admin()
+        self.client.force_login(self.admin_koreksi)
+
+        url = reverse(
+            "soil_results:koreksi_hasil",
+            args=[self.hasil.pk],
+        )
+
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+        response = self.client.post(url, self.data_koreksi)
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "soil_results:detail_hasil",
+                args=[self.hasil.pk],
+            ),
+        )
+        self.hasil.refresh_from_db()
+        self.assertEqual(str(self.hasil.ph), "7.00")
+        self.assertEqual(self.hasil.riwayat_koreksi.count(), 1)
