@@ -4,10 +4,22 @@
 
 {% block app_content %}
 <div class="mx-auto max-w-2xl">
-  <a href="{{ hasil.lahan.get_absolute_url }}"
-     class="text-sm underline">
-    ← Kembali ke lahan
-  </a>
+  {% if request.user.is_officer and hasil.pesanan_id %}
+    <a href="{% url 'inspections:tugas_detail' hasil.pesanan_id %}"
+       class="text-sm underline">
+      ← Kembali ke tugas
+    </a>
+  {% elif request.user.is_staff and hasil.pesanan_id %}
+    <a href="{% url 'inspections:kelola_detail' hasil.pesanan_id %}"
+       class="text-sm underline">
+      ← Kembali ke pesanan
+    </a>
+  {% else %}
+    <a href="{{ hasil.lahan.get_absolute_url }}"
+       class="text-sm underline">
+      ← Kembali ke lahan
+    </a>
+  {% endif %}
 
   <h1 class="heading mt-4 text-[28px]">
     Detail hasil pemeriksaan

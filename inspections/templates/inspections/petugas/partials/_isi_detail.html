@@ -37,6 +37,19 @@
       Isi / lanjutkan draf hasil
     </a>
   </div>
+  {% elif pesanan.status == 'selesai' %}
+    <div class="alert alert-success mt-5">
+      Pemeriksaan selesai. Hasil sudah difinalkan.
+    </div>
+
+    {% if pesanan.hasil_pemeriksaan.status_hasil == 'final' %}
+      <div class="mt-4">
+        <a href="{% url 'soil_results:detail_hasil' pesanan.hasil_pemeriksaan.pk %}"
+           class="btn btn-primary">
+          Lihat hasil pemeriksaan
+        </a>
+      </div>
+    {% endif %}
   {% endif %}
 
   {% include 'inspections/partials/_rincian_riwayat.html' %}
