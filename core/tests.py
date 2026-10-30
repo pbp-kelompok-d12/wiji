@@ -90,3 +90,54 @@ class HalamanErrorTests(TestCase):
         self.assertIn('sisi kami.', body)
         self.assertIn('Muat ulang', body)
         self.assertIn(reverse('core:landing'), body)
+
+
+class KatalogAwalTests(TestCase):
+    """Data awal dari migrasi: syarat tugas minimal 50 tanaman saat deploy."""
+
+    def test_katalog_punya_minimal_50_tanaman_dan_nama_unik(self):
+        from core.models import Tanaman
+        self.assertGreaterEqual(Tanaman.objects.count(), 50)
+        nama = list(Tanaman.objects.values_list('nama', flat=True))
+        self.assertEqual(len(nama), len(set(nama)))
+
+    def test_semua_tanaman_punya_sumber_dan_kondisi_tumbuh(self):
+        from core.models import Tanaman
+        for tanaman in Tanaman.objects.all():
+            self.assertTrue(tanaman.sumber_penelitian, tanaman.nama)
+            self.assertTrue(tanaman.kondisi_pertumbuhan.startswith('pH tanah'), tanaman.nama)
+            self.assertTrue(tanaman.referensi.exists(), tanaman.nama)
+            self.assertTrue(tanaman.tujuan_pengelolaan.exists(), tanaman.nama)
+
+    def test_setiap_tujuan_lahan_punya_tanaman_yang_cocok(self):
+        from core.models import Tanaman
+        from lands.models import ManagementGoal
+        from recommendations.services import _goal_matches_plant
+        for tujuan in ManagementGoal.objects.filter(aktif=True):
+            cocok = [t for t in Tanaman.objects.all() if _goal_matches_plant(tujuan, t)]
+            self.assertTrue(cocok, tujuan.slug)
+
+    def test_tanaman_fitoremediasi_punya_kemampuan_kontaminan_bersumber(self):
+        from core.models import PlantContaminantCapability, Tanaman
+        remediasi = Tanaman.objects.exclude(kontaminan_ditangani__isnull=True)
+        self.assertGreaterEqual(remediasi.count(), 4)
+        for tanaman in remediasi:
+            self.assertTrue(tanaman.kemampuan_kontaminan.exists(), tanaman.nama)
+            self.assertTrue(tanaman.referensi.exists(), tanaman.nama)
+        # Nggak ada klaim persentase keberhasilan
+        for kemampuan in PlantContaminantCapability.objects.all():
+            self.assertNotIn('%', kemampuan.tingkat_efektivitas)
+
+    def test_tanaman_yang_berisiko_diblokir_dari_rekomendasi_otomatis(self):
+        from core.models import Tanaman
+        from recommendations.services import _is_high_risk
+        for nama in ('Lamtoro', 'Bunga matahari', 'Sawi india', 'Pakis arsenik'):
+            self.assertTrue(_is_high_risk(Tanaman.objects.get(nama=nama)), nama)
+        self.assertFalse(_is_high_risk(Tanaman.objects.get(nama='Akar wangi')))
+
+    def test_perintah_seed_aman_dijalankan_berulang(self):
+        from django.core.management import call_command
+        from core.models import PlantReference, Tanaman
+        sebelum = (Tanaman.objects.count(), PlantReference.objects.count())
+        call_command('seed_tanaman', stdout=__import__('io').StringIO())
+        self.assertEqual((Tanaman.objects.count(), PlantReference.objects.count()), sebelum)
