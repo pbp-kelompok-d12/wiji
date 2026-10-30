@@ -1,3 +1,4 @@
+
 {% extends 'app_base.html' %}
 
 {% block title %}Rekomendasi Tanaman{% endblock %}
@@ -29,7 +30,8 @@
       <div class="field sm:col-span-2">
         <label for="pilih-lahan" class="field-label">Lahan</label>
         <select id="pilih-lahan" name="lahan"
-                class="field-input" required>
+                class="field-input" required
+                data-url-template="{% url 'recommendations:api_hasil_lahan' lahan_id='00000000-0000-0000-0000-000000000000' %}">
           <option value="">Pilih lahan</option>
           {% for lahan in lahan_list %}
             <option value="{{ lahan.pk }}"
@@ -352,4 +354,139 @@
     </section>
   {% endif %}
 </div>
+{% endblock %}
+
+
+{% block page_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const lahanSelect = document.getElementById("pilih-lahan");
+    const hasilSelect = document.getElementById("pilih-hasil");
+
+    if (!lahanSelect || !hasilSelect) {
+        return;
+    }
+
+    const urlTemplate = lahanSelect.dataset.urlTemplate;
+    const placeholderUUID = "00000000-0000-0000-0000-000000000000";
+
+    let latestRequest = 0;
+
+    lahanSelect.addEventListener("change", async function () {
+        const lahanId = lahanSelect.value;
+        const currentRequest = ++latestRequest;
+
+        hasilSelect.disabled = true;
+        hasilSelect.replaceChildren(
+            new Option(
+                lahanId
+                    ? "Memuat hasil pemeriksaan..."
+                    : "Pilih hasil pemeriksaan",
+                ""
+            )
+        );
+
+        if (!lahanId) {
+            hasilSelect.disabled = false;
+            return;
+        }
+
+        const endpoint = urlTemplate.replace(
+            placeholderUUID,
+            encodeURIComponent(lahanId)
+        );
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                credentials: "same-origin"
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error || "Gagal mengambil hasil pemeriksaan."
+                );
+            }
+
+            // Abaikan respons lama jika pengguna sudah mengganti lahan.
+            if (currentRequest !== latestRequest) {
+                return;
+            }
+
+            if (!Array.isArray(data.results)) {
+                throw new Error("Format data dari server tidak valid.");
+            }
+
+            hasilSelect.replaceChildren();
+
+            if (data.results.length === 0) {
+                hasilSelect.add(
+                    new Option(
+                        "Belum ada hasil pemeriksaan untuk lahan ini",
+                        ""
+                    )
+                );
+            } else {
+                hasilSelect.add(
+                    new Option("Pilih hasil pemeriksaan", "")
+                );
+
+                data.results.forEach(function (hasil) {
+                    const tanggal = new Date(
+                        `${hasil.tanggal_pemeriksaan}T00:00:00`
+                    );
+
+                    const tanggalFormatted = new Intl.DateTimeFormat(
+                        "id-ID",
+                        {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                        }
+                    ).format(tanggal);
+
+                    const details = [
+                        hasil.asal,
+                        hasil.sumber
+                    ].filter(Boolean).join(" — ");
+
+                    const label = details
+                        ? `${tanggalFormatted} — ${details}`
+                        : tanggalFormatted;
+
+                    hasilSelect.add(
+                        new Option(label, hasil.id)
+                    );
+                });
+            }
+
+            hasilSelect.disabled = false;
+
+        } catch (error) {
+            if (currentRequest !== latestRequest) {
+                return;
+            }
+
+            console.error(
+                "Gagal mengambil hasil pemeriksaan:",
+                error
+            );
+
+            hasilSelect.replaceChildren(
+                new Option(
+                    "Gagal memuat hasil pemeriksaan. Coba ganti lahan.",
+                    ""
+                )
+            );
+
+            hasilSelect.disabled = false;
+        }
+    });
+});
+</script>
 {% endblock %}
