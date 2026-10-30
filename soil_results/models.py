@@ -261,3 +261,31 @@ class ContaminantFinding(models.Model):
 
     def __str__(self):
         return f"{self.kontaminan} — {self.get_status_display()}"
+
+
+class RiwayatKoreksiHasil(models.Model):
+    hasil = models.ForeignKey(
+        HasilPemeriksaan,
+        on_delete=models.PROTECT,
+        related_name="riwayat_koreksi",
+    )
+    dikoreksi_oleh = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="koreksi_hasil_pemeriksaan",
+    )
+    alasan = models.TextField()
+    data_sebelum = models.JSONField()
+    data_sesudah = models.JSONField()
+    dibuat_pada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-dibuat_pada", "-pk"]
+        verbose_name = "Riwayat koreksi hasil"
+        verbose_name_plural = "Riwayat koreksi hasil"
+
+    def __str__(self):
+        return (
+            f"Koreksi hasil #{self.hasil_id} "
+            f"oleh {self.dikoreksi_oleh}"
+        )
