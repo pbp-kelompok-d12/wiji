@@ -199,6 +199,7 @@ Analisis pemakaian AI dicatat per modul di folder [`docs/ai-disclosure/`](docs/a
 
 - [Modul B: Pemesanan Pemeriksaan](docs/ai-disclosure/modul-b.md)
 - [Modul A: Manajemen Lahan](docs/ai-disclosure/modul-a.md)
+- [Modul E: Recommendations and Management Plans](docs/ai-disclosure/modul-e.md)
 
 Penanggung jawab modul lain menambahkan berkasnya sendiri di folder yang sama (`modul-a.md`, `modul-c.md`, `modul-d.md`, `modul-e.md`).
 
