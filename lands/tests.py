@@ -240,7 +240,10 @@ class LandViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-lat="-6.550000"')
+        self.assertContains(response, 'relative z-0 isolate h-[246px]')
         self.assertContains(response, 'Kebun Cibodas')
+        self.assertEqual(response.context['hasil_final'], [])
+        self.assertFalse(response.context['punya_pesanan_aktif'])
 
     def test_detail_lahan_menampilkan_data_cuaca_terkini(self):
         self.environment_mock.return_value = {
@@ -274,7 +277,7 @@ class LandViewTests(TestCase):
 
         self.assertContains(response, '27,5')
         self.assertContains(response, 'Berawan')
-        self.assertContains(response, 'Open-Meteo')
+        self.assertContains(response, 'Data lingkungan · Open-Meteo')
         self.environment_mock.assert_called_once_with(self.lahan)
 
     def test_detail_lahan_menampilkan_pesan_saat_cuaca_tidak_tersedia(self):
@@ -312,7 +315,7 @@ class LandViewTests(TestCase):
         )
 
         self.assertContains(response, '123,4')
-        self.assertContains(response, 'NASA POWER')
+        self.assertContains(response, 'Iklim historis · NASA POWER')
         self.assertContains(response, 'Hujan 30 hari')
         self.assertContains(response, '2025-10-22')
         self.assertContains(response, '2026-10-21')
@@ -336,6 +339,32 @@ class LandViewTests(TestCase):
             reverse('lands:detail_lahan', args=[self.lahan_lain.pk])
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_pesan_pemeriksaan_menampilkan_alasan_saat_lahan_tidak_tersedia(self):
+        self.client.force_login(self.owner)
+        self.lahan.arsipkan()
+
+        response = self.client.get(
+            reverse('lands:detail_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertContains(
+            response,
+            'Pulihkan lahan terlebih dahulu untuk memesan pemeriksaan.',
+        )
+        self.assertNotContains(response, '<button type="button" class="btn btn-ghost')
+
+    def test_pesan_pemeriksaan_menjelaskan_pesanan_aktif(self):
+        self.client.force_login(self.owner)
+        with patch.object(Land, 'punya_pesanan_aktif', return_value=True):
+            response = self.client.get(
+                reverse('lands:detail_lahan', args=[self.lahan.pk])
+            )
+
+        self.assertContains(
+            response,
+            'Lahan ini masih memiliki pesanan yang berjalan.',
+        )
 
     def test_tambah_lahan_menetapkan_owner(self):
         self.client.force_login(self.owner)
@@ -498,6 +527,30 @@ class LandViewTests(TestCase):
         self.lahan.refresh_from_db()
         self.assertFalse(self.lahan.diarsipkan)
         self.assertIsNone(self.lahan.diarsipkan_pada)
+
+    def test_endpoint_arsip_membatasi_metode_dan_pemilik(self):
+        url = reverse('lands:arsip_lahan', args=[self.lahan.pk])
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.put(url).status_code, 405)
+
+        self.client.force_login(self.officer)
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+        self.client.force_login(self.owner)
+        self.assertEqual(
+            self.client.post(
+                reverse('lands:arsip_lahan', args=[self.lahan_lain.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_endpoint_pulihkan_hanya_menerima_post(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            reverse('lands:pulihkan_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertEqual(response.status_code, 405)
 
     def test_arsip_ditolak_saat_ada_pesanan_aktif(self):
         self.client.force_login(self.owner)
@@ -951,5 +1004,3 @@ class NasaPowerClimateTests(TestCase):
 
         self.assertEqual(result['status'], 'unavailable')
         self.assertEqual(result['reason'], 'data_incomplete')
-
-
