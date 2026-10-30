@@ -1,7 +1,7 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,5 +14,13 @@ urlpatterns = [
     path('rekomendasi/', include('recommendations.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Foto lahan (media/) disajikan Django sendiri, baik DEBUG nyala atau mati, karena WhiteNoise cuma
+# buat file statis. Dokumen laboratorium ada di private_media/ dan nggak lewat sini.
+def sajikan_media(request, path):
+    # MEDIA_ROOT dibaca pas ada permintaan (bukan pas impor), jadi gampang diganti di tes
+    return serve(request, path, document_root=settings.MEDIA_ROOT)
+
+
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', sajikan_media),
+]
