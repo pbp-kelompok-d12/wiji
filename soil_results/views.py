@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_headers
@@ -19,6 +19,7 @@ from .permissions import (
     boleh_mengelola_hasil,
     pastikan_boleh_mengelola,
 )
+from .services import finalkan_hasil_petugas
 
 def hasil_yang_bisa_dibaca(user):
     queryset = HasilPemeriksaan.objects.select_related(
@@ -763,4 +764,40 @@ def isi_hasil_petugas(request, pesanan_id):
             "hasil": hasil,
             "pesanan": pesanan,
         },
+    )
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def finalisasi_hasil(request, hasil_id):
+    hasil = get_object_or_404(
+        hasil_yang_bisa_dibaca(request.user),
+        pk=hasil_id,
+        asal=HasilPemeriksaan.Asal.WIJI,
+    )
+    pastikan_boleh_mengelola(request.user, hasil)
+
+    if request.method == "POST":
+        try:
+            hasil = finalkan_hasil_petugas(
+                hasil_id=hasil.pk,
+                user=request.user,
+            )
+        except ValidationError as exc:
+            for pesan in exc.messages:
+                messages.error(request, pesan)
+        else:
+            messages.success(
+                request,
+                "Hasil berhasil difinalkan. Pesanan telah selesai.",
+            )
+
+        return redirect(
+            "soil_results:detail_hasil",
+            hasil_id=hasil.pk,
+        )
+
+    return render(
+        request,
+        "soil_results/konfirmasi_finalisasi.html",
+        {"hasil": hasil},
     )

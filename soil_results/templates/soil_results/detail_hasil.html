@@ -46,10 +46,17 @@
   {% endif %}
 
   {% if boleh_kelola and hasil.asal == "wiji" %}
-    <a href="{% url 'soil_results:isi_hasil_petugas' hasil.pesanan_id %}"
-      class="btn btn-primary mt-4">
-      Ubah data dasar draf
-    </a>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href="{% url 'soil_results:isi_hasil_petugas' hasil.pesanan_id %}"
+        class="btn btn-primary">
+        Ubah data dasar draf
+      </a>
+
+      <a href="{% url 'soil_results:finalisasi_hasil' hasil.pk %}"
+        class="btn btn-ghost border border-line">
+        Finalisasi hasil
+      </a>
+    </div>
   {% endif %}
 
   {% if hasil.status_hasil == "draf" %}
