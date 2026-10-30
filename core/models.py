@@ -20,11 +20,20 @@ class Tanaman(models.Model):
     
     dibuat_pada = models.DateTimeField(auto_now_add=True)
 
+    # Tanaman yang sudah dipakai rekomendasi nggak boleh dihapus, jadi disembunyikan lewat arsip
+    diarsipkan = models.BooleanField(default=False)
+    diarsipkan_pada = models.DateTimeField(blank=True, null=True)
+
     #Relasi ke Modul A (lahan)
     tujuan_pengelolaan = models.ManyToManyField('lands.ManagementGoal', blank=True, related_name='tanaman_didukung')
 
     def __str__(self):
         return self.nama
+
+    @property
+    def sudah_dipakai(self):
+        return self.recommendation_snapshots.exists()
+
 
 class ContaminantType(models.Model):
     nama = models.CharField(max_length=100, unique=True)

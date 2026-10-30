@@ -577,7 +577,7 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     rekomendasi = []
     diblokir = []
 
-    for tanaman in Tanaman.objects.all():
+    for tanaman in Tanaman.objects.filter(diarsipkan=False):
         if not _goal_matches_plant(tujuan, tanaman):
             continue
 
