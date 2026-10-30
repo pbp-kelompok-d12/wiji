@@ -531,6 +531,63 @@ class RecommendationScoringTests(TestCase):
             plant,
             [item.tanaman for item in result["rekomendasi"]],
         )
+    def test_contaminant_pair_with_unrelated_reference_is_blocked(self):
+        contaminant = self.create_contaminant_finding()
+        plant = self.create_plant()
+
+        PlantContaminantCapability.objects.create(
+            tanaman=plant,
+            kontaminan=contaminant,
+            tingkat_efektivitas="Didukung penelitian",
+        )
+
+        PlantReference.objects.create(
+            tanaman=plant,
+            sumber_literatur="Penelitian tentang fitoremediasi arsenik",
+            tautan="https://example.com/arsenic-research",
+        )
+
+        self.result.kontaminan = ""
+        self.result.save()
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+    def test_food_crop_without_consumption_safety_is_blocked(self):
+        plant = self.create_plant(
+            nama="Bayam",
+            fungsi=(
+                "Tanaman pangan untuk sayuran dan "
+                "menambah bahan organik"
+            ),
+            deskripsi="Tanaman sayuran yang dapat dikonsumsi.",
+            risiko_penggunaan="",
+        )
+
+        result = calculate_recommendations(
+            self.land,
+            self.result,
+            self.goal,
+        )
+
+        self.assertNotIn(
+            plant,
+            [item.tanaman for item in result["rekomendasi"]],
+        )
+
+        blocked_plants = [
+            item["tanaman"]
+            for item in result["diblokir"]
+        ]
+
+        self.assertIn(plant, blocked_plants)
 
 class OpenMeteoEnvironmentTests(TestCase):
     def setUp(self):

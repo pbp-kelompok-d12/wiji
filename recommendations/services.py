@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .environment import fetch_environmental_data
-from core.models import(
+from core.models import (
     Tanaman,
     PlantContaminantCapability,
 )
@@ -35,6 +35,42 @@ HIGH_RISK_TERMS = (
     "tidak boleh dikonsumsi",
     "toxic",
     "high risk",
+)
+FOOD_CROP_TERMS = (
+    "tanaman pangan",
+    "tanaman konsumsi",
+    "pangan",
+    "sayur",
+    "sayuran",
+    "buah",
+    "bahan makanan",
+    "food crop",
+    "edible crop",
+    "padi",
+    "jagung",
+    "singkong",
+    "kentang",
+    "kedelai",
+    "kacang",
+    "bayam",
+    "kangkung",
+    "sawi",
+    "selada",
+    "wortel",
+    "tomat",
+    "cabai",
+    "terong",
+    "pisang",
+    "mangga",
+    "pepaya",
+)
+
+NON_FOOD_TERMS = (
+    "non-pangan",
+    "bukan tanaman pangan",
+    "bukan pangan",
+    "non-food",
+    "tidak untuk konsumsi",
 )
 
 # Hubungan tujuan dengan fungsi tanaman dibuat eksplisit
@@ -245,7 +281,33 @@ def _goal_matches_plant(tujuan, tanaman):
 def _is_high_risk(tanaman):
     risk_text = (tanaman.risiko_penggunaan or "").casefold()
     return any(term in risk_text for term in HIGH_RISK_TERMS)
+def _is_food_crop_without_clear_consumption_safety(tanaman):
+    plant_text = " ".join([
+        tanaman.nama or "",
+        tanaman.fungsi or "",
+        tanaman.deskripsi or "",
+        tanaman.kontaminan_ditangani or "",
+    ]).casefold()
 
+    risk_text = (tanaman.risiko_penggunaan or "").casefold()
+
+    if any(term in plant_text for term in NON_FOOD_TERMS):
+        return False
+
+    is_food_crop = any(
+        term in plant_text
+        for term in FOOD_CROP_TERMS
+    )
+
+    if not is_food_crop:
+        return False
+
+    safety_verified = (
+        "keamanan konsumsi terverifikasi" in risk_text
+        and bool((tanaman.sumber_penelitian or "").strip())
+    )
+
+    return not safety_verified
 def _get_supported_contaminant_capabilities(
     tanaman,
     hasil_pemeriksaan,
@@ -286,8 +348,15 @@ def _get_supported_contaminant_capabilities(
         return []
 
     # Referensi literatur tanaman harus tersedia.
-    if not tanaman.referensi.exists():
-        return []
+    # Setiap pasangan tanaman-kontaminan harus memiliki
+# referensi yang membahas kontaminan tersebut.
+    for item in kemampuan_by_id.values():
+        referensi_pair = tanaman.referensi.filter(
+            sumber_literatur__icontains=item.kontaminan.nama,
+        ).exists()
+
+        if not referensi_pair:
+            return []
 
     return list(kemampuan_by_id.values())
 
@@ -467,6 +536,16 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
             continue
 
         if not tanaman.tersedia_di_indonesia:
+            continue
+
+        if _is_food_crop_without_clear_consumption_safety(tanaman):
+            diblokir.append({
+                "tanaman": tanaman,
+                "alasan": (
+                    "Tanaman pangan belum memiliki bukti dan sumber "
+                    "penelitian yang memverifikasi keamanan konsumsinya."
+                ),
+            })
             continue
 
         if _is_high_risk(tanaman):
