@@ -63,3 +63,7 @@ class FotoLahanTests(TestCase):
     def test_dokumen_privat_tidak_punya_alamat_media(self):
         r = self.client.get('/media/hasil_pemeriksaan/2026/10/apa-saja.pdf')
         self.assertEqual(r.status_code, 404)
+
+    def test_kolom_foto_punya_nama_buat_pembaca_layar(self):
+        r = self.client.get(reverse('lands:tambah_lahan'))
+        self.assertContains(r, 'aria-label="Foto lahan"')
