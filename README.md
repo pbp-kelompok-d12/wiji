@@ -195,9 +195,10 @@ Ada ratusan tes yang mencakup akses per peran, aturan status pesanan, validasi h
 
 ## AI Disclosure
 
-Analisis pemakaian AI dicatat per modul di folder [`docs/ai-disclosure/`](docs/ai-disclosure/), dengan format yang sama: tujuan penggunaan, strategi prompt, contoh prompt beserta peninjauannya, keterbatasan, dan pengecekan.
+Analisis pemakaian AI dicatat per modul di folder [`docs/ai-disclosure/`](docs/ai-disclosure/). Setiap berkas merangkum alat dan bentuk bantuan AI serta peninjauan hasilnya; tingkat detail menyesuaikan pengalaman tiap modul.
 
 - [Modul B: Pemesanan Pemeriksaan](docs/ai-disclosure/modul-b.md)
+- [Modul A: Manajemen Lahan](docs/ai-disclosure/modul-a.md)
 
 Penanggung jawab modul lain menambahkan berkasnya sendiri di folder yang sama (`modul-a.md`, `modul-c.md`, `modul-d.md`, `modul-e.md`).
 
