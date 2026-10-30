@@ -114,27 +114,80 @@
   </section>
 
   <section class="d-card p-5">
-    <h2 class="d-title">Data lingkungan · Open-Meteo · NASA POWER</h2>
-    <div class="mt-3 grid grid-cols-3 gap-2">
+    <h2 class="d-title">Data lingkungan · Open-Meteo</h2>
+    {% if data_lingkungan.status == "available" %}
+    <p class="mt-1 text-sm text-ink-soft">{{ data_lingkungan.weather_description }}</p>
+    <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
       <div class="rounded-xl bg-paper p-3">
         <p class="text-xs text-ink-soft">Suhu</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[°C]</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.temperature_2m|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.temperature_2m }}</p>
       </div>
       <div class="rounded-xl bg-paper p-3">
-        <p class="text-xs text-ink-soft">Hujan 30 hr</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[mm]</p>
+        <p class="text-xs text-ink-soft">Kelembapan</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.relative_humidity_2m|floatformat:0 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.relative_humidity_2m }}</p>
       </div>
       <div class="rounded-xl bg-paper p-3">
-        <p class="text-xs text-ink-soft">Tahunan</p>
-        <p class="mt-1 text-lg font-bold">—</p>
-        <p class="text-xs font-semibold">[mm]</p>
+        <p class="text-xs text-ink-soft">Hujan saat ini</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.precipitation|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.precipitation }}</p>
+      </div>
+      <div class="rounded-xl bg-paper p-3">
+        <p class="text-xs text-ink-soft">Angin</p>
+        <p class="mt-1 text-lg font-bold">{{ data_lingkungan.current.wind_speed_10m|floatformat:1 }}</p>
+        <p class="text-xs font-semibold">{{ data_lingkungan.units.wind_speed_10m }}</p>
       </div>
     </div>
-    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">Data lingkungan belum tersedia. Informasi ini nantinya menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.</p>
+    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+      Diambil {{ data_lingkungan.current.time }} ({{ data_lingkungan.timezone }}) dari Open-Meteo.
+      Data ini pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+    </p>
+    {% else %}
+    <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+      {{ data_lingkungan.message }}
+      Informasi ini nantinya menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+    </p>
+    {% endif %}
   </section>
 </div>
+
+<section class="d-card mt-4 p-5">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="d-title">Iklim historis · NASA POWER</h2>
+      <p class="mt-1 text-xs text-ink-soft">Total curah hujan dari data harian NASA POWER.</p>
+    </div>
+    {% if iklim_historis.status == "available" %}
+    <span class="chip chip-up">Data tersedia</span>
+    {% endif %}
+  </div>
+
+  {% if iklim_historis.status == "available" %}
+  <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div class="rounded-xl bg-paper p-3">
+      <p class="text-xs text-ink-soft">Hujan 30 hari</p>
+      <p class="mt-1 text-lg font-bold">{{ iklim_historis.rainfall_30d|floatformat:1 }}</p>
+      <p class="text-xs font-semibold">{{ iklim_historis.units.rainfall_30d }}</p>
+    </div>
+    <div class="rounded-xl bg-paper p-3">
+      <p class="text-xs text-ink-soft">Hujan 12 bulan</p>
+      <p class="mt-1 text-lg font-bold">{{ iklim_historis.rainfall_annual|floatformat:1 }}</p>
+      <p class="text-xs font-semibold">{{ iklim_historis.units.rainfall_annual }}</p>
+    </div>
+  </div>
+  <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+    Periode {{ iklim_historis.period.start }}–{{ iklim_historis.period.end }}
+    · data terakhir {{ iklim_historis.latest_data_date }}
+    · sumber NASA POWER (PRECTOTCORR).
+  </p>
+  {% else %}
+  <p class="mt-2.5 text-[11px] leading-4 text-ink-soft">
+    {{ iklim_historis.message }}
+    Data curah hujan historis menjadi pendukung koordinat lahan, bukan pengganti hasil pemeriksaan tanah.
+  </p>
+  {% endif %}
+</section>
 
 <section class="d-card mt-4 p-5">
   <div class="flex flex-wrap items-center justify-between gap-4">

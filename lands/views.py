@@ -12,6 +12,8 @@ from django.views.decorators.http import require_GET
 
 from . import forms
 from . import models
+from .environment import fetch_environmental_data
+from .nasa_power import fetch_climate_data
 from .services import nominatim
 
 LahanForm = forms.LahanForm
@@ -121,6 +123,8 @@ def detail_lahan(request, pk):
     return render(request, 'lands/detail_lahan.html', {
         'active_nav': 'lahan',
         'lahan': lahan,
+        'data_lingkungan': fetch_environmental_data(lahan),
+        'iklim_historis': fetch_climate_data(lahan),
     })
 
 
