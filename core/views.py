@@ -185,3 +185,33 @@ def api_tanaman(request):
 def api_detail_tanaman(request, pk):
     tanaman = get_object_or_404(Tanaman.objects.filter(diarsipkan=False), pk=pk)
     return JsonResponse(_serialisasi(tanaman, lengkap=True))
+
+"Buat view endpoint JSON GET /tanaman/api/ yang mereturn list data tanaman. "
+"Tambahkan penanganan parameter query URL: jika ?lokal=true diberikan,"
+" filter hanya tanaman yang memiliki tersedia_di_indonesia = True."
+
+def tanaman_api(request):
+    tanaman_list = Tanaman.objects.filter(diarsipkan=False)
+    
+    if request.GET.get('lokal') == 'true':
+        tanaman_list = tanaman_list.filter(tersedia_di_indonesia=True)
+
+    data = [
+            {
+            "id": tanaman.id,
+            "nama": tanaman.nama,
+            "nama_latin": tanaman.nama_latin,
+            "fungsi": tanaman.fungsi,
+            "deskripsi": tanaman.deskripsi,
+            "kondisi_pertumbuhan": tanaman.kondisi_pertumbuhan,
+            "kontaminan_ditangani": tanaman.kontaminan_ditangani,
+            "tersedia_di_indonesia": tanaman.tersedia_di_indonesia,
+            "risiko_penggunaan": tanaman.risiko_penggunaan,
+            "sumber_penelitian": tanaman.sumber_penelitian,
+            "dibuat_pada": tanaman.dibuat_pada,
+        }
+        for tanaman in tanaman_list 
+
+    ]
+    
+    return JsonResponse(data, safe=False)
