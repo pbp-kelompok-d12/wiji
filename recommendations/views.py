@@ -490,3 +490,10 @@ def api_hasil_lahan(request, lahan_id):
 
     response["Cache-Control"] = "private, no-store"
     return response
+
+def list_recommendations(request, lahan_id):
+    # implementationa
+    min_skor = request.GET.get('min_skor')
+
+    
+    return
