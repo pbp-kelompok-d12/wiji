@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -155,6 +155,34 @@ class _PilihPetugasField(forms.ModelChoiceField):
     def label_from_instance(self, user):
         return user.display_name
 
+# "Buat Django Form sederhana InspectionOrderForm dengan input jenis_pemeriksaan (Pilihan: Fisik, Kimia, Lengkap) dan tanggal_rencana. Tambahkan validasi kustom clean_tanggal_rencana() agar tanggal yang diinput tidak boleh tanggal di masa lalu."
+def InspectionOrderForm(forms.Form):
+    JENIS_CHOICES = [
+        ('fisik', 'Uji Fisik & Tekstur'),
+        ('kimia', 'Uji Kimia & pH'),
+        ('lengkap', 'Uji Lengkap Lab'),
+    ]
+    # implementation
+    jenis_pemeriksaan = forms.ChoiceField(
+            label='Jenis Pemeriksaan',
+            choices=JENIS_CHOICES,
+            widget=forms.RadioSelect,
+    )
+    tanggal_rencana = forms.DateField(
+        label='Tanggal rencana',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': INPUT_CLASS}, format='%Y-%m-%d'),
+        error_messages={'required': 'Isi tanggal rencana.', 'invalid': 'Format tanggal belum benar.'},
+    )
+    
+    def clean_tanggal_rencana(self):
+        # implementation
+        tanggal_rencana = self.cleaned_data['tanggal_rencana']
+        
+        if tanggal_rencana < timezone.localdate:
+            raise forms.ValidationError('Tanggal rencana tidak boleh di masa lalu.')
+    
+        return tanggal_rencana
+    
 
 class TugaskanForm(InvalidFieldMixin, forms.Form):
     petugas = _PilihPetugasField(
