@@ -30,6 +30,14 @@ CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', f'https://{PWS_HO
 # Nilai ini cuma ngirim alamat situsnya (bukan alamat halaman lengkap) ke situs lain.
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
+# Aplikasi Flutter yang dijalanin di Chrome (flutter run -d chrome) beda origin sama server ini,
+# jadi browser nolak request-nya kalau nggak ada izin CORS. Izinnya cuma buat /api/ dan cuma dari
+# localhost (port Flutter web acak tiap jalan). Aplikasi di HP atau emulator nggak kena CORS.
+CORS_URLS_REGEX = r'^/api/.*$'
+CORS_ALLOWED_ORIGIN_REGEXES = [r'^http://localhost:\d+$', r'^http://127\.0\.0\.1:\d+$']
+# Kalau nanti Flutter web-nya di-hosting di tempat lain, tambahin alamatnya lewat env var ini.
+CORS_ALLOWED_ORIGINS = env_list('DJANGO_CORS_ALLOWED_ORIGINS')
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,6 +46,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # API buat aplikasi mobile (Django REST Framework, pola Tutorial 07) sama izin CORS-nya
+    'rest_framework',
+    'corsheaders',
     'accounts',
     'core',
     'dashboard',
@@ -51,6 +62,8 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     # WhiteNoise nyajiin file static (CSS, JS, gambar) di server tanpa Nginx. Harus tepat setelah SecurityMiddleware
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    # Harus sebelum CommonMiddleware biar header CORS ikut nempel di semua respons API
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
