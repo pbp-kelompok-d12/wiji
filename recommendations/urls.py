@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import api, views
+from . import legacy_api as api, views
 
 app_name = "recommendations"
 

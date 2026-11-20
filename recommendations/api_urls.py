@@ -1,10 +1,15 @@
-"""Endpoint DRF Modul E (rekomendasi dan rencana) di bawah /api/v1/.
+from django.urls import path
 
-Diisi Piedra, issue 07. Daftar endpoint-nya ada di docs/WORK-PLAN.md repo wiji-mobile.
-View-nya taruh di api_views.py, serializer di serializers.py, terus daftarin di sini.
-"""
-app_name = 'recommendations_api'
+from . import api
+
+app_name = "recommendations_api"
 
 urlpatterns = [
-    # Contoh: path('lahan/', api_views.daftar_lahan, name='daftar'),
+    path(
+        "lahan/<uuid:lahan_id>/rekomendasi/",
+        api.rekomendasi_lahan,
+        name="rekomendasi_lahan",
+    ),
+    path("rencana/", api.daftar_rencana, name="daftar_rencana"),
+    path("rencana/<int:pk>/", api.detail_rencana, name="detail_rencana"),
 ]
