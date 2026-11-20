@@ -57,7 +57,10 @@ def rekomendasi_lahan(request, lahan_id):
         HasilPemeriksaan.objects.select_related("lahan").prefetch_related(
             "nutrient_measurements"
         )
-        .filter(pk=query.validated_data["hasil"])
+        .filter(
+            pk=query.validated_data["hasil"],
+            status_hasil=HasilPemeriksaan.StatusHasil.FINAL,
+        )
         .first()
     )
     if hasil is None:
@@ -67,8 +70,6 @@ def rekomendasi_lahan(request, lahan_id):
             "Hasil pemeriksaan tidak sesuai dengan lahan yang dipilih."
         )
 
-    # This checkout has no draft/final field or related inspection-order
-    # model. HasilPemeriksaan rows are the persisted, usable results here.
     tujuan = ManagementGoal.objects.filter(
         pk=query.validated_data["tujuan"]
     ).first()

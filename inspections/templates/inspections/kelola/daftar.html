@@ -1,0 +1,16 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Kelola pesanan{% endblock %}
+{% block crumb %}Kelola pesanan{% endblock %}
+
+{% block app_content %}
+<div>
+  <p class="eyebrow">Admin</p>
+  <h1 class="heading mt-1 text-[28px] leading-[34px]">Kelola <span class="heading-accent">pesanan</span></h1>
+  <p class="mt-1 text-sm text-ink-soft">Semua pesanan pemeriksaan dari pemilik lahan. Tugaskan petugas dan tetapkan jadwalnya.</p>
+</div>
+
+<div id="daftar-kelola" class="mt-6">
+  {% include 'inspections/kelola/partials/_daftar.html' %}
+</div>
+{% endblock %}

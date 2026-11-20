@@ -1,13 +1,21 @@
+import json
+from datetime import date, timedelta
 from decimal import Decimal
+from io import BytesIO
+from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.error import URLError
+from urllib.parse import parse_qs, urlparse
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from .environment import fetch_environmental_data
 from .forms import LandForm, LahanForm
+from .nasa_power import fetch_climate_data
 
 from .models import Land, Lahan, ManagementGoal
 
@@ -118,6 +126,39 @@ class LandViewTests(TestCase):
             penggunaan=Land.Penggunaan.SAWAH,
         )
 
+    def setUp(self):
+        environment_patcher = patch('lands.views.fetch_environmental_data')
+        self.environment_mock = environment_patcher.start()
+        self.environment_mock.return_value = {
+            'status': 'unavailable',
+            'source': 'Open-Meteo',
+            'reason': 'coordinates_missing',
+            'message': 'Koordinat lahan belum tersedia.',
+            'timezone': None,
+            'current': {},
+            'units': {},
+            'weather_description': None,
+        }
+        self.addCleanup(environment_patcher.stop)
+
+        climate_patcher = patch('lands.views.fetch_climate_data')
+        self.climate_mock = climate_patcher.start()
+        self.climate_mock.return_value = {
+            'status': 'unavailable',
+            'source': 'NASA POWER',
+            'reason': 'coordinates_missing',
+            'message': 'Koordinat lahan belum tersedia.',
+            'rainfall_30d': None,
+            'rainfall_annual': None,
+            'units': {
+                'rainfall_30d': 'mm',
+                'rainfall_annual': 'mm',
+            },
+            'period': None,
+            'latest_data_date': None,
+        }
+        self.addCleanup(climate_patcher.stop)
+
     def test_halaman_lahan_wajib_login(self):
         response = self.client.get(reverse('lands:daftar_lahan'))
         self.assertEqual(response.status_code, 302)
@@ -199,7 +240,86 @@ class LandViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-lat="-6.550000"')
+        self.assertContains(response, 'relative z-0 isolate h-[246px]')
         self.assertContains(response, 'Kebun Cibodas')
+        self.assertEqual(response.context['hasil_final'], [])
+        self.assertFalse(response.context['punya_pesanan_aktif'])
+
+    def test_detail_lahan_menampilkan_data_cuaca_terkini(self):
+        self.environment_mock.return_value = {
+            'status': 'available',
+            'source': 'Open-Meteo',
+            'reason': None,
+            'message': 'Data cuaca berhasil diambil.',
+            'timezone': 'Asia/Jakarta',
+            'current': {
+                'time': '2026-10-30T10:00',
+                'temperature_2m': 27.5,
+                'relative_humidity_2m': 80,
+                'precipitation': 0.0,
+                'weather_code': 2,
+                'wind_speed_10m': 5.2,
+            },
+            'units': {
+                'temperature_2m': '°C',
+                'relative_humidity_2m': '%',
+                'precipitation': 'mm',
+                'weather_code': 'wmo code',
+                'wind_speed_10m': 'km/h',
+            },
+            'weather_description': 'Berawan',
+        }
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            reverse('lands:detail_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertContains(response, '27,5')
+        self.assertContains(response, 'Berawan')
+        self.assertContains(response, 'Data lingkungan · Open-Meteo')
+        self.environment_mock.assert_called_once_with(self.lahan)
+
+    def test_detail_lahan_menampilkan_pesan_saat_cuaca_tidak_tersedia(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            reverse('lands:detail_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertContains(response, 'Koordinat lahan belum tersedia.')
+        self.assertNotContains(response, 'Hujan 30 hr')
+
+    def test_detail_lahan_menampilkan_iklim_nasa_power(self):
+        self.climate_mock.return_value = {
+            'status': 'available',
+            'source': 'NASA POWER',
+            'reason': None,
+            'message': 'Data iklim berhasil diambil.',
+            'rainfall_30d': 123.4,
+            'rainfall_annual': 2500.6,
+            'units': {
+                'rainfall_30d': 'mm',
+                'rainfall_annual': 'mm',
+            },
+            'period': {
+                'start': '2025-10-22',
+                'end': '2026-10-21',
+            },
+            'latest_data_date': '2026-10-21',
+        }
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            reverse('lands:detail_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertContains(response, '123,4')
+        self.assertContains(response, 'Iklim historis · NASA POWER')
+        self.assertContains(response, 'Hujan 30 hari')
+        self.assertContains(response, '2025-10-22')
+        self.assertContains(response, '2026-10-21')
+        self.climate_mock.assert_called_once_with(self.lahan)
 
     def test_form_ubah_memakai_titik_desimal(self):
         self.client.force_login(self.owner)
@@ -219,6 +339,32 @@ class LandViewTests(TestCase):
             reverse('lands:detail_lahan', args=[self.lahan_lain.pk])
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_pesan_pemeriksaan_menampilkan_alasan_saat_lahan_tidak_tersedia(self):
+        self.client.force_login(self.owner)
+        self.lahan.arsipkan()
+
+        response = self.client.get(
+            reverse('lands:detail_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertContains(
+            response,
+            'Pulihkan lahan terlebih dahulu untuk memesan pemeriksaan.',
+        )
+        self.assertNotContains(response, '<button type="button" class="btn btn-ghost')
+
+    def test_pesan_pemeriksaan_menjelaskan_pesanan_aktif(self):
+        self.client.force_login(self.owner)
+        with patch.object(Land, 'punya_pesanan_aktif', return_value=True):
+            response = self.client.get(
+                reverse('lands:detail_lahan', args=[self.lahan.pk])
+            )
+
+        self.assertContains(
+            response,
+            'Lahan ini masih memiliki pesanan yang berjalan.',
+        )
 
     def test_tambah_lahan_menetapkan_owner(self):
         self.client.force_login(self.owner)
@@ -381,6 +527,30 @@ class LandViewTests(TestCase):
         self.lahan.refresh_from_db()
         self.assertFalse(self.lahan.diarsipkan)
         self.assertIsNone(self.lahan.diarsipkan_pada)
+
+    def test_endpoint_arsip_membatasi_metode_dan_pemilik(self):
+        url = reverse('lands:arsip_lahan', args=[self.lahan.pk])
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.put(url).status_code, 405)
+
+        self.client.force_login(self.officer)
+        self.assertEqual(self.client.post(url).status_code, 403)
+
+        self.client.force_login(self.owner)
+        self.assertEqual(
+            self.client.post(
+                reverse('lands:arsip_lahan', args=[self.lahan_lain.pk])
+            ).status_code,
+            404,
+        )
+
+    def test_endpoint_pulihkan_hanya_menerima_post(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            reverse('lands:pulihkan_lahan', args=[self.lahan.pk])
+        )
+
+        self.assertEqual(response.status_code, 405)
 
     def test_arsip_ditolak_saat_ada_pesanan_aktif(self):
         self.client.force_login(self.owner)
@@ -556,3 +726,281 @@ class NominatimViewTests(TestCase):
             {'lat': '91', 'lon': '106.75'},
         )
         self.assertEqual(response.status_code, 400)
+
+
+class OpenMeteoEnvironmentTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.lahan = SimpleNamespace(
+            latitude=Decimal('-6.200000'),
+            longitude=Decimal('106.800000'),
+        )
+
+    def api_payload(self):
+        return {
+            'timezone': 'Asia/Jakarta',
+            'current': {
+                'time': '2026-10-30T10:00',
+                'temperature_2m': 30.1,
+                'relative_humidity_2m': 78,
+                'precipitation': 0.0,
+                'weather_code': 2,
+                'wind_speed_10m': 5.2,
+            },
+            'current_units': {
+                'temperature_2m': '°C',
+                'relative_humidity_2m': '%',
+                'precipitation': 'mm',
+                'weather_code': 'wmo code',
+                'wind_speed_10m': 'km/h',
+            },
+        }
+
+    @patch('lands.environment.urlopen')
+    def test_respons_sukses_mengembalikan_cuaca(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        result = fetch_environmental_data(self.lahan)
+
+        self.assertEqual(result['status'], 'available')
+        self.assertEqual(result['source'], 'Open-Meteo')
+        self.assertEqual(result['current']['temperature_2m'], 30.1)
+        self.assertEqual(result['current']['relative_humidity_2m'], 78)
+        self.assertEqual(result['weather_description'], 'Berawan')
+        self.assertEqual(result['timezone'], 'Asia/Jakarta')
+
+    @patch('lands.environment.urlopen')
+    def test_permintaan_hanya_mengirim_koordinat_dan_parameter_cuaca(
+        self, mock_urlopen
+    ):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        fetch_environmental_data(self.lahan)
+
+        request = mock_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+
+        self.assertEqual(
+            set(query),
+            {'latitude', 'longitude', 'current', 'timezone'},
+        )
+        self.assertEqual(query['latitude'], ['-6.2'])
+        self.assertEqual(query['longitude'], ['106.8'])
+
+    @patch('lands.environment.urlopen')
+    def test_hasil_sukses_disimpan_di_cache(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        pertama = fetch_environmental_data(self.lahan)
+        kedua = fetch_environmental_data(self.lahan)
+
+        mock_urlopen.assert_called_once()
+        self.assertEqual(pertama, kedua)
+
+    @patch('lands.environment.urlopen')
+    def test_koordinat_kosong_tidak_memanggil_api(self, mock_urlopen):
+        self.lahan.latitude = None
+
+        result = fetch_environmental_data(self.lahan)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'coordinates_missing')
+        self.assertEqual(result['current'], {})
+        mock_urlopen.assert_not_called()
+
+    @patch('lands.environment.urlopen')
+    def test_kegagalan_api_tidak_mengarang_cuaca(self, mock_urlopen):
+        mock_urlopen.side_effect = URLError('Connection failed')
+
+        result = fetch_environmental_data(self.lahan)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'api_unavailable')
+        self.assertEqual(result['current'], {})
+
+    @patch('lands.environment.urlopen')
+    def test_respons_tidak_valid_tidak_dipakai(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            b'{"timezone": "Asia/Jakarta", "current": {}}'
+        )
+
+        result = fetch_environmental_data(self.lahan)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'response_invalid')
+        self.assertEqual(result['current'], {})
+
+    @patch('lands.environment.urlopen')
+    def test_koordinat_di_luar_jangkauan_tidak_memanggil_api(
+        self, mock_urlopen
+    ):
+        self.lahan.latitude = Decimal('100')
+
+        result = fetch_environmental_data(self.lahan)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'coordinates_invalid')
+        mock_urlopen.assert_not_called()
+
+
+class NasaPowerClimateTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.lahan = SimpleNamespace(
+            latitude=Decimal('-6.200000'),
+            longitude=Decimal('106.800000'),
+        )
+        self.today = date(2026, 10, 30)
+
+    def api_payload(self, days=380, value=1.0, end=None):
+        end = end or self.today
+        start = end - timedelta(days=days - 1)
+        series = {
+            (start + timedelta(days=offset)).strftime('%Y%m%d'): value
+            for offset in range(days)
+        }
+        return {
+            'properties': {
+                'parameter': {
+                    'PRECTOTCORR': series,
+                },
+            },
+        }
+
+    @patch('lands.nasa_power.urlopen')
+    def test_respons_sukses_menghitung_hujan_30_hari_dan_setahun(
+        self, mock_urlopen
+    ):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'available')
+        self.assertEqual(result['source'], 'NASA POWER')
+        self.assertEqual(result['rainfall_30d'], 30.0)
+        self.assertEqual(result['rainfall_annual'], 365.0)
+        self.assertEqual(result['period']['end'], '2026-10-30')
+        self.assertEqual(result['latest_data_date'], '2026-10-30')
+
+    @patch('lands.nasa_power.urlopen')
+    def test_permintaan_hanya_mengirim_koordinat_dan_parameter_iklim(
+        self, mock_urlopen
+    ):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        fetch_climate_data(self.lahan, today=self.today)
+
+        request = mock_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+
+        self.assertEqual(
+            set(query),
+            {
+                'parameters',
+                'community',
+                'latitude',
+                'longitude',
+                'start',
+                'end',
+                'format',
+            },
+        )
+        self.assertEqual(query['parameters'], ['PRECTOTCORR'])
+        self.assertEqual(query['community'], ['AG'])
+        self.assertEqual(query['latitude'], ['-6.2'])
+        self.assertEqual(query['longitude'], ['106.8'])
+        self.assertEqual(query['start'], ['20251016'])
+        self.assertEqual(query['end'], ['20261030'])
+
+    @patch('lands.nasa_power.urlopen')
+    def test_hasil_sukses_disimpan_di_cache(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload()).encode('utf-8')
+        )
+
+        pertama = fetch_climate_data(self.lahan, today=self.today)
+        kedua = fetch_climate_data(self.lahan, today=self.today)
+
+        mock_urlopen.assert_called_once()
+        self.assertEqual(pertama, kedua)
+
+    @patch('lands.nasa_power.urlopen')
+    def test_nilai_fill_tidak_dihitung_sebagai_hujan(self, mock_urlopen):
+        payload = self.api_payload()
+        series = payload['properties']['parameter']['PRECTOTCORR']
+        for offset in range(0, 9):
+            hari = self.today - timedelta(days=offset)
+            series[hari.strftime('%Y%m%d')] = -999.0
+
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(payload).encode('utf-8')
+        )
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'available')
+        self.assertEqual(result['latest_data_date'], '2026-10-21')
+        self.assertEqual(result['rainfall_annual'], 365.0)
+
+    @patch('lands.nasa_power.urlopen')
+    def test_koordinat_kosong_tidak_memanggil_api(self, mock_urlopen):
+        self.lahan.latitude = None
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'coordinates_missing')
+        self.assertIsNone(result['rainfall_30d'])
+        mock_urlopen.assert_not_called()
+
+    @patch('lands.nasa_power.urlopen')
+    def test_koordinat_di_luar_jangkauan_tidak_memanggil_api(
+        self, mock_urlopen
+    ):
+        self.lahan.latitude = Decimal('100')
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'coordinates_invalid')
+        mock_urlopen.assert_not_called()
+
+    @patch('lands.nasa_power.urlopen')
+    def test_kegagalan_api_tidak_mengarang_data_iklim(self, mock_urlopen):
+        mock_urlopen.side_effect = URLError('Connection failed')
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'api_unavailable')
+        self.assertIsNone(result['rainfall_annual'])
+
+    @patch('lands.nasa_power.urlopen')
+    def test_respons_tidak_valid_tidak_dipakai(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(b'{"properties": {}}')
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'response_invalid')
+
+    @patch('lands.nasa_power.urlopen')
+    def test_data_kurang_dari_setahun_ditolak(self, mock_urlopen):
+        mock_urlopen.return_value = BytesIO(
+            json.dumps(self.api_payload(days=100)).encode('utf-8')
+        )
+
+        result = fetch_climate_data(self.lahan, today=self.today)
+
+        self.assertEqual(result['status'], 'unavailable')
+        self.assertEqual(result['reason'], 'data_incomplete')

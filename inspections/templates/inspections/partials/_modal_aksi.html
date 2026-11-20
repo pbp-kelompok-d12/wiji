@@ -1,0 +1,17 @@
+{# Modal aksi pesanan. Dikirim lewat HTMX ke #modal-slot #}
+<div class="modal is-open" role="dialog" aria-modal="true" aria-labelledby="judul-modal"
+     hx-on:click="if (event.target === this) this.remove()">
+  <div class="modal-box">
+    <h2 id="judul-modal" class="heading text-xl">{{ judul }}</h2>
+    <p class="mt-1 text-sm text-ink-soft">{{ deskripsi }}</p>
+    <form method="post" action="{{ aksi_url }}" class="mt-5 grid gap-4" novalidate
+          hx-post="{{ aksi_url }}" hx-target="#konten-pesanan" hx-swap="outerHTML">
+      {% csrf_token %}
+      {% include 'inspections/partials/_isian_aksi.html' %}
+      <div class="mt-2 flex justify-end gap-2">
+        <button type="button" class="btn btn-outline !min-h-10" hx-on:click="this.closest('.modal').remove()">Batal</button>
+        <button type="submit" class="btn btn-primary !min-h-10 {% if bahaya %}!bg-brick !border-brick{% endif %}">{{ label_kirim }}</button>
+      </div>
+    </form>
+  </div>
+</div>

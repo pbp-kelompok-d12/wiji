@@ -1,8 +1,12 @@
+import re
 from dataclasses import dataclass
 from typing import Any
 
 from .environment import fetch_environmental_data
-from core.models import Tanaman
+from core.models import (
+    Tanaman,
+    PlantContaminantCapability,
+)
 
 
 RULE_VERSION = "v1"
@@ -32,6 +36,52 @@ HIGH_RISK_TERMS = (
     "tidak boleh dikonsumsi",
     "toxic",
     "high risk",
+)
+SOIL_HIGH_RISK_MARKERS = (
+    "risiko tinggi",
+    "high risk",
+    "high-risk",
+)
+FOOD_CROP_TERMS = (
+    "tanaman pangan",
+    "tanaman konsumsi",
+    "pangan",
+    "sayur",
+    "sayuran",
+    "buah",
+    "bahan makanan",
+    "food crop",
+    "edible crop",
+    "padi",
+    "jagung",
+    "singkong",
+    "kentang",
+    "kedelai",
+    "kacang tanah",
+    "kacang panjang",
+    "kacang hijau",
+    "kacang merah",
+    "kacang polong",
+    "buncis",
+    "bayam",
+    "kangkung",
+    "sawi",
+    "selada",
+    "wortel",
+    "tomat",
+    "cabai",
+    "terong",
+    "pisang",
+    "mangga",
+    "pepaya",
+)
+
+NON_FOOD_TERMS = (
+    "non-pangan",
+    "bukan tanaman pangan",
+    "bukan pangan",
+    "non-food",
+    "tidak untuk konsumsi",
 )
 
 # Hubungan tujuan dengan fungsi tanaman dibuat eksplisit
@@ -124,7 +174,10 @@ def _soil_data_status(hasil_pemeriksaan):
         "unsur_hara": has_nutrients or bool(
             hasil_pemeriksaan.unsur_hara.strip()
         ),
-        "kontaminan": bool(hasil_pemeriksaan.kontaminan.strip()),
+        "kontaminan": (
+            hasil_pemeriksaan.contaminant_findings.exists()
+            or bool(hasil_pemeriksaan.kontaminan.strip())
+        ),
     }
 
     jumlah_terisi = sum(values.values())
@@ -169,6 +222,31 @@ def _build_input_snapshot(lahan, hasil_pemeriksaan):
         "unsur_hara": hasil_pemeriksaan.unsur_hara,
         "pengukuran_unsur_hara": nutrients,
         "kontaminan": hasil_pemeriksaan.kontaminan,
+        "temuan_kontaminan": [
+            {
+                "kontaminan_id": temuan.kontaminan_id,
+                "nama": temuan.kontaminan.nama,
+                "status": temuan.status,
+                "nilai": (
+                    str(temuan.nilai)
+                    if temuan.nilai is not None
+                    else None
+                ),
+                "satuan": temuan.satuan,
+                "batas_deteksi": (
+                    str(temuan.batas_deteksi)
+                    if temuan.batas_deteksi is not None
+                    else None
+                ),
+                "metode": temuan.metode,
+                "catatan": temuan.catatan,
+            }
+            for temuan in (
+                hasil_pemeriksaan.contaminant_findings
+                .select_related("kontaminan")
+                .all()
+            )
+        ],
     }
 
 
@@ -214,14 +292,177 @@ def _goal_matches_plant(tujuan, tanaman):
 def _is_high_risk(tanaman):
     risk_text = (tanaman.risiko_penggunaan or "").casefold()
     return any(term in risk_text for term in HIGH_RISK_TERMS)
+def _contains_word(term, text):
+    """Cocokkan kata utuh, supaya "sawi" tidak ikut cocok dengan "sawit" atau "buah" dengan "berbuah"."""
+    return re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text) is not None
+
+
+def _is_food_crop_without_clear_consumption_safety(tanaman):
+    plant_text = " ".join([
+        tanaman.nama or "",
+        tanaman.fungsi or "",
+        tanaman.deskripsi or "",
+        tanaman.kontaminan_ditangani or "",
+    ]).casefold()
+
+    risk_text = (tanaman.risiko_penggunaan or "").casefold()
+
+    if any(_contains_word(term, plant_text) for term in NON_FOOD_TERMS):
+        return False
+
+    is_food_crop = any(
+        _contains_word(term, plant_text)
+        for term in FOOD_CROP_TERMS
+    )
+
+    if not is_food_crop:
+        return False
+
+    safety_verified = (
+        "keamanan konsumsi terverifikasi" in risk_text
+        and bool((tanaman.sumber_penelitian or "").strip())
+    )
+
+    return not safety_verified
+def _get_supported_contaminant_capabilities(
+    tanaman,
+    hasil_pemeriksaan,
+):
+    """
+    Mengambil kemampuan tanaman yang cocok dengan seluruh
+    kontaminan terdeteksi dan memiliki referensi literatur.
+    """
+    temuan_terdeteksi = (
+        hasil_pemeriksaan.contaminant_findings
+        .filter(status="terdeteksi")
+        .select_related("kontaminan")
+    )
+
+    kontaminan_ids = [
+        temuan.kontaminan_id
+        for temuan in temuan_terdeteksi
+    ]
+
+    if not kontaminan_ids:
+        return []
+
+    kemampuan = list(
+        PlantContaminantCapability.objects.filter(
+            tanaman=tanaman,
+            kontaminan_id__in=kontaminan_ids,
+        ).select_related("kontaminan")
+    )
+
+    kemampuan_by_id = {
+        item.kontaminan_id: item
+        for item in kemampuan
+    }
+
+    # Tanaman harus memiliki kemampuan untuk SEMUA
+    # kontaminan yang terdeteksi.
+    if len(kemampuan_by_id) != len(set(kontaminan_ids)):
+        return []
+
+    # Referensi literatur tanaman harus tersedia.
+    # Setiap pasangan tanaman-kontaminan harus memiliki
+# referensi yang membahas kontaminan tersebut.
+    for item in kemampuan_by_id.values():
+        referensi_pair = tanaman.referensi.filter(
+            sumber_literatur__icontains=item.kontaminan.nama,
+        ).exists()
+
+        if not referensi_pair:
+            return []
+
+    return list(kemampuan_by_id.values())
+
 
 def assess_soil_risk(hasil_pemeriksaan):
     """
-    Periksa apakah catatan kontaminan memerlukan penilaian ahli.
+    Periksa apakah data kontaminan cukup untuk melanjutkan
+    rekomendasi otomatis.
 
-    Karena nilai dan batas aman disimpan sebagai teks bebas,
-    fungsi ini tidak mengklaim bahwa suatu angka melampaui batas resmi.
+    Data kosong dianggap belum diketahui, bukan berarti aman.
     """
+    sumber = (
+        hasil_pemeriksaan.sumber
+        or hasil_pemeriksaan.get_asal_display()
+    )
+
+    temuan_terstruktur = list(
+        hasil_pemeriksaan.contaminant_findings
+        .select_related("kontaminan")
+        .all()
+    )
+
+    temuan_terdeteksi = [
+        temuan
+        for temuan in temuan_terstruktur
+        if temuan.status == "terdeteksi"
+    ]
+    catatan_risiko = " ".join(
+        [
+            hasil_pemeriksaan.kontaminan or "",
+            hasil_pemeriksaan.catatan or "",
+            *(
+                temuan.catatan or ""
+                for temuan in temuan_terstruktur
+            ),
+        ]
+    ).casefold()
+
+    risiko_ditandai = any(
+        marker in catatan_risiko
+        for marker in SOIL_HIGH_RISK_MARKERS
+    )
+
+    if risiko_ditandai:
+        if temuan_terdeteksi:
+            ringkasan = "; ".join(
+                f"{temuan.kontaminan.nama}: "
+                f"{temuan.nilai} {temuan.satuan}"
+                for temuan in temuan_terdeteksi
+            )
+        else:
+            ringkasan = (
+                hasil_pemeriksaan.kontaminan
+                or hasil_pemeriksaan.catatan
+                or "Hasil pemeriksaan ditandai sebagai risiko tinggi."
+            )
+
+        return {
+            "risiko_tinggi": True,
+            "temuan": ringkasan,
+            "sumber": sumber,
+            "alasan": (
+                "Catatan pemeriksaan secara eksplisit menandai "
+                "kondisi berisiko tinggi. Skor rekomendasi dan "
+                "pembuatan rencana otomatis dihentikan sampai "
+                "ada penilaian pihak kompeten."
+            ),
+        }
+
+    # Kondisi 1: Ada kontaminan yang terdeteksi.
+    # Kondisi 1: Ada kontaminan yang terdeteksi.
+    if temuan_terdeteksi:
+        ringkasan = "; ".join(
+            f"{temuan.kontaminan.nama}: "
+            f"{temuan.nilai} {temuan.satuan}"
+            for temuan in temuan_terdeteksi
+        )
+
+        return {
+            "risiko_tinggi": True,
+            "temuan": ringkasan,
+            "sumber": sumber,
+            "alasan": (
+                "Kontaminan terdeteksi pada hasil pemeriksaan. "
+                "Penilaian pihak kompeten diperlukan sebelum "
+                "skor rekomendasi atau rencana pemulihan otomatis "
+                "dapat dibuat."
+            ),
+        }
+
     raw = (hasil_pemeriksaan.kontaminan or "").strip()
     normalized = " ".join(raw.casefold().split()).strip(" .,:;")
 
@@ -236,30 +477,50 @@ def assess_soil_risk(hasil_pemeriksaan):
         "negatif",
     }
 
-    if not raw or normalized in explicit_no_contaminant:
+    # Kondisi 2: Ada catatan bebas yang belum terverifikasi.
+    if raw and normalized not in explicit_no_contaminant:
         return {
-            "risiko_tinggi": False,
+            "risiko_tinggi": True,
             "temuan": raw,
-            "sumber": (
-                hasil_pemeriksaan.sumber
-                or hasil_pemeriksaan.get_asal_display()
+            "sumber": sumber,
+            "alasan": (
+                "Catatan pemeriksaan mencantumkan informasi "
+                "kontaminan yang belum dapat diverifikasi secara "
+                "terstruktur. Penilaian ahli diperlukan sebelum "
+                "rekomendasi otomatis diberikan."
             ),
-            "alasan": None,
         }
 
+    # Kondisi 3: Tidak ada catatan atau temuan kontaminan sama sekali.
+    if not raw and not temuan_terstruktur:
+        return {
+            "risiko_tinggi": True,
+            "temuan": "Data kontaminan belum tersedia.",
+            "sumber": sumber,
+            "alasan": (
+                "Belum ada data pemeriksaan kontaminan. "
+                "Ketiadaan data tidak dapat dianggap sebagai "
+                "bukti bahwa tanah bebas kontaminan. "
+                "Lengkapi pemeriksaan atau minta penilaian ahli."
+            ),
+        }
+
+    # Kondisi 4: Ada hasil eksplisit tidak terdeteksi.
+    if temuan_terstruktur:
+        ringkasan = "; ".join(
+            f"{temuan.kontaminan.nama}: tidak terdeteksi"
+            for temuan in temuan_terstruktur
+        )
+    else:
+        ringkasan = raw
+
     return {
-        "risiko_tinggi": True,
-        "temuan": raw,
-        "sumber": (
-            hasil_pemeriksaan.sumber
-            or hasil_pemeriksaan.get_asal_display()
-        ),
-        "alasan": (
-            "Hasil pemeriksaan mencatat kontaminan, tetapi nilai dan "
-            "batas aman belum diverifikasi menggunakan aturan yang "
-            "terstruktur. Rekomendasi otomatis memerlukan penilaian ahli."
-        ),
+        "risiko_tinggi": False,
+        "temuan": ringkasan,
+        "sumber": sumber,
+        "alasan": None,
     }
+
 
 
 def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
@@ -269,6 +530,11 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     Jika hasil pemeriksaan mencatat kontaminan yang belum terverifikasi,
     rekomendasi otomatis dihentikan dan hasil diarahkan ke penilaian ahli.
     """
+    if hasil_pemeriksaan.status_hasil != "final":
+        raise RecommendationInputError(
+            "Rekomendasi hanya dapat dibuat dari hasil pemeriksaan final."
+        )
+    
     if hasil_pemeriksaan.lahan_id != lahan.pk:
         raise RecommendationInputError(
             "Hasil pemeriksaan bukan milik lahan yang dipilih."
@@ -322,11 +588,21 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
     rekomendasi = []
     diblokir = []
 
-    for tanaman in Tanaman.objects.all():
+    for tanaman in Tanaman.objects.filter(diarsipkan=False):
         if not _goal_matches_plant(tujuan, tanaman):
             continue
 
         if not tanaman.tersedia_di_indonesia:
+            continue
+
+        if _is_food_crop_without_clear_consumption_safety(tanaman):
+            diblokir.append({
+                "tanaman": tanaman,
+                "alasan": (
+                    "Tanaman pangan belum memiliki bukti dan sumber "
+                    "penelitian yang memverifikasi keamanan konsumsinya."
+                ),
+            })
             continue
 
         if _is_high_risk(tanaman):
@@ -339,10 +615,45 @@ def calculate_recommendations(lahan, hasil_pemeriksaan, tujuan):
             })
             continue
 
+        temuan_terdeteksi = (
+            hasil_pemeriksaan.contaminant_findings
+            .filter(status="terdeteksi")
+        )
+
+        kemampuan_kontaminan = []
+
+        if temuan_terdeteksi.exists():
+            kemampuan_kontaminan = (
+                _get_supported_contaminant_capabilities(
+                    tanaman,
+                    hasil_pemeriksaan,
+                )
+            )
+
+            if not kemampuan_kontaminan:
+                diblokir.append({
+                    "tanaman": tanaman,
+                    "alasan": (
+                        "Tanaman belum memiliki bukti kemampuan "
+                        "menangani seluruh kontaminan yang terdeteksi "
+                        "beserta referensi literatur yang diperlukan."
+                    ),
+                })
+                continue
         skor = 55
         alasan = [
             "Fungsi tanaman cocok dengan kata kunci tujuan pengelolaan."
         ]
+        if kemampuan_kontaminan:
+            for kemampuan in kemampuan_kontaminan:
+                alasan.append(
+                    f"Tanaman tercatat mampu menangani "
+                    f"{kemampuan.kontaminan.nama}."
+                )
+
+            alasan.append(
+                "Kemampuan tanaman didukung referensi literatur."
+            )
 
         skor += 15
         alasan.append("Tanaman tercatat tersedia di Indonesia.")

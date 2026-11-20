@@ -1,0 +1,36 @@
+/*
+ * Gaya halaman error 403, 404, 500. Dipakai bareng landing.css (kelas lp-),
+ * jadi di sini cuma tata letak dan tombol garis. Kelasnya berawalan er-.
+ */
+
+.er { min-height: calc(100svh - 68px - 76px); padding-top: 68px; display: grid; }
+.er--dark { --lp-cream: #131f18; background: var(--lp-cream); color: #fff; }
+
+.er__wrap { width: min(1200px, 100% - 48px); margin-inline: auto; padding-block: 2.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+.er__text { display: grid; justify-items: start; gap: 1.25rem; }
+.er__text .lp-h { font-size: clamp(2.5rem, 6vw, 4.75rem); letter-spacing: -0.03em; text-wrap: balance; }
+.er__lead { max-width: 26rem; font-size: 1.0625rem; line-height: 1.6; color: var(--color-ink-soft); }
+.er__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; }
+.er__actions form { display: contents; }
+
+.lp-btn-line { border: 1px solid currentColor; background: transparent; color: var(--color-ink); cursor: pointer; font-family: inherit; }
+.lp-btn-line::before { display: none; }
+.lp-btn-line:hover { background: rgba(19, 31, 24, 0.06); }
+
+.er__photo { position: relative; margin: 0; aspect-ratio: 1 / 1; border-radius: 28px; overflow: hidden; background: var(--color-forest); }
+.er__photo img { width: 100%; height: 100%; object-fit: cover; }
+.er__photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(10, 18, 13, 0.5)); }
+.er__photo figcaption { position: absolute; z-index: 1; left: 0; right: 0; bottom: 1rem; text-align: center; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 500; font-size: clamp(5rem, 14vw, 11rem); line-height: 1; letter-spacing: -0.04em; color: #fff; }
+
+/* Versi gelap */
+.er--dark .er__lead { color: rgba(255, 255, 255, 0.72); }
+.er--dark .lp-tag { color: rgba(255, 255, 255, 0.78); }
+.er--dark .lp-it { color: #f2c07a; }
+.er--dark .lp-btn-line { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.er--dark .lp-btn-line:hover { background: rgba(255, 255, 255, 0.12); }
+.er--dark .er__photo img { filter: brightness(0.78) saturate(0.85); }
+
+@media (max-width: 860px) {
+  .er__wrap { grid-template-columns: 1fr; gap: 2rem; padding-block: 2rem; }
+  .er__photo { aspect-ratio: 4 / 3; }
+}

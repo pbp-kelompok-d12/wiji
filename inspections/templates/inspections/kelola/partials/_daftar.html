@@ -1,0 +1,51 @@
+{# Filter, kotak cari, dan daftar pesanan buat admin. Dikirim utuh lewat HTMX pas filter atau pencarian berubah #}
+<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <nav class="flex flex-wrap gap-2" aria-label="Filter status pesanan">
+    {% for f in filter_list %}
+    <a href="{% url 'inspections:kelola_daftar' %}?status={{ f.kunci }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+       class="tab rounded-full border border-line {% if f.kunci == filter_aktif %}is-on{% endif %}"
+       hx-get="{% url 'inspections:kelola_daftar' %}?status={{ f.kunci }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+       hx-target="#daftar-kelola" hx-swap="innerHTML" hx-push-url="true">
+      {{ f.label }} <span class="ml-1 opacity-70">{{ f.jumlah }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+  <form method="get" action="{% url 'inspections:kelola_daftar' %}" class="relative w-full sm:max-w-xs"
+        hx-get="{% url 'inspections:kelola_daftar' %}" hx-target="#daftar-kelola" hx-swap="innerHTML"
+        hx-trigger="input changed delay:400ms from:find input, submit" hx-push-url="true">
+    <input type="hidden" name="status" value="{{ filter_aktif }}">
+    <svg class="ic ic-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"><use href="#i-search"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Cari kode, lahan, atau pemilik..." class="field-input !h-10 !rounded-full !pl-9" aria-label="Cari pesanan">
+  </form>
+</div>
+
+<div class="mt-4">
+  {% if pesanan_list %}
+  <div class="d-card divide-y divide-line px-5 py-1">
+    {% for pesanan in pesanan_list %}
+    <article class="row-hover -mx-2 flex flex-wrap items-center gap-3 rounded-xl px-2 py-4">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'inspections:kelola_detail' pesanan.pk %}" class="text-sm font-bold hover:text-moss">{{ pesanan.kode }}</a>
+          {% include 'inspections/partials/_status.html' %}
+        </div>
+        <p class="mt-0.5 truncate text-[13px] text-ink-soft">
+          {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }} · {{ pesanan.pemilik.display_name }} · {{ pesanan.jenis.nama }}
+        </p>
+        <p class="mt-0.5 text-xs text-ink-soft">
+          {% if pesanan.tanggal_final %}Jadwal {{ pesanan.tanggal_final|date:"D, j M Y" }} · {{ pesanan.get_sesi_final_display }}{% else %}Usulan {{ pesanan.tanggal_usulan|date:"D, j M Y" }} · {{ pesanan.get_sesi_usulan_display }}{% endif %}
+          · Petugas: {{ pesanan.petugas.display_name|default:"belum ditugaskan" }}
+        </p>
+      </div>
+      <a href="{% url 'inspections:kelola_detail' pesanan.pk %}" class="d-btn-sm">{% if pesanan.status == 'diajukan' %}Tugaskan{% else %}Kelola{% endif %}</a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="d-card grid place-items-center px-6 py-14 text-center">
+    <span class="grid size-14 place-items-center rounded-full bg-paper text-ink-soft"><svg class="ic size-6"><use href="#i-flask"/></svg></span>
+    <h2 class="mt-4 text-lg font-bold">{% if q or filter_aktif != 'semua' %}Nggak ada pesanan yang cocok{% else %}Belum ada pesanan{% endif %}</h2>
+    <p class="mt-1 max-w-sm text-sm text-ink-soft">{% if q or filter_aktif != 'semua' %}Coba ubah filter atau kata kuncinya.{% else %}Pesanan dari pemilik lahan akan muncul di sini.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>

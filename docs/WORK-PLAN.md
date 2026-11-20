@@ -179,7 +179,7 @@ Pemilik dapat membuat pesanan untuk lahannya, melihat perkembangan pesanan, memb
 - [ ] Pemilik dapat meminta penjadwalan ulang dengan alasan selama status `Dikonfirmasi` atau `Dijadwalkan`; jadwal usulan diganti dan jadwal final dikosongkan.
 - [ ] Pesanan tidak dihapus permanen; pembatalan menjadi *soft delete*.
 - [ ] Detail pesanan menampilkan linimasa riwayat status.
-- [ ] Tersedia endpoint JSON `GET/POST /inspections/api/orders/`, `GET .../<id>/`, serta aksi `.../<id>/cancel/` dan `.../<id>/reschedule/` yang hanya menampilkan pesanan yang boleh diakses pengguna.
+- [ ] Tersedia endpoint JSON `GET/POST /pemeriksaan/api/pesanan/`, `GET .../<id>/`, serta aksi `.../<id>/batalkan/` dan `.../<id>/jadwal-ulang/` yang hanya menampilkan pesanan yang boleh diakses pengguna.
 - [ ] Filter status pada daftar pesanan memakai HTMX tanpa memuat ulang halaman.
 - [ ] Batal dan jadwal ulang memakai form modal HTMX yang memperbarui kartu pesanan.
 - [ ] Dashboard pemilik menampilkan pesanan aktif per lahan dan tombol pesan untuk lahan yang belum punya pesanan.
@@ -232,7 +232,7 @@ Admin dapat menugaskan petugas dan menetapkan jadwal. Petugas dapat memproses pe
 - [ ] Penjadwalan ulang mengembalikan status ke `Dikonfirmasi` tanpa mengganti petugas.
 - [ ] Admin dapat membatalkan pesanan; siapa, kapan, dan alasan pembatalan disimpan.
 - [ ] Admin dapat mengganti petugas sebelum `Sampel Diambil` tanpa mengubah status; pergantiannya tercatat di riwayat.
-- [ ] Setiap perubahan status tercatat di `InspectionOrderEvent` beserta pelaku, alasan, dan waktunya.
+- [ ] Setiap perubahan status tercatat di `RiwayatPesanan` beserta pelaku, alasan, dan waktunya.
 - [ ] Logika transisi dipusatkan dan dipakai oleh halaman HTML, endpoint JSON, dan Modul C.
 - [ ] Admin mengelola pesanan lewat halaman staf Wiji; status di Django Admin hanya dapat dibaca.
 - [ ] Petugas tidak melihat email atau kontak pemilik.

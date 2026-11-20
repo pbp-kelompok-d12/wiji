@@ -18,35 +18,33 @@
   {% endif %}
 </div>
 
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-  {% for t in tanaman_list %}
-    <!-- Kartu Tanaman Mulai -->
-    <div class="flex flex-col justify-between rounded-panel border border-line bg-white p-5 shadow-sm transition hover:border-forest">
-      <div>
-        <div class="mb-2 flex flex-wrap items-center gap-2">
-          <span class="rounded-md bg-leaf px-2 py-1 text-[11px] font-bold text-moss-deep">{{ t.fungsi }}</span>
-          {% if t.kontaminan_ditangani %}
-            <span class="rounded-md bg-brick/10 px-2 py-1 text-[11px] font-bold text-brick">Fitoremediasi</span>
-          {% endif %}
-        </div>
-        <h2 class="text-lg font-bold font-['Bricolage_Grotesque'] text-ink">{{ t.nama }}</h2>
-        <p class="text-xs italic text-ink-soft mb-2">{{ t.nama_latin }}</p>
-        <p class="mt-1 line-clamp-2 text-sm text-ink-soft">{{ t.deskripsi }}</p>
-      </div>
-      <div class="mt-4 flex items-center justify-between border-t border-line pt-4">
-        <span class="text-xs font-semibold {% if t.tersedia_di_indonesia %}text-sky{% else %}text-turmeric{% endif %}">
-          {% if t.tersedia_di_indonesia %}Prioritas Lokal{% else %}Alternatif Asing{% endif %}
-        </span>
-        <a href="{% url 'core:detail_tanaman' t.pk %}" class="text-sm font-semibold text-forest hover:underline">Lihat Detail &rarr;</a>
-      </div>
-    </div>
-    <!-- Kartu Tanaman Selesai -->
-  {% empty %}
-    <div class="col-span-full rounded-panel border border-line bg-paper p-8 text-center">
-      <svg class="ic mx-auto mb-3 size-8 text-ink-soft"><use href="#i-sprout"/></svg>
-      <p class="font-semibold text-ink">Belum ada tanaman</p>
-      <p class="text-sm text-ink-soft">Silakan tambah tanaman baru ke dalam katalog.</p>
-    </div>
-  {% endfor %}
+<form method="get" action="{% url 'core:daftar_tanaman' %}" class="mb-6 grid gap-3 rounded-panel border border-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_200px_170px_auto]"
+      hx-get="{% url 'core:daftar_tanaman' %}" hx-target="#hasil-katalog" hx-swap="innerHTML" hx-push-url="true"
+      hx-trigger="input delay:300ms from:#cari-katalog, change from:select, change from:input[type=checkbox]">
+  <label class="flex flex-col gap-1 text-xs font-semibold text-ink-soft">Cari
+    <input id="cari-katalog" type="search" name="q" value="{{ q }}" placeholder="Nama, nama ilmiah, atau fungsi" class="field-input">
+  </label>
+  <label class="flex flex-col gap-1 text-xs font-semibold text-ink-soft">Tujuan lahan
+    <select name="tujuan" class="field-input">
+      <option value="">Semua tujuan</option>
+      {% for g in tujuan_list %}<option value="{{ g.slug }}" {% if g.slug == tujuan_dipilih %}selected{% endif %}>{{ g.nama }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="flex flex-col gap-1 text-xs font-semibold text-ink-soft">Jenis
+    <select name="jenis" class="field-input">
+      <option value="">Semua jenis</option>
+      <option value="fitoremediasi" {% if jenis_dipilih == 'fitoremediasi' %}selected{% endif %}>Fitoremediasi</option>
+      <option value="umum" {% if jenis_dipilih == 'umum' %}selected{% endif %}>Bukan fitoremediasi</option>
+    </select>
+  </label>
+  <div class="flex flex-col justify-end gap-2 text-sm">
+    <label class="flex items-center gap-2"><input type="checkbox" name="lokal" value="1" {% if hanya_lokal %}checked{% endif %}> Hanya prioritas lokal</label>
+    {% if user.is_staff %}<label class="flex items-center gap-2"><input type="checkbox" name="arsip" value="1" {% if lihat_arsip %}checked{% endif %}> Lihat arsip</label>{% endif %}
+  </div>
+  <noscript><button class="btn btn-leaf" type="submit">Terapkan</button></noscript>
+</form>
+
+<div id="hasil-katalog">
+  {% include 'core/partials/_daftar_kartu.html' %}
 </div>
 {% endblock %}

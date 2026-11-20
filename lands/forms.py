@@ -61,6 +61,7 @@ class LahanForm(forms.ModelForm):
             'foto': forms.ClearableFileInput(attrs={
                 'class': 'block w-full rounded-xl border border-line bg-paper px-3 py-2 text-sm',
                 'accept': 'image/*',
+                'aria-label': 'Foto lahan',
             }),
             'tujuan': forms.CheckboxSelectMultiple(attrs={
                 'class': 'mt-0.5 size-4 shrink-0 rounded border-line text-moss focus:ring-moss',

@@ -1,0 +1,17 @@
+{# Isian form aksi. Kolom "sesi" tampil sebagai pilihan kartu, sisanya isian biasa #}
+{% for error in form.non_field_errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+{% for field in form %}
+  {% if field.name == 'sesi' %}
+  <fieldset class="field">
+    <legend class="field-label">{{ field.label }}</legend>
+    <div class="grid grid-cols-2 gap-2">
+      {% for radio in field %}
+      <label class="choice"><span class="flex items-center gap-2">{{ radio.tag }}<i class="dot"></i><span class="text-sm font-bold">{{ radio.choice_label }}</span></span></label>
+      {% endfor %}
+    </div>
+    {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </fieldset>
+  {% else %}
+    {% include 'lands/partials/_field.html' %}
+  {% endif %}
+{% endfor %}

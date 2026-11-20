@@ -20,6 +20,11 @@ class User(AbstractUser):
         return self.role == self.Role.OFFICER
 
     @property
+    def role_label(self):
+        """Nama peran buat ditampilkan. Admin itu akun staf, kolom role-nya nggak dipakai."""
+        return 'Admin' if self.is_staff else self.get_role_display()
+
+    @property
     def initials(self):
         parts = self.display_name.split()
         return ''.join(p[0] for p in parts[:2]).upper() or '?'

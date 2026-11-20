@@ -1,0 +1,86 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="heading text-[28px] leading-[34px]">Halo, <span class="heading-accent">{{ greeting_name }}!</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Ini tugas pemeriksaanmu.</p>
+  </div>
+  <a href="{% url 'inspections:tugas_daftar' %}" class="btn btn-primary !min-h-10">Semua tugas</a>
+</div>
+
+<section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan">
+  <a href="{% url 'inspections:tugas_daftar' %}" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Tugas aktif</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_aktif }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Dikonfirmasi sampai Diproses.</p>
+  </a>
+  <article class="d-card p-4">
+    <p class="text-sm font-semibold text-ink-soft">Siap diambil sampelnya</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_siap_diambil }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Sudah dijadwalkan admin.</p>
+  </article>
+  <a href="{% url 'inspections:tugas_daftar' %}?status=dikerjakan" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Sedang dikerjakan</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_dikerjakan }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Sampel diambil atau diproses.</p>
+  </a>
+  <a href="{% url 'inspections:tugas_daftar' %}?status=selesai" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Selesai</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_selesai }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Hasil sudah difinalkan.</p>
+  </a>
+</section>
+
+<section class="mt-4 grid gap-4 lg:grid-cols-2">
+  <article class="d-card p-5">
+    <div class="flex items-center justify-between"><h2 class="d-title">Tugas mendatang</h2><a href="{% url 'inspections:tugas_daftar' %}?status=terjadwal" class="d-btn-sm">Lihat semua</a></div>
+    {% if mendatang %}
+    <ul class="mt-3">
+      {% for p in mendatang %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold">{{ p.kode }} · {{ p.lahan.nama|default:"Lahan tanpa nama" }}</p>
+          <p class="truncate text-xs text-ink-soft">{% if p.tanggal_final %}{{ p.tanggal_final|date:"D, j M" }} · {{ p.get_sesi_final_display }}{% else %}Menunggu jadwal dari admin{% endif %} · {{ p.jenis.nama }}</p>
+        </div>
+        <a href="{% url 'inspections:tugas_detail' p.pk %}" class="d-btn-sm">{% if p.status == 'dijadwalkan' %}Kerjakan{% else %}Lihat{% endif %}</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mt-4 text-sm text-ink-soft">Belum ada tugas yang akan datang. Tugas muncul setelah admin menugaskan pesanan ke kamu.</p>
+    {% endif %}
+  </article>
+
+  <article class="d-card p-5">
+    <h2 class="d-title">Perlu tindakan</h2>
+    {% if perlu_diproses %}
+    <p class="mt-3 text-xs font-bold uppercase tracking-wider text-ink-soft">Mulai diproses</p>
+    <ul class="mt-2">
+      {% for p in perlu_diproses %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">{{ p.kode }} · {{ p.lahan.nama|default:"Lahan tanpa nama" }}</p><p class="text-xs text-ink-soft">Sampel sudah diambil</p></div>
+        <a href="{% url 'inspections:tugas_detail' p.pk %}" class="d-btn-sm">Mulai proses</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if menunggu_hasil %}
+    <p class="mt-4 text-xs font-bold uppercase tracking-wider text-ink-soft">Menunggu hasil pemeriksaan</p>
+    <ul class="mt-2">
+      {% for p in menunggu_hasil %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <div class="min-w-0 flex-1"><p class="truncate text-sm font-bold">{{ p.kode }} · {{ p.lahan.nama|default:"Lahan tanpa nama" }}</p><p class="text-xs text-ink-soft">Sedang diproses</p></div>
+        <a href="{% url 'inspections:tugas_detail' p.pk %}" class="d-btn-sm">Lihat</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if not perlu_diproses and not menunggu_hasil %}
+    <p class="mt-4 text-sm text-ink-soft">Nggak ada yang menunggu tindakanmu sekarang.</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

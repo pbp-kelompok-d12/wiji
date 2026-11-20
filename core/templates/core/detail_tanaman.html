@@ -16,6 +16,7 @@
           <span class="rounded-md bg-brick/10 px-2.5 py-1 text-xs font-bold text-brick">Fitoremediasi</span>
         {% endif %}
         
+        {% if tanaman.diarsipkan %}<span class="rounded-md bg-turmeric/15 px-2.5 py-1 text-xs font-bold text-ink">Diarsipkan</span>{% endif %}
         <span class="rounded-md bg-paper px-2.5 py-1 text-xs font-bold {% if tanaman.tersedia_di_indonesia %}text-sky{% else %}text-turmeric{% endif %}">
           {% if tanaman.tersedia_di_indonesia %}Prioritas Lokal{% else %}Alternatif Asing{% endif %}
         </span>
@@ -69,7 +70,30 @@
       </div>
       {% endif %}
 
-      {% if tanaman.sumber_penelitian %}
+      {% if tujuan_list %}
+      <div>
+        <h2 class="mb-2 text-sm font-bold text-ink">Cocok untuk tujuan</h2>
+        <ul class="flex flex-wrap gap-2">{% for g in tujuan_list %}<li class="rounded-md bg-leaf px-2 py-1 text-xs font-bold text-moss-deep">{{ g.nama }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      {% if kemampuan_list %}
+      <div>
+        <h2 class="mb-2 text-sm font-bold text-ink">Kemampuan terhadap kontaminan</h2>
+        <ul class="grid gap-2 text-sm text-ink-soft">
+          {% for k in kemampuan_list %}<li><b class="text-ink">{{ k.kontaminan.nama }}</b>{% if k.tingkat_efektivitas %}: {{ k.tingkat_efektivitas }}{% endif %}{% if k.catatan_khusus %}<br><span class="text-xs">{{ k.catatan_khusus }}</span>{% endif %}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if referensi_list %}
+      <div>
+        <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink"><svg class="ic ic-sm text-ink-soft"><use href="#i-book"/></svg> Referensi</h2>
+        <ul class="grid gap-1.5 text-sm text-ink-soft">
+          {% for r in referensi_list %}<li>{% if r.tautan %}<a href="{{ r.tautan }}" target="_blank" rel="noopener" class="text-moss underline">{{ r.sumber_literatur }}</a>{% else %}{{ r.sumber_literatur }}{% endif %}</li>{% endfor %}
+        </ul>
+      </div>
+      {% elif tanaman.sumber_penelitian %}
       <div class="{% if tanaman.kontaminan_ditangani or tanaman.risiko_penggunaan %}border-t border-line pt-4{% endif %}">
         <h2 class="mb-2 flex items-center gap-2 text-sm font-bold text-ink">
           <svg class="ic ic-sm text-ink-soft"><use href="#i-book"/></svg> Sumber Penelitian
@@ -89,9 +113,18 @@
     <a href="{% url 'core:ubah_tanaman' tanaman.pk %}" class="btn btn-leaf flex items-center gap-2">
       <svg class="ic ic-sm"><use href="#i-doc"/></svg> Edit Data
     </a>
+    {% if tanaman.diarsipkan %}
+    <form method="post" action="{% url 'core:pulihkan_tanaman' tanaman.pk %}">{% csrf_token %}<button type="submit" class="btn btn-outline">Pulihkan ke katalog</button></form>
+    {% else %}
+    <form method="post" action="{% url 'core:arsip_tanaman' tanaman.pk %}">{% csrf_token %}<button type="submit" class="btn btn-outline">Arsipkan</button></form>
+    {% endif %}
+    {% if tanaman.sudah_dipakai %}
+    <span class="text-xs text-ink-soft">Sudah dipakai di rekomendasi, jadi hanya bisa diarsipkan.</span>
+    {% else %}
     <a href="{% url 'core:hapus_tanaman' tanaman.pk %}" class="btn flex items-center gap-2 border border-brick text-brick hover:bg-brick hover:text-white">
       <svg class="ic ic-sm"><use href="#i-alert"/></svg> Hapus
     </a>
+    {% endif %}
   {% endif %}
   
   <a href="{% url 'core:daftar_tanaman' %}" class="btn btn-ghost {% if not user.is_staff %}ml-0{% else %}ml-auto{% endif %}">Kembali ke Katalog</a>

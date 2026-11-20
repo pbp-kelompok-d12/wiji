@@ -1,7 +1,12 @@
-// Navbar dapet garis tipis dan bayangan setelah halaman di-scroll
+// Navbar dapet garis tipis dan bayangan setelah halaman di-scroll.
+// Di landing (data-overlay) navbar transparan di atas hero, baru jadi solid setelah hero lewat
 const header = document.getElementById('site-header');
 if (header) {
-  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 8);
+  const overlay = header.hasAttribute('data-overlay');
+  const onScroll = () => {
+    header.classList.toggle('is-scrolled', window.scrollY > 8);
+    if (overlay) header.classList.toggle('is-solid', window.scrollY > window.innerHeight - 90);
+  };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 }

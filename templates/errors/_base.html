@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# Kerangka halaman error. Anak template isi kode, judul, teks, foto, dan tombol. #}
+{% block extra_head %}
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+  <link rel="stylesheet" href="{% static 'css/errors.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="lp er{% block theme %}{% endblock %}">
+  <section class="er__wrap">
+    <div class="er__text">
+      <span class="lp-tag">Kesalahan {% block kode_kecil %}{% endblock %}</span>
+      <h1 class="lp-h">{% block judul %}{% endblock %}</h1>
+      <p class="er__lead">{% block lead %}{% endblock %}</p>
+      <div class="er__actions">{% block tombol %}{% endblock %}</div>
+    </div>
+    <figure class="er__photo">
+      <img src="{% block foto %}{% endblock %}" alt="">
+      <figcaption aria-hidden="true">{% block kode %}{% endblock %}</figcaption>
+    </figure>
+  </section>
+</div>
+{% endblock %}

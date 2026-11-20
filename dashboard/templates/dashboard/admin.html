@@ -1,0 +1,106 @@
+{% extends 'app_base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block app_content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="heading text-[28px] leading-[34px]">Halo, <span class="heading-accent">{{ greeting_name }}!</span></h1>
+    <p class="mt-1 text-sm text-ink-soft">Ini pesanan pemeriksaan yang perlu kamu urus.</p>
+  </div>
+  <a href="{% url 'inspections:kelola_daftar' %}" class="btn btn-primary !min-h-10">Kelola semua pesanan</a>
+</div>
+
+<section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan">
+  <a href="{% url 'inspections:kelola_daftar' %}?status=perlu" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Perlu ditugaskan</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_perlu_ditugaskan }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Pesanan berstatus Diajukan.</p>
+  </a>
+  <article class="d-card p-4">
+    <p class="text-sm font-semibold text-ink-soft">Perlu jadwal final</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_perlu_jadwal }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Sudah ada petugas, belum dijadwalkan.</p>
+  </article>
+  <a href="{% url 'inspections:kelola_daftar' %}?status=berjalan" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Sedang berjalan</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_berjalan }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Dikonfirmasi sampai Diproses.</p>
+  </a>
+  <a href="{% url 'inspections:kelola_daftar' %}?status=selesai" class="d-card block p-4 transition hover:shadow-md">
+    <p class="text-sm font-semibold text-ink-soft">Selesai</p>
+    <p class="heading mt-3 text-[34px] leading-none">{{ jumlah_selesai }}</p>
+    <p class="mt-3 text-xs text-ink-soft">Hasil sudah difinalkan.</p>
+  </a>
+</section>
+
+<section class="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+  <article class="d-card p-5">
+    <div class="flex items-center justify-between"><h2 class="d-title">Perlu ditugaskan</h2><a href="{% url 'inspections:kelola_daftar' %}?status=perlu" class="d-btn-sm">Lihat semua</a></div>
+    {% if perlu_ditugaskan %}
+    <ul class="mt-3">
+      {% for p in perlu_ditugaskan %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold">{{ p.kode }} · {{ p.lahan.nama|default:"Lahan tanpa nama" }}</p>
+          <p class="truncate text-xs text-ink-soft">{{ p.pemilik.display_name }} · {{ p.jenis.nama }} · usulan {{ p.tanggal_usulan|date:"j M" }}, {{ p.get_sesi_usulan_display }}</p>
+        </div>
+        <a href="{% url 'inspections:kelola_detail' p.pk %}" class="d-btn-sm">Tugaskan</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mt-4 text-sm text-ink-soft">Semua pesanan sudah ditugaskan.</p>
+    {% endif %}
+
+    {% if perlu_jadwal %}
+    <h2 class="d-title mt-6">Perlu jadwal final</h2>
+    <ul class="mt-3">
+      {% for p in perlu_jadwal %}
+      <li class="row-hover -mx-2 flex items-center gap-3 rounded-xl px-2 py-3{% if not forloop.first %} border-t border-line{% endif %}">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold">{{ p.kode }} · {{ p.lahan.nama|default:"Lahan tanpa nama" }}</p>
+          <p class="truncate text-xs text-ink-soft">Petugas {{ p.petugas.display_name|default:"-" }} · usulan {{ p.tanggal_usulan|date:"j M" }}, {{ p.get_sesi_usulan_display }}</p>
+        </div>
+        <a href="{% url 'inspections:kelola_detail' p.pk %}" class="d-btn-sm">Tetapkan jadwal</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </article>
+
+  <div class="grid gap-4">
+    <article class="d-card p-5">
+      <h2 class="d-title">Jadwal terdekat</h2>
+      {% if jadwal_terdekat %}
+      <ul class="mt-3 space-y-3">
+        {% for p in jadwal_terdekat %}
+        <li class="flex items-start gap-3">
+          <span class="kpi-icon shrink-0"><svg class="ic ic-sm"><use href="#i-cal"/></svg></span>
+          <div class="min-w-0 text-[13px] leading-5">
+            <p class="font-bold">{{ p.tanggal_final|date:"D, j M" }} · {{ p.get_sesi_final_display }}</p>
+            <p class="truncate text-ink-soft"><a href="{% url 'inspections:kelola_detail' p.pk %}" class="hover:text-moss">{{ p.lahan.nama|default:"Lahan tanpa nama" }}</a> · {{ p.petugas.display_name|default:"-" }}</p>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-4 text-sm text-ink-soft">Belum ada jadwal yang akan datang.</p>
+      {% endif %}
+    </article>
+
+    <article class="d-card p-5">
+      <h2 class="d-title">Beban petugas</h2>
+      {% if beban_petugas %}
+      <ul class="mt-3 space-y-2.5">
+        {% for u in beban_petugas %}
+        <li class="flex items-center justify-between gap-3 text-sm"><span class="truncate">{{ u.display_name }}</span><span class="chip {% if u.aktif %}chip-sky{% else %}chip-paper{% endif %}">{{ u.aktif }} tugas</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-4 text-sm text-ink-soft">Belum ada akun petugas. Buat lewat <a href="{% url 'admin:index' %}" class="link">halaman admin</a>.</p>
+      {% endif %}
+    </article>
+  </div>
+</section>
+{% endblock %}

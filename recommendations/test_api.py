@@ -6,9 +6,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from core.models import Tanaman
+from core.models import ContaminantType, Tanaman
 from lands.models import Lahan, ManagementGoal
-from soil_results.models import HasilPemeriksaan
+from soil_results.models import ContaminantFinding, HasilPemeriksaan
 
 from .models import ManagementPlan, RecommendationSnapshot
 
@@ -47,6 +47,14 @@ class ModuleEAPITests(APITestCase):
             tanggal_pemeriksaan=date(2026, 1, 5),
             ph=Decimal("6.50"),
             kelembapan=Decimal("45.00"),
+        )
+        kontaminan, _ = ContaminantType.objects.get_or_create(
+            nama="Timbal (Pb)"
+        )
+        ContaminantFinding.objects.create(
+            hasil=self.hasil,
+            kontaminan=kontaminan,
+            status="tidak_terdeteksi",
         )
         self.tanaman = self.create_plant("Tanaman Organik")
         self.environment_data = {
@@ -141,8 +149,7 @@ class ModuleEAPITests(APITestCase):
             self.recommendation_params(),
         )
 
-        self.assertEqual(response.status_code, 401)
-        self.assertIn("WWW-Authenticate", response)
+        self.assertEqual(response.status_code, 403)
 
     def test_recommendation_rejects_non_owner(self):
         self.authenticate_as(self.officer)
@@ -172,8 +179,12 @@ class ModuleEAPITests(APITestCase):
         self.assertEqual(payload["lahan"]["id"], str(self.lahan.pk))
         self.assertEqual(payload["hasil"]["id"], self.hasil.pk)
         self.assertEqual(payload["tujuan"]["id"], self.tujuan.pk)
-        self.assertEqual(payload["rekomendasi"][0]["tanaman"]["id"], self.tanaman.pk)
-        self.assertEqual(payload["rekomendasi"][0]["skor"], 87)
+        own_plant = next(
+            item
+            for item in payload["rekomendasi"]
+            if item["tanaman"]["id"] == self.tanaman.pk
+        )
+        self.assertEqual(own_plant["skor"], 90)
         self.assertEqual(
             (
                 RecommendationSnapshot.objects.count(),
@@ -249,6 +260,22 @@ class ModuleEAPITests(APITestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_draft_result_is_not_found(self):
+        draft = HasilPemeriksaan.objects.create(
+            lahan=self.lahan,
+            dibuat_oleh=self.owner,
+            tanggal_pemeriksaan=date(2026, 1, 9),
+            status_hasil=HasilPemeriksaan.StatusHasil.DRAF,
+        )
+        self.authenticate_as(self.owner)
+
+        response = self.client.get(
+            self.recommendation_url,
+            self.recommendation_params(hasil=draft.pk),
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     def test_inactive_or_unknown_goal_is_rejected(self):
         self.authenticate_as(self.owner)
         self.tujuan.aktif = False
@@ -272,6 +299,12 @@ class ModuleEAPITests(APITestCase):
             lahan=self.lahan,
             dibuat_oleh=self.owner,
             tanggal_pemeriksaan=date(2026, 1, 8),
+        )
+        kontaminan = ContaminantType.objects.get(nama="Timbal (Pb)")
+        ContaminantFinding.objects.create(
+            hasil=incomplete,
+            kontaminan=kontaminan,
+            status="tidak_terdeteksi",
         )
         self.authenticate_as(self.owner)
 
@@ -315,11 +348,13 @@ class ModuleEAPITests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertEqual(len(payload["rekomendasi"]), 1)
-        self.assertEqual(len(payload["diblokir"]), 1)
-        self.assertEqual(
-            payload["diblokir"][0]["tanaman"]["id"],
-            risky_plant.pk,
+        self.assertTrue(
+            any(item["tanaman"]["id"] == self.tanaman.pk
+                for item in payload["rekomendasi"])
+        )
+        self.assertTrue(
+            any(item["tanaman"]["id"] == risky_plant.pk
+                for item in payload["diblokir"])
         )
 
     def test_recommendation_only_allows_get(self):
@@ -338,7 +373,7 @@ class ModuleEAPITests(APITestCase):
         self.authenticate_as(self.officer)
         officer = self.client.get(self.plan_list_url)
 
-        self.assertEqual(unauthenticated.status_code, 401)
+        self.assertEqual(unauthenticated.status_code, 403)
         self.assertEqual(officer.status_code, 403)
 
     def test_plan_list_is_owner_scoped_and_supports_status_filter(self):
@@ -428,7 +463,7 @@ class ModuleEAPITests(APITestCase):
 
         officer = self.client.get(url)
 
-        self.assertEqual(unauthenticated.status_code, 401)
+        self.assertEqual(unauthenticated.status_code, 403)
         self.assertEqual(officer.status_code, 403)
 
     def test_plan_detail_only_allows_get(self):

@@ -64,5 +64,35 @@ urlpatterns = [
         views.api_detail_hasil,
         name="api_detail_hasil",
     ),
+        path(
+        "<int:hasil_id>/kontaminan/tambah/",
+        views.tambah_kontaminan,
+        name="tambah_kontaminan",
+    ),
+        path(
+        "kontaminan/<int:temuan_id>/ubah/",
+        views.ubah_kontaminan,
+        name="ubah_kontaminan",
+    ),
+        path(
+        "kontaminan/<int:temuan_id>/hapus/",
+        views.hapus_kontaminan,
+        name="hapus_kontaminan",
+    ),
+        path(
+        "petugas/pesanan/<int:pesanan_id>/hasil/",
+        views.isi_hasil_petugas,
+        name="isi_hasil_petugas",
+    ),
+        path(
+        "<int:hasil_id>/finalisasi/",
+        views.finalisasi_hasil,
+        name="finalisasi_hasil",
+    ),
+        path(
+        "<int:hasil_id>/koreksi/",
+        views.koreksi_hasil,
+        name="koreksi_hasil",
+    ),
 
 ]

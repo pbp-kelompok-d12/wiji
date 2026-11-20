@@ -1,0 +1,33 @@
+{# Isi halaman detail. Dibungkus id supaya bisa diganti lewat HTMX setelah aksi berhasil #}
+<div id="konten-pesanan">
+  {% if pesan_sukses %}<div class="alert alert-success mt-5" role="status">{{ pesan_sukses }}</div>{% endif %}
+
+  <header class="mt-4 flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="eyebrow">Pesanan {{ pesanan.kode }}</p>
+      <h1 class="heading mt-1 flex flex-wrap items-center gap-3 text-[28px] leading-[34px]">
+        {{ pesanan.lahan.nama|default:"Lahan tanpa nama" }}
+        {% include 'inspections/partials/_status.html' %}
+      </h1>
+      <p class="mt-1 text-sm text-ink-soft">Pemeriksaan {{ pesanan.jenis.nama }} · dibuat {{ pesanan.dibuat_pada|date:"j M Y" }}</p>
+    </div>
+    {% if bisa_ubah or bisa_jadwal_ulang or bisa_batal %}
+    <div class="flex flex-wrap gap-2">
+      {% if bisa_ubah %}
+      <a href="{% url 'inspections:ubah_usulan' pesanan.pk %}" class="btn btn-outline !min-h-10"
+         hx-get="{% url 'inspections:ubah_usulan' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Ubah usulan</a>
+      {% endif %}
+      {% if bisa_jadwal_ulang %}
+      <a href="{% url 'inspections:jadwal_ulang' pesanan.pk %}" class="btn btn-outline !min-h-10"
+         hx-get="{% url 'inspections:jadwal_ulang' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Minta jadwal ulang</a>
+      {% endif %}
+      {% if bisa_batal %}
+      <a href="{% url 'inspections:batalkan_pesanan' pesanan.pk %}" class="btn btn-outline !min-h-10 !text-brick"
+         hx-get="{% url 'inspections:batalkan_pesanan' pesanan.pk %}" hx-target="#modal-slot" hx-swap="innerHTML">Batalkan pesanan</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </header>
+
+  {% include 'inspections/partials/_rincian_riwayat.html' with peran='pemilik' %}
+</div>
