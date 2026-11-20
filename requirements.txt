@@ -3,3 +3,4 @@ python-dotenv~=1.0
 whitenoise~=6.9
 gunicorn>=23.0
 Pillow~=13.0
+djangorestframework>=3.15,<4
