@@ -14,6 +14,19 @@ urlpatterns = [
     path('rekomendasi/', include('recommendations.urls')),
 ]
 
+# API DRF buat aplikasi mobile. Semua di bawah /api/v1/, tiap modul ngisi api_urls.py di app-nya
+# sendiri biar nggak rebutan file ini. Endpoint JSON lama (misalnya /lahan/api/) tetap jalan.
+urlpatterns += [
+    path('api/v1/', include('accounts.api_urls')),
+    path('api/v1/', include('lands.api_urls')),
+    path('api/v1/', include('inspections.api_urls')),
+    path('api/v1/', include('soil_results.api_urls')),
+    path('api/v1/', include('core.api_urls')),
+    path('api/v1/', include('recommendations.api_urls')),
+    # Tombol masuk/keluar di halaman Browsable API DRF (sesinya sama dengan login web)
+    path('api-auth/', include('rest_framework.urls')),
+]
+
 # Foto lahan (media/) disajikan Django sendiri, baik DEBUG nyala atau mati, karena WhiteNoise cuma
 # buat file statis. Dokumen laboratorium ada di private_media/ dan nggak lewat sini.
 def sajikan_media(request, path):
